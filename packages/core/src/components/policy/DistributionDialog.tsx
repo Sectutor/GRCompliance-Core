@@ -38,6 +38,7 @@ export function DistributionDialog({ policyId, clientId, open, onOpenChange }: D
     const handleDistribute = () => {
         if (selectedEmployees.length === 0) return;
         assignMutation.mutate({
+            clientId,
             policyId,
             employeeIds: selectedEmployees
         });
