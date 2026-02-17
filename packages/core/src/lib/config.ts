@@ -29,24 +29,31 @@ export const config = {
     isBillingEnabled: getEnv('ENABLE_BILLING', 'VITE_ENABLE_BILLING') === 'true',
 
     stripe: {
-        secretKey: getEnv('STRIPE_SECRET_KEY'),
-        webhookSecret: getEnv('STRIPE_WEBHOOK_SECRET'),
-        publishableKey: getEnv('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'VITE_STRIPE_PUBLISHABLE_KEY'),
-        prices: {
-            // "Self-Service" / Startup
-            startup: {
-                monthly: getEnv('STRIPE_PRICE_STARTUP_MONTHLY') || 'REDACTED',
-                yearly: getEnv('STRIPE_PRICE_STARTUP_YEARLY') || 'REDACTED',
-            },
-            // "Guided" / Pro
-            guided: {
-                monthly: getEnv('STRIPE_PRICE_GUIDED_MONTHLY') || 'REDACTED',
-                yearly: getEnv('STRIPE_PRICE_GUIDED_YEARLY') || 'REDACTED',
-            },
-            // "Managed" / Enterprise (Custom/Placeholder - usually Contact Sales)
-            managed: getEnv('STRIPE_PRICE_MANAGED') || 'REDACTED',
-        }
-    },
+            secretKey: getEnv('STRIPE_SECRET_KEY'),
+            webhookSecret: getEnv('STRIPE_WEBHOOK_SECRET'),
+            publishableKey: getEnv('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'VITE_STRIPE_PUBLISHABLE_KEY'),
+            prices: {
+                // "Self-Service" / Startup
+                startup: {
+                    monthly: getEnv('STRIPE_PRICE_STARTUP_MONTHLY') || 'REDACTED',
+                    yearly: getEnv('STRIPE_PRICE_STARTUP_YEARLY') || 'REDACTED',
+                },
+                // "Guided" / Pro
+                guided: {
+                    monthly: getEnv('STRIPE_PRICE_GUIDED_MONTHLY') || 'REDACTED',
+                    yearly: getEnv('STRIPE_PRICE_GUIDED_YEARLY') || 'REDACTED',
+                },
+                // "Managed" / Enterprise (Custom/Placeholder - usually Contact Sales)
+                managed: getEnv('STRIPE_PRICE_MANAGED') || 'REDACTED',
+            }
+        },
+
+        // Gumroad Configuration
+        gumroad: {
+            accessToken: getEnv('GUMROAD_ACCESS_TOKEN'),
+            webhookSecret: getEnv('GUMROAD_WEBHOOK_SECRET'),
+            productPermalink: getEnv('GUMROAD_PRODUCT_PERMALINK') || 'complianceos-enterprise',
+        },
 
     // Auth
     jwtSecret: getEnv('JWT_SECRET') || 'REDACTED',
