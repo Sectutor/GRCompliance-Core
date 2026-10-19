@@ -1198,7 +1198,7 @@ export async function ensureDefaultDataSeeded() {
 
   const [controlCount] = await db.select({ count: sql<number>`count(*)` }).from(controls);
 
-  if (!controlCount?.count) {
+  if (!Number(controlCount?.count)) {
 
     const defaultControls: InsertControl[] = [
 
@@ -1312,7 +1312,7 @@ export async function ensureDefaultDataSeeded() {
 
   const [nistCount] = await db.select({ count: sql<number>`count(*)` }).from(controls).where(eq(controls.framework, "NIST CSF"));
 
-  if (!nistCount?.count) {
+  if (!Number(nistCount?.count)) {
 
     const nistControls: InsertControl[] = [
 
@@ -1518,7 +1518,7 @@ export async function ensureDefaultDataSeeded() {
 
   const [templateCount] = await db.select({ count: sql<number>`count(*)` }).from(policyTemplates);
 
-  if (!templateCount?.count) {
+  if (!Number(templateCount?.count)) {
 
     const defaultTemplates: InsertPolicyTemplate[] = [
 

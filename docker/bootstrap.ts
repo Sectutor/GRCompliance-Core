@@ -1,8 +1,7 @@
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 import path from 'path';
 import { sql } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { hashPassword } from '../packages/core/src/server/localAuth';
 import { ensureDefaultDataSeeded, getDb, getUserByEmail, seedSampleData } from '../packages/core/src/db';
@@ -13,12 +12,21 @@ function sslOption(databaseUrl: string) {
     return disabled ? false : { rejectUnauthorized: false as const };
 }
 
-async function applyMigrations(databaseUrl: string) {
+async function applySchema(databaseUrl: string) {
     const client = postgres(databaseUrl, { max: 1, ssl: sslOption(databaseUrl) });
     try {
-        await client.unsafe('CREATE EXTENSION IF NOT EXISTS vector');
-        await migrate(drizzle(client), { migrationsFolder: path.join(process.cwd(), 'packages/core/drizzle') });
-        console.log('[bootstrap] Migrations applied');
+        const rows = await client`select to_regclass('public.users') as exists`;
+        if (rows[0]?.exists) {
+            console.log('[bootstrap] Schema already present');
+            return;
+        }
+        const schemaPath = path.join(process.cwd(), 'docker/schema.sql');
+        const ddl = fs.readFileSync(schemaPath, 'utf8')
+            .split('\n')
+            .filter((line) => !line.startsWith('\\'))
+            .join('\n');
+        await client.unsafe(ddl);
+        console.log('[bootstrap] Schema applied');
     } finally {
         await client.end({ timeout: 5 });
     }
@@ -89,7 +97,7 @@ async function main() {
     if (!databaseUrl) {
         throw new Error('DATABASE_URL is required');
     }
-    await applyMigrations(databaseUrl);
+    await applySchema(databaseUrl);
     await ensureDefaultDataSeeded();
     await ensureLocalCredentialsTable();
     if (process.env.AUTH_MODE === 'local') {
