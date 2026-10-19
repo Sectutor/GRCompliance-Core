@@ -26,9 +26,10 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
       .input(z.any())
       .query(async ({ ctx, input }: any) => {
         const dbConn = await db.getDb();
-        // Safely extract framework from input
-        const frameworkFilter = input && typeof input === 'object' && 'framework' in input
-          ? String(input.framework)
+        // A missing framework arrives as null from the client. Treat that as "all frameworks".
+        const rawFramework = input && typeof input === 'object' ? input.framework : undefined;
+        const frameworkFilter = typeof rawFramework === 'string' && rawFramework.trim() && rawFramework !== 'null' && rawFramework !== 'undefined'
+          ? rawFramework.trim()
           : undefined;
 
         // Safely extract clientId from input
