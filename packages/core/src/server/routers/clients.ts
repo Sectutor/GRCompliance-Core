@@ -667,7 +667,6 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     user = await db.createUser({
                         email: input.email,
                         name: input.email.split('@')[0],
-                        password: 'temp_password_123'
                     });
                 }
                 if (user) {

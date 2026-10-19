@@ -9,13 +9,21 @@ GIT_REF="${GRC_REF:-main}"
 IMAGE="ghcr.io/sectutor/grcompliance-core"
 INSTALL_DIR="${GRC_HOME:-${HOME}/grcompliance}"
 UPGRADE=0
+BIND_LOCAL=0
+if [[ "${GRC_BIND_LOCAL:-0}" == "1" ]]; then
+  BIND_LOCAL=1
+fi
+HEALTH_RETRIES="${HEALTH_RETRIES:-90}"
 
 usage() {
   cat <<'EOF'
-Usage: install.sh [--upgrade] [--dir PATH]
+Usage: install.sh [--upgrade] [--bind-local] [--dir PATH]
 
-  --dir PATH   Install directory (default: ~/grcompliance or $GRC_HOME)
-  --upgrade    Pull the current image, or rebuild from source, without touching .env
+  --dir PATH     Install directory (default: ~/grcompliance or $GRC_HOME)
+  --upgrade      Pull the current image, or rebuild from source, without touching .env
+  --bind-local   Also publish Postgres and Redis on 127.0.0.1 (off by default)
+
+  HEALTH_RETRIES How many /health attempts before failure (default: 90)
 EOF
 }
 
@@ -23,6 +31,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --upgrade)
       UPGRADE=1
+      shift
+      ;;
+    --bind-local)
+      BIND_LOCAL=1
       shift
       ;;
     --dir)
@@ -76,11 +88,15 @@ require_openssl() {
     echo "curl is required to download the compose file." >&2
     exit 1
   fi
+  if ! [[ "${HEALTH_RETRIES}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "HEALTH_RETRIES must be a positive integer (got: ${HEALTH_RETRIES})." >&2
+    exit 1
+  fi
 }
 
 write_env() {
   local postgres_password redis_password jwt_secret encryption_key admin_password
-  local app_port admin_email postgres_user postgres_db grc_version
+  local app_port admin_email postgres_user postgres_db grc_version mode
   postgres_password="$(openssl rand -hex 24)"
   redis_password="$(openssl rand -hex 24)"
   jwt_secret="$(openssl rand -hex 32)"
@@ -108,6 +124,15 @@ GRC_VERSION=${grc_version}
 AUTH_MODE=local
 EOF
   chmod 600 .env
+  if stat -c '%a' .env >/dev/null 2>&1; then
+    mode="$(stat -c '%a' .env)"
+  else
+    mode="$(stat -f '%OLp' .env)"
+  fi
+  if [[ "${mode}" != "600" ]]; then
+    echo "Refusing to continue: ${INSTALL_DIR}/.env mode is ${mode}, expected 600." >&2
+    exit 1
+  fi
   echo "Created ${INSTALL_DIR}/.env with mode 600."
   echo "Admin email: ${admin_email}"
   echo "Admin password (shown once): ${admin_password}"
@@ -115,10 +140,20 @@ EOF
 }
 
 download_compose() {
-  local tmp
-  tmp="$(mktemp)"
-  curl -fsSL "${RAW_BASE}/docker-compose.yml" -o "${tmp}"
-  mv "${tmp}" docker-compose.yml
+  local tmp name
+  for name in docker-compose.yml docker-compose.local-ports.yml; do
+    tmp="$(mktemp)"
+    curl -fsSL "${RAW_BASE}/${name}" -o "${tmp}"
+    mv "${tmp}" "${name}"
+  done
+}
+
+compose_cmd() {
+  if [[ "${BIND_LOCAL}" -eq 1 ]]; then
+    docker compose -f docker-compose.yml -f docker-compose.local-ports.yml "$@"
+  else
+    docker compose -f docker-compose.yml "$@"
+  fi
 }
 
 ensure_source() {
@@ -145,27 +180,31 @@ app_port_from_env() {
 }
 
 wait_for_health() {
-  local port ready
+  local port attempt code
   port="$(app_port_from_env)"
-  ready=0
-  echo "Waiting for GRCompliance to become healthy on port ${port}..."
-  for _ in $(seq 1 90); do
-    if curl -fsS "http://127.0.0.1:${port}/health" >/dev/null 2>&1; then
-      ready=1
-      break
+  echo "Waiting for GRCompliance to return HTTP 200 on port ${port} (${HEALTH_RETRIES} attempts)..."
+  for attempt in $(seq 1 "${HEALTH_RETRIES}"); do
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:${port}/health" 2>/dev/null || true)"
+    if [[ "${code}" == "200" ]]; then
+      echo "GRCompliance is up: http://127.0.0.1:${port}"
+      echo "Sign in with the administrator email in .env."
+      echo "The first start loads the Latore LTD demo workspace."
+      if [[ "${UPGRADE}" -eq 1 ]]; then
+        echo "Upgrade finished. The existing .env was left unchanged."
+      fi
+      return 0
     fi
-    sleep 5
+    if [[ "${attempt}" -lt "${HEALTH_RETRIES}" ]]; then
+      sleep 5
+    fi
   done
-  if [[ "${ready}" -ne 1 ]]; then
-    echo "GRCompliance did not become healthy. Inspect logs with: docker compose logs app" >&2
-    exit 1
-  fi
-  echo "GRCompliance is up: http://127.0.0.1:${port}"
-  echo "Sign in with the administrator email in .env."
-  echo "The first start loads the Latore LTD demo workspace."
-  if [[ "${UPGRADE}" -eq 1 ]]; then
-    echo "Upgrade finished. The existing .env was left unchanged."
-  fi
+  cat <<EOF >&2
+GRCompliance did not return HTTP 200 from /health after ${HEALTH_RETRIES} attempts.
+Inspect the stack from ${INSTALL_DIR}:
+  docker compose logs
+  docker compose logs app
+EOF
+  exit 1
 }
 
 start_stack() {
@@ -173,12 +212,12 @@ start_stack() {
   version="$(awk -F= '$1=="GRC_VERSION" { print $2 }' .env)"
   version="${version:-latest}"
   export GRC_VERSION="${version}"
-  if docker compose pull app; then
-    docker compose up -d --no-build --remove-orphans
+  if compose_cmd pull app; then
+    compose_cmd up -d --no-build --remove-orphans
   else
     echo "Published image ${IMAGE}:${version} is not available. Building from source."
     ensure_source
-    GRC_BUILD_CONTEXT="${INSTALL_DIR}/src" docker compose up -d --build --remove-orphans
+    GRC_BUILD_CONTEXT="${INSTALL_DIR}/src" compose_cmd up -d --build --remove-orphans
   fi
 }
 

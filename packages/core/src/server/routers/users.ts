@@ -488,7 +488,6 @@ export const usersSubRouter = router({
             await db.createUser({
                 email: input.email,
                 name: input.name,
-                password: 'temp_password_123'
             });
 
             // If role is admin/editor globally, we update it

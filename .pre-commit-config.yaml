@@ -1,0 +1,14 @@
+# Install with: pre-commit install
+# The repo also ships .githooks/pre-commit for clones that do not use pre-commit.
+repos:
+  - repo: local
+    hooks:
+      - id: public-tree
+        name: Reject internal docs
+        entry: bash scripts/check-public-tree.sh
+        language: system
+        pass_filenames: false
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks

@@ -6,13 +6,26 @@
   Creates ~/grcompliance (or -Dir), writes a mode-restricted .env with random
   secrets, downloads docker-compose.yml, and starts the stack.
   Existing .env files are never overwritten. -Upgrade pulls or rebuilds.
+  -BindLocal publishes Postgres and Redis on 127.0.0.1 only.
+  HEALTH_RETRIES sets how many /health attempts run before a non-zero exit.
 #>
 param(
     [switch]$Upgrade,
+    [switch]$BindLocal,
     [string]$Dir = $(if ($env:GRC_HOME) { $env:GRC_HOME } else { Join-Path $HOME "grcompliance" })
 )
 
 $ErrorActionPreference = "Stop"
+$script:BindLocal = $BindLocal.IsPresent -or ($env:GRC_BIND_LOCAL -eq "1")
+if ($env:HEALTH_RETRIES) {
+    if ($env:HEALTH_RETRIES -notmatch '^[1-9][0-9]*$') {
+        Write-Error "HEALTH_RETRIES must be a positive integer (got: $($env:HEALTH_RETRIES))."
+        exit 1
+    }
+    $script:HealthRetries = [int]$env:HEALTH_RETRIES
+} else {
+    $script:HealthRetries = 90
+}
 $RawBase = if ($env:GRC_RAW_BASE) { $env:GRC_RAW_BASE } else { "https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main" }
 $GitUrl = if ($env:GRC_GIT_URL) { $env:GRC_GIT_URL } else { "https://github.com/Sectutor/GRCompliance-Core.git" }
 $GitRef = if ($env:GRC_REF) { $env:GRC_REF } else { "main" }
@@ -89,13 +102,24 @@ function Get-AppPort {
     return "3001"
 }
 
+function Invoke-Compose {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$ComposeArgs)
+    if ($script:BindLocal) {
+        & docker compose -f docker-compose.yml -f docker-compose.local-ports.yml @ComposeArgs
+    } else {
+        & docker compose -f docker-compose.yml @ComposeArgs
+    }
+}
+
 Require-Docker
 New-Item -ItemType Directory -Force -Path $Dir | Out-Null
 Set-Location $Dir
 
-$composeTmp = Join-Path $Dir "docker-compose.yml.download"
-Invoke-WebRequest -Uri "$RawBase/docker-compose.yml" -OutFile $composeTmp
-Move-Item -Force $composeTmp "docker-compose.yml"
+foreach ($name in @("docker-compose.yml", "docker-compose.local-ports.yml")) {
+    $composeTmp = Join-Path $Dir "$name.download"
+    Invoke-WebRequest -Uri "$RawBase/$name" -OutFile $composeTmp
+    Move-Item -Force $composeTmp $name
+}
 
 $envPath = Join-Path $Dir ".env"
 if (Test-Path $envPath) {
@@ -107,9 +131,9 @@ if (Test-Path $envPath) {
 $versionLine = Select-String -Path .env -Pattern "^GRC_VERSION=" | Select-Object -First 1
 $env:GRC_VERSION = if ($versionLine) { ($versionLine.Line -split "=", 2)[1] } else { "latest" }
 
-docker compose pull app
+Invoke-Compose pull app
 if ($LASTEXITCODE -eq 0) {
-    docker compose up -d --no-build --remove-orphans
+    Invoke-Compose up -d --no-build --remove-orphans
 } else {
     Write-Host "Published image ${Image}:$($env:GRC_VERSION) is not available. Building from source."
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -126,23 +150,29 @@ if ($LASTEXITCODE -eq 0) {
         if ($LASTEXITCODE -ne 0) { Fail "git clone failed" }
     }
     $env:GRC_BUILD_CONTEXT = Join-Path $Dir "src"
-    docker compose up -d --build --remove-orphans
+    Invoke-Compose up -d --build --remove-orphans
 }
 if ($LASTEXITCODE -ne 0) { Fail "docker compose up failed" }
 
 $port = Get-AppPort
-Write-Host "Waiting for GRCompliance to become healthy on port $port..."
+Write-Host "Waiting for GRCompliance to return HTTP 200 on port $port ($script:HealthRetries attempts)..."
 $ready = $false
-for ($i = 0; $i -lt 90; $i++) {
+for ($i = 0; $i -lt $script:HealthRetries; $i++) {
     try {
-        $response = Invoke-WebRequest -Uri "http://127.0.0.1:$port/health" -UseBasicParsing -TimeoutSec 5
+        $response = Invoke-WebRequest -Uri "http://127.0.0.1:${port}/health" -UseBasicParsing -TimeoutSec 5
         if ($response.StatusCode -eq 200) { $ready = $true; break }
     } catch {
-        Start-Sleep -Seconds 5
+        # Not listening yet, or a non-success status. Keep retrying.
     }
+    if ($i -lt ($script:HealthRetries - 1)) { Start-Sleep -Seconds 5 }
 }
 if (-not $ready) {
-    Fail "GRCompliance did not become healthy. Inspect logs with: docker compose logs app"
+    Fail @"
+GRCompliance did not return HTTP 200 from /health after $script:HealthRetries attempts.
+Inspect the stack from ${Dir}:
+  docker compose logs
+  docker compose logs app
+"@
 }
 Write-Host "GRCompliance is up: http://127.0.0.1:$port"
 Write-Host "Sign in with the administrator email in .env."

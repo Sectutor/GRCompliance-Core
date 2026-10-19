@@ -49,7 +49,15 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1 | iex
 ```
 
-When the health check passes, open the printed URL and sign in with the administrator email. The installer prints the administrator password once. It is stored only in `~/grcompliance/.env` (mode 600). The first start also loads the **Latore LTD** demo workspace, including sample risks, controls, policies, and evidence.
+When `/health` returns HTTP 200, the installer prints the URL. It prints the administrator password once, earlier, while it writes `~/grcompliance/.env` (mode 600). The administrator email is `admin@grcompliance.local`. The first start also loads the **Latore LTD** demo workspace, including sample risks, controls, policies, and evidence.
+
+If `/health` still has not returned HTTP 200 after the retries, the installer exits non-zero and prints `docker compose logs` hints. It does not print the ready message. Set `HEALTH_RETRIES` to change the attempt count (default 90, five seconds apart).
+
+Publish Postgres and Redis on loopback only when you need a host client. The default leaves them on the compose network:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --bind-local
+```
 
 Choose another directory with `--dir` or `GRC_HOME`:
 
@@ -72,7 +80,13 @@ Replace every `replace-with-openssl-rand-hex` value. Generate them with `openssl
 docker compose up -d --build
 ```
 
-The app listens on `APP_PORT` (3001 by default). Postgres and Redis are not published to the host. The database image is Postgres 16 with pgvector, which the schema uses for embeddings.
+The app listens on `APP_PORT` (3001 by default). Postgres and Redis are not published to the host. To bind them to `127.0.0.1` only, add `docker-compose.local-ports.yml`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local-ports.yml up -d --build
+```
+
+The database image is Postgres 16 with pgvector, which the schema uses for embeddings. Redis starts with `requirepass` and refuses connections that omit the password.
 
 ## Configuration
 
@@ -91,6 +105,10 @@ The app listens on `APP_PORT` (3001 by default). Postgres and Redis are not publ
 | `APP_PORT` | Host port mapped to the app. |
 | `GRC_VERSION` | Image tag. `latest`, or a `v*` release tag. |
 | `AUTH_MODE` | `local` for the bundled login. `supabase` if you bring your own Supabase project. |
+| `HEALTH_RETRIES` | Installer `/health` attempts before a non-zero exit. Default 90. |
+| `GRC_BIND_LOCAL` | Set to `1` to publish Postgres and Redis on `127.0.0.1` only. |
+| `POSTGRES_HOST_PORT` | Loopback port for Postgres when `--bind-local` is set. Default 5432. |
+| `REDIS_HOST_PORT` | Loopback port for Redis when `--bind-local` is set. Default 6379. |
 
 Optional integration keys (`OPENAI_API_KEY`, `SENDGRID_API_KEY`, and similar) stay empty unless you set them from your own secret store.
 

@@ -60,7 +60,7 @@ Install the repository git hooks once per clone:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook rejects internal-doc paths and runs gitleaks on staged changes when gitleaks is installed. CI runs the same checks.
+The pre-commit hook rejects internal-doc paths and runs gitleaks on staged changes when gitleaks is installed. [`.pre-commit-config.yaml`](.pre-commit-config.yaml) is the same check for the pre-commit framework (`pre-commit install`). CI scans the current tree and, in git mode, only the commits added by the push or pull request.
 
 ## Next
 

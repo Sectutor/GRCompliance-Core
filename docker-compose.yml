@@ -3,6 +3,8 @@ name: grcompliance
 services:
   db:
     image: pgvector/pgvector:pg16
+    # No host ports. Postgres stays on the compose network.
+    # docker-compose.local-ports.yml can bind it to 127.0.0.1.
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-grc}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
@@ -19,13 +21,15 @@ services:
 
   redis:
     image: redis:7-alpine
+    # No host ports. Redis stays on the compose network and requires a password.
+    # docker-compose.local-ports.yml can bind it to 127.0.0.1.
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?}
-    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$REDIS_PASSWORD\""]
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
     volumes:
       - grc_redis:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 20
