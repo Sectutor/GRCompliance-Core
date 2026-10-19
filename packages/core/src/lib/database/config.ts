@@ -76,7 +76,7 @@ export class DatabaseManager {
         max: this.config.primary.maxConnections,
         connection: {
           statement_timeout: this.config.primary.statementTimeout,
-          application_name: 'compliance-os-primary',
+          application_name: 'grcompliance-primary',
         },
         onconnect: (client) => {
           console.log(`[DB] Primary connection established: ${client.processID}`);
@@ -96,7 +96,7 @@ export class DatabaseManager {
           max: this.config.readReplica.maxConnections,
           connection: {
             statement_timeout: 60000, // Longer timeout for read queries
-            application_name: 'compliance-os-read',
+            application_name: 'grcompliance-read',
           },
           onconnect: (client) => {
             console.log(`[DB] Read replica connection established: ${client.processID}`);

@@ -14,7 +14,7 @@ const LicenseTestPage: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">License Validation Test</h1>
           <p className="text-muted-foreground">
-            Test page for the ComplianceOS license validation system
+            Test page for the GRCompliance license validation system
           </p>
         </div>
         

@@ -27,6 +27,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
 import { useClientContext } from "@/contexts/ClientContext";
 import { resolveNavigationPath } from "@/lib/navigation";
+import { postureScore } from "@/lib/postureScore";
 
 // Helper to determine compliance status based on rate - Plain Language Version
 function getComplianceStatus(rate: number) {
@@ -81,7 +82,7 @@ function StatusIndicator({ rate }: { rate: number }) {
       <span className={`text-xs font-bold tracking-wider ${status.textColor}`}>
         {status.label}
       </span>
-      <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
+      <span className="text-xs text-muted-foreground text-center whitespace-normal">
         {status.description}
       </span>
     </>
@@ -251,12 +252,14 @@ export default function Dashboard() {
     count: count as number
   }));
 
-  // Calculate overall compliance rate
-  const totalControlsAssigned = (status.implemented || 0) +
-    (status.inProgress || 0) +
-    (status.notStarted || 0);
-  const overallComplianceRate = totalControlsAssigned > 0 ?
-    Math.round(((status.implemented || 0) / totalControlsAssigned) * 100) : 0;
+  const posture = postureScore({
+    implemented: status.implemented,
+    inProgress: status.inProgress,
+    notStarted: status.notStarted,
+    notApplicable: status.notApplicable,
+  });
+  const totalControlsAssigned = posture.inScope;
+  const overallComplianceRate = posture.rate ?? 0;
 
   // Show onboarding only if: no clients, not loading, and hasn't been shown this session
   const shouldShowOnboarding = !statsLoading && !clientsLoading && clients && clients.length === 0 && !hasSeenOnboardingThisSession;
@@ -366,7 +369,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="relative min-h-[calc(100vh-3.5rem)] -mx-4 -my-8 px-4 py-8 md:-mx-20 md:-mt-8 md:pl-20 md:pr-28 bg-slate-50/50 text-slate-900 overflow-hidden page-transition">
+      <div className="relative min-h-[calc(100vh-3.5rem)] -mx-4 -my-8 px-4 py-8 md:-mx-8 md:-mt-8 md:px-8 bg-slate-50/50 text-slate-900 overflow-x-clip page-transition">
         {/* Ambient Light Mode Background Glows */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
@@ -374,7 +377,7 @@ export default function Dashboard() {
           <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[50%] rounded-full bg-indigo-500/10 blur-[120px]" />
           <div className="absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none"></div>
         </div>
-        <div className="relative z-10 space-y-8">
+        <div className="relative z-10 space-y-8 min-w-0">
           <div className="flex items-center justify-between">
             <Breadcrumb
               items={[
@@ -412,18 +415,20 @@ export default function Dashboard() {
 
 
           {/* Animated Welcome & AI Command Center */}
-          <div className="flex flex-col lg:flex-row gap-8 items-start justify-between relative z-10 w-full pt-4">
-            <div className="flex-1 w-full space-y-6">
+          <div className="flex flex-col xl:flex-row gap-6 items-stretch justify-between relative z-10 w-full min-w-0 pt-4">
+            <div className="flex-1 min-w-0 w-full space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="text-3xl lg:text-5xl font-black text-slate-900 tracking-tight">
+                <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-slate-900 tracking-tight break-words">
                   Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Commander'}.
                 </h1>
                 <p className="text-slate-600 font-medium mt-2 text-lg">
-                  Your compliance posture is active and scanning. Here is your daily briefing.
+                  {totalControlsAssigned > 0
+                    ? `${overallComplianceRate}% of in-scope controls are implemented.`
+                    : "Assign controls to calculate a posture score."}
                 </p>
               </motion.div>
 
@@ -443,12 +448,12 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">AI Posture Insights</h3>
                   </div>
-                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Scanning Live</Badge>
+                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Workspace data</Badge>
                 </div>
 
                 <div className="space-y-4 relative z-10 mt-6">
                   {insights.length > 0 ? insights.slice(0, 3).map((insight: any) => (
-                    <div key={insight.id} className="flex gap-4 p-4 rounded-2xl bg-slate-100 border border-white/60 hover:bg-white/10 hover:border-white/20 transition-all group/item">
+                    <div key={insight.id} className="flex flex-wrap gap-4 p-4 rounded-2xl bg-slate-100 border border-white/60 hover:bg-white/10 hover:border-white/20 transition-all group/item min-w-0">
                       <div className="mt-0.5">
                         {insight.type === 'critical' ? <AlertCircle className="h-5 w-5 text-red-400" /> :
                           insight.type === 'warning' ? <Clock className="h-5 w-5 text-amber-400" /> :
@@ -459,7 +464,7 @@ export default function Dashboard() {
                         <h4 className="text-slate-900 font-bold text-sm truncate">{insight.title}</h4>
                         <p className="text-slate-500 text-xs mt-1 leading-relaxed truncate">{insight.description}</p>
                       </div>
-                      <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase tracking-wider font-bold text-slate-900/70 hover:text-slate-900 bg-slate-100 hover:bg-white/20 ml-2" onClick={() => setLocation(resolveNavigationPath(insight.link, effectiveClientId ? parseInt(effectiveClientId) : null))}>
+                      <Button variant="ghost" size="sm" className="h-8 shrink-0 text-[10px] uppercase tracking-wider font-bold text-slate-900/70 hover:text-slate-900 bg-slate-100 hover:bg-white/20" onClick={() => setLocation(resolveNavigationPath(insight.link, effectiveClientId ? parseInt(effectiveClientId) : null))}>
                         {insight.action} <ArrowRight className="h-3 w-3 ml-2 opacity-50 group-hover/item:opacity-100 group-hover/item:translate-x-1 transition-all" />
                       </Button>
                     </div>
@@ -477,35 +482,44 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, type: "spring" }}
-              className="w-full lg:w-96 shrink-0"
+              className="w-full min-w-0 xl:w-80 xl:max-w-sm xl:shrink-0"
               id="dash-posture-score"
             >
               {/* Real-time Posture Score */}
-              <div className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-sm rounded-3xl p-8 relative overflow-hidden group shadow-2xl h-full flex flex-col items-center justify-center text-center">
+              <div className="bg-white/60 backdrop-blur-xl border border-slate-200 shadow-sm rounded-3xl p-6 sm:p-8 relative overflow-hidden group shadow-2xl h-full flex flex-col items-center justify-center text-center min-w-0 max-w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-duration-500 pointer-events-none" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-[80px] pointer-events-none" />
 
-                <h3 className="text-sm font-extrabold text-slate-500 uppercase tracking-widest mb-6 relative z-10">Live Posture Score</h3>
+                <h3 className="text-sm font-extrabold text-slate-500 uppercase tracking-wide mb-6 relative z-10 max-w-full">Live Posture Score</h3>
 
                 <div className="relative z-10">
-                  <CircularProgress
-                    value={overallComplianceRate}
-                    size={220}
-                    strokeWidth={16}
-                    showValue={true}
-                    color={overallComplianceRate >= 80 ? '#10b981' : overallComplianceRate >= 50 ? '#f59e0b' : '#ef4444'}
-                  />
-                  <div className="mt-8 flex items-center justify-center gap-2">
-                    <StatusIndicator rate={overallComplianceRate} />
-                  </div>
+                  {totalControlsAssigned > 0 ? (
+                    <>
+                      <CircularProgress
+                        value={overallComplianceRate}
+                        size={180}
+                        strokeWidth={14}
+                        showValue={true}
+                        color={overallComplianceRate >= 80 ? '#10b981' : overallComplianceRate >= 50 ? '#f59e0b' : '#ef4444'}
+                      />
+                      <div className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-2 max-w-full">
+                        <StatusIndicator rate={overallComplianceRate} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-16 px-4">
+                      <p className="text-lg font-semibold text-slate-900">No score yet</p>
+                      <p className="text-sm text-slate-500 mt-2 max-w-xs">An empty workspace is not a critical finding. Assign controls to calculate posture.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
           </div>
 
           {/* Filters & Actions Header */}
-          <div className="flex items-center flex-wrap justify-between mt-8 relative z-10 pb-4 border-b border-slate-200" id="dash-filters-bar">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 mt-8 relative z-10 pb-4 border-b border-slate-200 min-w-0" id="dash-filters-bar">
+            <div className="flex flex-wrap items-center gap-4 min-w-0">
               <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-4 md:mb-0">Command Interface</h2>
               {/* View Mode Toggle */}
               <div className="flex items-center bg-slate-100 rounded-lg p-1">
@@ -535,7 +549,7 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-            <div className="flex gap-4 items-center">
+            <div className="flex flex-wrap gap-3 items-center min-w-0">
               {/* Light Client Selector */}
               {clients && clients.length > 0 && (
                 <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500/50 group">
@@ -569,6 +583,7 @@ export default function Dashboard() {
                   <option value="" className="bg-white">All Protocols</option>
                   <option value="ISO 27001" className="bg-white text-slate-900">ISO 27001</option>
                   <option value="SOC 2" className="bg-white text-slate-900">SOC 2</option>
+                  <option value="NIS2" className="bg-white text-slate-900">NIS2</option>
                 </select>
                 <div className="ml-[-1.5rem] pointer-events-none text-slate-500 group-hover:text-slate-900 transition-colors">
                   <ChevronDown className="w-4 h-4" />
@@ -602,14 +617,12 @@ export default function Dashboard() {
                 className="space-y-8"
               >
                 {/* Executive Metrics Row */}
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 min-w-0">
                   <AnimatedMetricCard
                     title="Overall Compliance"
-                    value={`${overallComplianceRate}%`}
+                    value={totalControlsAssigned > 0 ? `${overallComplianceRate}%` : "—"}
                     icon={<Shield className="w-5 h-5" />}
-                    trend="up"
-                    trendLabel="12%"
-                    variant="success"
+                    variant={totalControlsAssigned === 0 ? "default" : overallComplianceRate >= 80 ? "success" : overallComplianceRate >= 50 ? "warning" : "error"}
                   />
                   <AnimatedMetricCard
                     title="Risk Profile"
@@ -635,7 +648,7 @@ export default function Dashboard() {
                       </div>
                       Compliance Performance Trend
                     </CardTitle>
-                    <CardDescription className="font-medium text-slate-500">Overall compliance improvement over the last 6 months</CardDescription>
+                    <CardDescription className="font-medium text-slate-500">Historical scores appear here after they are recorded.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 relative z-10">
                     {scoresLoading ? (
@@ -697,7 +710,7 @@ export default function Dashboard() {
                         <EmptyState
                           icon={Activity}
                           title="No Trend Data"
-                          description="Complete your first assessments to start seeing compliance trends."
+                          description="This workspace does not have stored historical scores yet."
                           className="border-none bg-transparent"
                         />
                       </div>
@@ -706,7 +719,7 @@ export default function Dashboard() {
                 </Card>
 
                 {/* Sub-metrics Row */}
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 min-w-0">
                   {/* Overdue Vendor Assessments - High Priority */}
                   <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/overdue rounded-3xl border-slate-200">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-500 to-rose-500" />
@@ -820,13 +833,13 @@ export default function Dashboard() {
                 className="space-y-8"
               >
                 {/* Full Metrics Row */}
-                <div className="dashboard-grid grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div className="dashboard-grid grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 min-w-0">
                   <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden group/metric rounded-3xl hover:-translate-y-1 transition-all duration-300 shadow-sm border-slate-200">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Total Clients</p>
+                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide leading-snug break-words">Total Clients</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -847,7 +860,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Master Controls</p>
+                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide leading-snug break-words">Master Controls</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -868,7 +881,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Policy Templates</p>
+                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide leading-snug break-words">Policy Templates</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -889,7 +902,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Flagged Risks</p>
+                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide leading-snug break-words">Flagged Risks</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -910,7 +923,7 @@ export default function Dashboard() {
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest leading-loose">Compliance</p>
+                          <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide leading-snug break-words">Compliance</p>
                           {statsLoading ? (
                             <Skeleton className="h-8 w-16 mt-2" />
                           ) : (
@@ -928,7 +941,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Charts Row */}
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 min-w-0">
                   {/* Control Status Chart */}
                   <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-50 pointer-events-none" />
@@ -1078,7 +1091,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Detailed Blocks */}
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 min-w-0">
                   <Card className="bg-white/60 backdrop-blur-xl relative overflow-hidden rounded-3xl border-slate-200">
                     <CardHeader className="pb-4 border-b border-slate-200">
                       <CardTitle className="text-lg font-bold">Client Overview</CardTitle>
@@ -1149,7 +1162,7 @@ export default function Dashboard() {
               <CardDescription className="text-slate-500 font-medium">Common tasks to manage compliance</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 relative z-10">
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 min-w-0">
                 {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'owner') && (
                   <>
                     <Button variant="outline" className="justify-start h-auto py-5 px-5 rounded-2xl border-white hover:border-[#0284c7]/30 bg-slate-100 backdrop-blur-sm hover:bg-white/80 shadow-sm hover:shadow-md transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-[#0284c7]/20" onClick={() => setLocation('/clients')}>

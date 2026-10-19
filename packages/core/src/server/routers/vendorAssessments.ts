@@ -278,7 +278,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
 
                 await EmailService.send({
                     to: input.recipientEmail,
-                    subject: "Document & Assessment Request - ComplianceOS",
+                    subject: "Document & Assessment Request - GRCompliance",
                     html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                             <h2 style="color: #1a1a1a;">Information Request</h2>

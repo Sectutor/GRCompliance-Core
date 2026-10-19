@@ -132,7 +132,7 @@ export default function VendorQuestionnairePortal() {
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold text-slate-900 leading-tight">Security Assessment</h1>
-                                <p className="text-sm text-slate-500 hidden sm:block">Powered by ComplianceOS TPRM</p>
+                                <p className="text-sm text-slate-500 hidden sm:block">Powered by GRCompliance TPRM</p>
                             </div>
                         </div>
 

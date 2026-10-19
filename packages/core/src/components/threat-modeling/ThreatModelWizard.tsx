@@ -366,7 +366,7 @@ export function ThreatModelWizard() {
             });
 
             const json = JSON.stringify({
-                summary: { title: existingModel.name, owner: "ComplianceOS", description: "Exported from ComplianceOS" },
+                summary: { title: existingModel.name, owner: "GRCompliance", description: "Exported from GRCompliance" },
                 detail: { diagrams: [{ title: "Main", cells }] }
             }, null, 2);
 

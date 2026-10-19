@@ -156,7 +156,7 @@ export const ExportStep = () => {
                     <ShieldCheck className="h-4 w-4 text-primary" />
                     <AlertTitle>Ready for Registry</AlertTitle>
                     <AlertDescription>
-                        This file can be uploaded to the **Marketplace** or included in the ComplianceOS core registry to make it available for all your clients.
+                        This file can be uploaded to the **Marketplace** or included in the GRCompliance core registry to make it available for all your clients.
                     </AlertDescription>
                 </Alert>
             )}

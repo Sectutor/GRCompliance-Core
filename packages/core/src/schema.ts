@@ -798,6 +798,12 @@ export const users = pgTable("users", {
 
 
 
+export const localCredentials = pgTable("local_credentials", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // ==========================================
 // Auditor Portal Module
 // ==========================================

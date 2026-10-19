@@ -14,10 +14,10 @@ const soc2PolicyManifest: SOC2PolicyManifest = {
   name: 'SOC 2 Policy Template',
   version: '1.0.0',
   description: 'Comprehensive SOC 2 compliance policy template covering all Trust Services Criteria',
-  author: 'ComplianceOS Team',
+  author: 'GRCompliance Team',
   category: 'template',
   tags: ['soc2', 'policy', 'security', 'trust-services'],
-  homepage: 'https://complianceos.com/templates/soc2',
+  homepage: 'https://grcompliance.com/templates/soc2',
   compatibility: {
     minVersion: '1.0.0',
   },

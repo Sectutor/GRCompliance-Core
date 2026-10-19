@@ -1,7 +1,7 @@
 /**
  * Integration Types
  * 
- * Core types for the ComplianceOS integration marketplace.
+ * Core types for the GRCompliance integration marketplace.
  * This defines how integrations are structured, connected, and managed.
  */
 
@@ -108,6 +108,7 @@ export interface IntegrationManifest {
     };
 
     // Version info
+    // Property name is the integration manifest contract. Do not rename.
     complianceosVersion?: string; // Min required version
 }
 

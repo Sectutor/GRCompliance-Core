@@ -22,6 +22,7 @@ export default function GDPRBanner() {
       return;
     }
 
+    // Key kept so a browser that already stored cookie consent is still recognized.
     const consent = localStorage.getItem("complianceos-cookie-consent");
     if (!consent) {
       setIsVisible(true);
@@ -29,7 +30,7 @@ export default function GDPRBanner() {
   }, [location]);
 
   const acceptCookies = () => {
-    localStorage.setItem("complianceos-cookie-consent", "true");
+    localStorage.setItem("complianceos-cookie-consent", "true"); // same key as the read above
     setIsVisible(false);
   };
 

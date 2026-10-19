@@ -71,7 +71,7 @@ export async function sendInternalSystemEmail({
             subject,
             body,
             snippet: snippet || body.substring(0, 100),
-            from: 'system@compliance-os.com',
+            from: 'system@grcompliance.com',
             to: [toEmail],
             isRead: false,
             isStarred: false,

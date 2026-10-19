@@ -7,17 +7,26 @@ import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
+import { verifyLocalToken } from './server/localAuth';
 
-// Security: Validate that we don't accidentally use service role key in client-facing code
-if (!supabaseUrl || !supabaseKey) {
+const authMode = process.env.AUTH_MODE || 'supabase';
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (authMode !== 'local' && (!supabaseUrl || !supabaseKey)) {
     console.error('[AuthMiddleware] Missing required environment variables: VITE_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_ANON_KEY');
     process.exit(1);
 }
 
-console.log('[AuthMiddleware Init] Supabase URL:', supabaseUrl);
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = authMode === 'local'
+    ? null
+    : createClient(supabaseUrl as string, supabaseKey as string);
+
+if (authMode === 'local') {
+    console.log('[AuthMiddleware Init] Local authentication');
+} else {
+    console.log('[AuthMiddleware Init] Supabase URL:', supabaseUrl);
+}
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     console.log(`[Auth] Request: ${req.url}`);
@@ -43,6 +52,31 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         console.log(`[Auth Debug] Authorization header present for ${url}`);
 
         const token = authHeader.replace('Bearer ', '');
+
+        if (authMode === 'local') {
+            const claims = verifyLocalToken(token);
+            if (!claims?.sub) {
+                console.warn(`[Auth Debug] Local token rejected for ${url}`);
+                return next();
+            }
+            const dbConn = await getDb();
+            const dbUser = await dbConn.query.users.findFirst({
+                where: eq(users.openId, claims.sub)
+            });
+            if (!dbUser) {
+                console.error(`[Auth Debug] No dbUser found for openId: ${claims.sub}`);
+                return next();
+            }
+            authInfo.supabaseUser = true;
+            authInfo.dbUser = true;
+            req.user = dbUser;
+            (req as any).aal = claims.aal || 'aal1';
+            return next();
+        }
+
+        if (!supabase) {
+            return next();
+        }
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {

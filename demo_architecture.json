@@ -1,8 +1,8 @@
 {
     "summary": {
         "title": "E-Commerce Payment Flow",
-        "owner": "ComplianceOS Demo",
-        "description": "A mid-sized architecture demonstrating the integration between Threat Dragon and ComplianceOS."
+        "owner": "GRCompliance Demo",
+        "description": "A mid-sized architecture demonstrating the integration between Threat Dragon and GRCompliance."
     },
     "detail": {
         "diagrams": [

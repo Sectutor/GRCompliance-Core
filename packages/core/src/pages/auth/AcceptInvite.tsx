@@ -93,7 +93,7 @@ export default function AcceptInvite() {
                         Accept Invitation
                     </CardTitle>
                     <CardDescription>
-                        Set up your account to join ComplianceOS.
+                        Set up your account to join GRCompliance.
                     </CardDescription>
                 </CardHeader>
 
@@ -131,7 +131,7 @@ export default function AcceptInvite() {
                                 <div className="space-y-2">
                                     <p className="text-sm font-bold text-amber-900">Account Found</p>
                                     <p className="text-xs text-amber-700 leading-relaxed">
-                                        An account with this email already exists. Please sign in to join ComplianceOS.
+                                        An account with this email already exists. Please sign in to join GRCompliance.
                                     </p>
                                     <Button
                                         type="button"

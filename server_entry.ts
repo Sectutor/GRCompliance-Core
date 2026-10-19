@@ -33,6 +33,9 @@ import './env-loader';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const serverDir = path.dirname(fileURLToPath(import.meta.url));
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
 import { createContext } from './packages/core/src/server/context';
@@ -49,6 +52,7 @@ import * as policyReviewScheduler from './packages/core/src/server/services/poli
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
+import { localLoginHandler } from './packages/core/src/server/localAuth';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -57,6 +61,10 @@ import helmet from 'helmet';
 export const app = express();
 
 // Health Check - Moving to top to bypass potential middleware issues
+app.post('/api/auth/login', express.json({ limit: '32kb' }), (req, res) => {
+    void localLoginHandler(req, res);
+});
+
 app.get(['/health', '/api/health'], async (req, res) => {
     try {
         const dbConn = await getDb();
@@ -254,7 +262,7 @@ app.use('/api/webhooks', gumroadWebhookRouter);
 // Serve static files in production (Docker)
 if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
     console.log('[Server] Serving static files from packages/core/dist');
-    const distPath = path.join(__dirname, 'packages/core/dist');
+    const distPath = path.join(serverDir, 'packages/core/dist');
     app.use(express.static(distPath));
 
     // Handle SPA routing - return index.html for any unknown non-API routes

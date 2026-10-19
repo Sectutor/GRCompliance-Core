@@ -160,7 +160,7 @@ const LicenseManagement: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `complianceos-license-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `grcompliance-license-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -236,7 +236,7 @@ const LicenseManagement: React.FC = () => {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">License Management</h1>
         <p className="text-muted-foreground">
-          View and manage your ComplianceOS license
+          View and manage your GRCompliance license
         </p>
       </div>
       

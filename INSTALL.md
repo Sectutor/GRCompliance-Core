@@ -1,6 +1,14 @@
 # Install GRCompliance
 
-GRCompliance is the open-source core for governance, risk, and compliance. This page is the supported way to run it locally.
+GRCompliance is the open-source core for governance, risk, and compliance.
+
+To run it as containers, use the one-line installer in the [README](README.md):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
+```
+
+This page is the supported way to run it from a Node checkout.
 
 ## Prerequisites
 
@@ -52,7 +60,7 @@ Install the repository git hooks once per clone:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook rejects internal-doc paths and runs gitleaks on staged changes when gitleaks is installed. CI runs the same checks.
+The pre-commit hook rejects internal-doc paths and runs gitleaks on staged changes when gitleaks is installed. [`.pre-commit-config.yaml`](.pre-commit-config.yaml) is the same check for the pre-commit framework (`pre-commit install`). CI scans the current tree and, in git mode, only the commits added by the push or pull request.
 
 ## Next
 

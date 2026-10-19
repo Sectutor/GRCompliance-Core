@@ -26,7 +26,7 @@ if (SENDGRID_API_KEY) {
 
 export async function sendEmail({ to, subject, html, from, replyTo, clientId }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: any }> {
     let transporter = null;
-    let fromAddress = from || process.env.SMTP_FROM || 'system@compliance-os.com';
+    let fromAddress = from || process.env.SMTP_FROM || 'system@grcompliance.com';
     // Default replyTo to the sender's email if not specified
     const replyToAddress = replyTo || process.env.SMTP_REPLY_TO || fromAddress;
 
@@ -83,7 +83,7 @@ export async function sendEmail({ to, subject, html, from, replyTo, clientId }: 
                 subject: subject,
                 html: html,
                 // Track this as a system category
-                categories: ['compliance-os-system'],
+                categories: ['grcompliance-system'],
             });
 
             return { success: true, messageId: 'sendgrid-api-success' };

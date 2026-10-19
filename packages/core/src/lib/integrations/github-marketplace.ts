@@ -16,6 +16,7 @@ const GITHUB_API_BASE = 'https://api.github.com';
 
 // Default registry configuration
 const DEFAULT_REGISTRY = {
+    // Owner kept: this client fetches github.com/complianceos/integrations, not this repo.
     owner: 'complianceos',
     repo: 'integrations',
     branch: 'main',

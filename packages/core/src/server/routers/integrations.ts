@@ -341,7 +341,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                             "https://www.googleapis.com/auth/drive.metadata.readonly"
                         ];
                         // Get the base URL - try multiple sources (dev takes priority)
-                        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://complianceos.vercel.app');
+                        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://grcompliance.com');
                         const oauthRedirectUri = creds.redirectUri || `${appUrl}/auth/callback/google-drive`;
                         let oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${creds.clientId}&redirect_uri=${encodeURIComponent(oauthRedirectUri)}&response_type=code&scope=${encodeURIComponent(scopes.join(" "))}&access_type=offline`;
 
@@ -503,7 +503,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     // Google Drive OAuth
                     if (provider === "google-drive") {
                         // Get the base URL - try multiple sources (dev takes priority)
-                        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://complianceos.vercel.app');
+                        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://grcompliance.com');
                         const oauthRedirectUri = creds.redirectUri || `${appUrl}/auth/callback/google-drive`;
 
                         const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {

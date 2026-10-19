@@ -2,7 +2,7 @@
 
 ## Overview
 
-This system implements license validation for ComplianceOS's dual-licensing model:
+This system implements license validation for GRCompliance's dual-licensing model:
 - **Community Edition**: AGPLv3, free and open source
 - **Enterprise Edition**: Commercial license with premium features
 - **Trial Edition**: Limited-time trial with some premium features
@@ -161,7 +161,7 @@ VITE_LICENSE_SERVER=https://license.example.com
 import { getLicenseServerClient } from '@/lib/license/server';
 
 const client = getLicenseServerClient({
-  endpoint: 'https://license.complianceos.com',
+  endpoint: 'https://license.grcompliance.com',
   apiKey: 'your-api-key'
 });
 

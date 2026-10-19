@@ -21,7 +21,7 @@ export function generateMagicLinkEmail({
     const planDisplay = planTier.charAt(0).toUpperCase() + planTier.slice(1);
     const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
 
-    const subject = `You've been invited to join ComplianceOS (${planDisplay} Access)`;
+    const subject = `You've been invited to join GRCompliance (${planDisplay} Access)`;
 
     const html = `
 <!DOCTYPE html>
@@ -29,7 +29,7 @@ export function generateMagicLinkEmail({
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invitation to ComplianceOS</title>
+    <title>Invitation to GRCompliance</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f5f5f7; color: #1f2937;">
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="min-height: 100vh;">
@@ -39,7 +39,7 @@ export function generateMagicLinkEmail({
                     <!-- Header -->
                     <tr>
                         <td style="padding: 32px 40px; background-color: #ffffff; border-bottom: 1px solid #f3f4f6;">
-                            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #111827;">ComplianceOS</h1>
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #111827;">GRCompliance</h1>
                         </td>
                     </tr>
 
@@ -48,7 +48,7 @@ export function generateMagicLinkEmail({
                         <td style="padding: 40px;">
                             <h2 style="margin: 0 0 24px; font-size: 20px; font-weight: 600; color: #111827;">Hello!</h2>
                             <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #4b5563;">
-                                ${inviterName} has invited you to join <strong>ComplianceOS</strong>.
+                                ${inviterName} has invited you to join <strong>GRCompliance</strong>.
                             </p>
                             
                             <div style="background-color: #f3f4f6; border-radius: 8px; padding: 24px; margin-bottom: 32px;">
@@ -97,7 +97,7 @@ export function generateMagicLinkEmail({
                     <tr>
                         <td style="padding: 32px 40px; background-color: #f9fafb; border-top: 1px solid #f3f4f6;">
                             <p style="margin: 0; font-size: 13px; line-height: 20px; color: #9ca3af; text-align: center;">
-                                © ${new Date().getFullYear()} ComplianceOS. All rights reserved.<br>
+                                © ${new Date().getFullYear()} GRCompliance. All rights reserved.<br>
                                 If you weren't expecting this invitation, you can ignore this email.
                             </p>
                         </td>

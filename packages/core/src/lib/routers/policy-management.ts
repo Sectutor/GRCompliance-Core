@@ -223,7 +223,7 @@ export const createPolicyManagementRouter = (
                                             </div>
                                             <p>Please log in to the Personnel Compliance Hub to review this request.</p>
                                             <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-                                            <p style="font-size: 0.875rem; color: #6b7280;">This is an automated notification from ComplianceOS.</p>
+                                            <p style="font-size: 0.875rem; color: #6b7280;">This is an automated notification from GRCompliance.</p>
                                         </div>
                                     `,
                                     clientId: policyInfo.clientId

@@ -102,7 +102,7 @@ export function ControlDetailsSheet({ open, onOpenChange, control: initialContro
                     <div className="flex items-center gap-4 text-xs text-slate-500">
                         <div className="flex items-center gap-1">
                             <Shield className="h-3 w-3" />
-                            Source: ComplianceOS
+                            Source: GRCompliance
                         </div>
                         <div className="flex items-center gap-1">
                             <User className="h-3 w-3" />

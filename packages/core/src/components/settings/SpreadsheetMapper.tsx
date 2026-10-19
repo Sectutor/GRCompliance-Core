@@ -194,7 +194,7 @@ export function SpreadsheetMapper({ clientId, headers, data, onCancel, onSuccess
                                     Map {importType} Columns
                                 </CardTitle>
                                 <CardDescription>
-                                    Match your spreadsheet columns to ComplianceOS fields.
+                                    Match your spreadsheet columns to GRCompliance fields.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">

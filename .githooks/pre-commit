@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Reject internal docs and leaked secrets before a commit is created.
+# .pre-commit-config.yaml runs the same checks through the pre-commit framework.
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"

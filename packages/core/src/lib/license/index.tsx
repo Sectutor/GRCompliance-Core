@@ -1,5 +1,5 @@
 /**
- * License Management System for ComplianceOS
+ * License Management System for GRCompliance
  * 
  * This module handles license validation for the dual-licensing model:
  * - Community Edition (AGPLv3): Free, open source

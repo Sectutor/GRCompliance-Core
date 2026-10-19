@@ -122,7 +122,7 @@ export function BillingSettings({ clientId }: BillingSettingsProps) {
                                 <Badge variant="secondary" className="text-xs">Best Value</Badge>
                             </div>
                             <CardHeader>
-                                <CardTitle className="text-lg">ComplianceOS Growth</CardTitle>
+                                <CardTitle className="text-lg">GRCompliance Growth</CardTitle>
                                 <div className="mt-2 text-2xl font-bold">
                                     ${billingPeriod === 'month' ? '299' : '2,999'}
                                     <span className="text-sm font-normal text-muted-foreground">/{billingPeriod === 'month' ? 'mo' : 'yr'}</span>

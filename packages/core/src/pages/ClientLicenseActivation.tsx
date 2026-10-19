@@ -1,7 +1,7 @@
 /**
  * Client License Activation Page
  * 
- * Allows clients to activate their ComplianceOS license keys
+ * Allows clients to activate their GRCompliance license keys
  */
 
 import { useState } from "react";
@@ -104,6 +104,7 @@ export default function ClientLicenseActivation() {
     activateLicenseMutation.mutate({
       clientId,
       licenseKey: licenseKey.trim(),
+      // Permalink kept; it is the published Gumroad product id.
       productPermalink: "complianceos-enterprise",
     });
   };
@@ -200,7 +201,7 @@ export default function ClientLicenseActivation() {
             <div>
               <h1 className="text-3xl font-bold">License Activation</h1>
               <p className="text-muted-foreground mt-1">
-                Activate your ComplianceOS license for {client?.name || "this client"}
+                Activate your GRCompliance license for {client?.name || "this client"}
               </p>
             </div>
             <Button
@@ -256,7 +257,8 @@ export default function ClientLicenseActivation() {
                     <div className="p-3 border rounded-md bg-muted/50">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">ComplianceOS Enterprise</div>
+                          <div className="font-medium">GRCompliance Enterprise</div>
+                          {/* Product id kept so the label matches the published Gumroad permalink. */}
                           <div className="text-sm text-muted-foreground">complianceos-enterprise</div>
                         </div>
                         <Badge variant="outline">Recommended</Badge>
@@ -288,7 +290,7 @@ export default function ClientLicenseActivation() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank")}
+                      onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank") /* published Gumroad product id */}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
                       Purchase License
@@ -470,7 +472,7 @@ export default function ClientLicenseActivation() {
                         </div>
                         <div className="space-y-1">
                           <div className="text-sm text-muted-foreground">Product</div>
-                          <div className="font-medium">{licenseStatus.productName || "ComplianceOS"}</div>
+                          <div className="font-medium">{licenseStatus.productName || "GRCompliance"}</div>
                         </div>
                       </div>
                     </div>
@@ -817,7 +819,7 @@ export default function ClientLicenseActivation() {
                     </Button>
                     <Button variant="outline" className="justify-start">
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      ComplianceOS Documentation
+                      GRCompliance Documentation
                     </Button>
                     <Button variant="outline" className="justify-start">
                       <ExternalLink className="h-4 w-4 mr-2" />

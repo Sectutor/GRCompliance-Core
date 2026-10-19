@@ -28,6 +28,7 @@ import * as schema from "./schema";
 import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrategies, bcPlans, disruptiveScenarios } from "./schema";
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
 import { logActivity } from "./lib/audit";
+import { postureScore } from "./lib/postureScore";
 import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
@@ -824,11 +825,14 @@ export const appRouter = router({
         const totalRisks = risks.length;
         const mitigatedRisks = risks.filter(r => r.status === 'treated' || r.status === 'accepted').length;
 
-        // Calculate compliance score (0-100)
-        const applicableControls = totalControls - notApplicableControls;
-        const complianceScore = applicableControls > 0
-          ? Math.round((implementedControls / applicableControls) * 100)
-          : 0;
+        const posture = postureScore({
+          implemented: implementedControls,
+          inProgress: inProgressControls,
+          notStarted: notImplementedControls,
+          notApplicable: notApplicableControls,
+        });
+        const applicableControls = posture.inScope;
+        const complianceScore = posture.rate ?? 0;
 
         // Calculate risk score (lower is better, 0-100)
         const openRisks = totalRisks - mitigatedRisks;

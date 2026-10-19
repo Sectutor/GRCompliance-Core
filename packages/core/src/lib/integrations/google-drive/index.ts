@@ -17,8 +17,8 @@ export const googleDriveManifest: IntegrationManifest = {
   description:
     "Connect to Google Drive to fetch and sync evidence files securely.",
   author: {
-    name: "ComplianceOS",
-    url: "https://complianceos.com",
+    name: "GRCompliance",
+    url: "https://grcompliance.com",
   },
   license: "MIT",
   category: "storage", // Matches CATEGORY_ICONS and CATEGORY_COLORS

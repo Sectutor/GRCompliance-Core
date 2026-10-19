@@ -3,6 +3,7 @@ import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, count, and, sql, or, inArray } from "drizzle-orm";
+import { postureScore } from "../../lib/postureScore";
 import { TRPCError } from "@trpc/server";
 
 export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any) => {
@@ -26,9 +27,10 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
       .input(z.any())
       .query(async ({ ctx, input }: any) => {
         const dbConn = await db.getDb();
-        // Safely extract framework from input
-        const frameworkFilter = input && typeof input === 'object' && 'framework' in input
-          ? String(input.framework)
+        // A missing framework arrives as null from the client. Treat that as "all frameworks".
+        const rawFramework = input && typeof input === 'object' ? input.framework : undefined;
+        const frameworkFilter = typeof rawFramework === 'string' && rawFramework.trim() && rawFramework !== 'null' && rawFramework !== 'undefined'
+          ? rawFramework.trim()
           : undefined;
 
         // Safely extract clientId from input
@@ -288,6 +290,23 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const implementedCounts = await implementedOverviewQuery.groupBy(schema.clientControls.clientId);
         const implementedMap = new Map<number, number>(implementedCounts.map((r: any) => [r.clientId, Number(r.count)]));
 
+        const notApplicableOverviewQuery = dbConn.select({
+          clientId: schema.clientControls.clientId,
+          count: count()
+        })
+          .from(schema.clientControls)
+          .where(eq(schema.clientControls.status, 'not_applicable'));
+
+        if (frameworkFilter) {
+          notApplicableOverviewQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
+            .where(and(eq(schema.clientControls.status, 'not_applicable'), eq(schema.controls.framework, frameworkFilter)));
+        }
+        if (effectiveClientIds !== null) {
+          notApplicableOverviewQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
+        }
+        const notApplicableCounts = await notApplicableOverviewQuery.groupBy(schema.clientControls.clientId);
+        const notApplicableMap = new Map<number, number>(notApplicableCounts.map((r: any) => [r.clientId, Number(r.count)]));
+
         // Policies count
         const policiesOverviewQuery = dbConn.select({
           clientId: schema.clientPolicies.clientId,
@@ -314,18 +333,22 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
 
         // Map data to clients
         const clientsOverview = allClients.map((c: { id: number; name: string }) => {
-          const totalControls = controlsMap.get(c.id) || 0;
+          const assigned = controlsMap.get(c.id) || 0;
           const implemented = implementedMap.get(c.id) || 0;
+          const notApplicable = notApplicableMap.get(c.id) || 0;
           const policiesCount = policiesMap.get(c.id) || 0;
           const evidenceCount = evidenceMap.get(c.id) || 0;
-
-          const percentage = totalControls > 0 ? Math.round((implemented / totalControls) * 100) : 0;
+          const posture = postureScore({
+            implemented,
+            notStarted: Math.max(0, assigned - notApplicable - implemented),
+            notApplicable,
+          });
 
           return {
             id: c.id,
             name: c.name,
-            compliancePercentage: percentage,
-            controlsCount: totalControls,
+            compliancePercentage: posture.rate ?? 0,
+            controlsCount: posture.inScope,
             policiesCount: policiesCount,
             evidenceCount: evidenceCount
           };
@@ -401,15 +424,8 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
       }),
 
     complianceScores: isAuthed.query(async () => {
-      // Mock data for compliance trend over the last 6 months
-      const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-      const currentYear = new Date().getFullYear();
-
-      return months.map((month, i) => ({
-        date: month,
-        score: 20 + (i * 12) + Math.round(Math.random() * 5), // Improving trend
-        target: 80
-      }));
+      // Historical snapshots are not stored. The live posture score is the source of truth.
+      return [];
     }),
 
     getInsights: isAuthed
@@ -496,8 +512,8 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           insights.push({
             id: 'critical-risks',
             type: 'critical',
-            title: `${unmitigated} Unmitigated Critical Risks`,
-            description: 'Risks remain high despite treatments. Immediate control implementation required.',
+            title: `${unmitigated} high residual risks`,
+            description: 'These risks are still high after treatment. Review the owners and actions in the register.',
             action: 'View Risk Register',
             link: '/risk-register/critical'
           });
@@ -536,15 +552,55 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           });
         }
 
-        // Default insight if everything is quiet
-        if (insights.length === 0) {
+        const controlStatusQuery = dbConn.select({
+          status: schema.clientControls.status,
+          value: count(),
+        }).from(schema.clientControls);
+        if (effectiveClientIds !== null && effectiveClientIds.length > 0) {
+          controlStatusQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
+        }
+        const controlStatusRows = await controlStatusQuery.groupBy(schema.clientControls.status);
+        const controlCounts = { implemented: 0, inProgress: 0, notStarted: 0, notApplicable: 0 };
+        for (const row of controlStatusRows) {
+          const value = Number(row.value || 0);
+          if (row.status === 'implemented') controlCounts.implemented = value;
+          else if (row.status === 'in_progress') controlCounts.inProgress = value;
+          else if (row.status === 'not_implemented') controlCounts.notStarted = value;
+          else if (row.status === 'not_applicable') controlCounts.notApplicable = value;
+        }
+        const posture = postureScore(controlCounts);
+        const scopedControls = posture.inScope;
+        const postureRate = posture.rate;
+        const controlLink = effectiveClientIds && effectiveClientIds.length === 1
+          ? `/clients/${effectiveClientIds[0]}/controls`
+          : '/controls';
+
+        if (postureRate === null && insights.length === 0) {
+          insights.push({
+            id: 'no-posture-data',
+            type: 'info',
+            title: 'No posture data yet',
+            description: 'Assign controls to this workspace before a score can be calculated.',
+            action: 'Open controls',
+            link: controlLink
+          });
+        } else if (postureRate !== null && postureRate < 80) {
+          insights.unshift({
+            id: 'posture-score',
+            type: postureRate < 50 ? 'critical' : 'warning',
+            title: `Posture score is ${postureRate}%`,
+            description: `${controlCounts.implemented} of ${scopedControls} in-scope controls are implemented.`,
+            action: 'View controls',
+            link: controlLink
+          });
+        } else if (insights.length === 0 && postureRate !== null && postureRate >= 80) {
           insights.push({
             id: 'all-clear',
             type: 'success',
             title: 'Compliance is on Track',
-            description: 'All core metrics are within healthy ranges. Great job!',
-            action: 'Run Audit Prep',
-            link: '/audit-prep'
+            description: `${controlCounts.implemented} of ${scopedControls} in-scope controls are implemented.`,
+            action: 'View controls',
+            link: controlLink
           });
         }
 

@@ -1175,7 +1175,7 @@ Generate a professional answer. Response format:
             subject: `Security Questionnaire: ${project.name}`,
             body: `Hello,\n\nPlease complete the security questionnaire for ${project.name}.\n\nQuestionnaire Link: ${vendorLink}\n\nThis link will expire on ${expiresAt.toLocaleDateString()}.\n\n${input.message || ''}\n\nBest regards,\nSecurity Team`,
             to: [input.vendorEmail],
-            from: ctx.user.email ?? process.env.DEFAULT_FROM_EMAIL ?? "noreply@complianceos.com",
+            from: ctx.user.email ?? process.env.DEFAULT_FROM_EMAIL ?? "noreply@grcompliance.com",
             isRead: true
           });
 

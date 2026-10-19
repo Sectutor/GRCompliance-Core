@@ -491,8 +491,8 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                 <span className="font-mono text-sm font-medium text-black">{risk.assessmentId}</span>
                                             </td>
                                             <td className="px-4 py-4 max-w-[250px]">
-                                                <div className="truncate text-sm text-gray-600" title={risk.contextSnapshot?.description || risk.description || risk.threatDescription || ''}>
-                                                    {risk.contextSnapshot?.description || risk.description || risk.threatDescription || '-'}
+                                                <div className="truncate text-sm text-gray-600" title={risk.threatDescription || risk.contextSnapshot?.description || risk.title || risk.description || ''}>
+                                                    {risk.threatDescription || risk.contextSnapshot?.description || risk.title || risk.description || '-'}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">

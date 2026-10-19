@@ -159,7 +159,7 @@ By installing or using the Software, Licensee agrees to be bound by the terms of
 
 **LICENSOR:** GRCompliance, Inc.  
 **ADDRESS:** [ADDRESS]  
-**EMAIL:** legal@complianceos.com  
+**EMAIL:** legal@grcompliance.com  
 
 **LICENSEE:** [CUSTOMER NAME]  
 **ADDRESS:** [ADDRESS]  

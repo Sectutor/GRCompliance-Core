@@ -95,7 +95,7 @@ export async function checkUpcomingPolicyReviews() {
                     <p><strong>Review Due Date:</strong> ${policy.reviewDueDate!.toLocaleDateString()}</p>
                     <p><strong>Days Remaining:</strong> ${daysLeft}</p>
                   </div>
-                  <p>Please log in to the ComplianceOS dashboard to review the policy content and update its status.</p>
+                  <p>Please log in to the GRCompliance dashboard to review the policy content and update its status.</p>
                   <a href="${process.env.VITE_APP_URL || 'https://app.grcompliance.com'}/clients/${policy.clientId}/policies/${policy.id}" 
                      style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
                     View Policy

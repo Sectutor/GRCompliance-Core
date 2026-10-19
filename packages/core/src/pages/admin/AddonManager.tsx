@@ -41,12 +41,12 @@ export default function AddonManager() {
           id: 'jira-integration',
           name: 'Jira Integration',
           version: '1.0.0',
-          description: 'Connect ComplianceOS with Jira to sync controls, findings, and remediation tasks',
-          author: 'ComplianceOS Team',
+          description: 'Connect GRCompliance with Jira to sync controls, findings, and remediation tasks',
+          author: 'GRCompliance Team',
           category: 'integration',
           status: 'active',
           icon: '/icons/jira.svg',
-          homepage: 'https://complianceos.com/addons/jira',
+          homepage: 'https://grcompliance.com/addons/jira',
           tags: ['issue-tracking', 'remediation', 'automation'],
           permissions: ['read:clients', 'write:clients', 'read:evidence', 'write:evidence'],
           configuration: { cloudId: 'demo-cloud', defaultProject: 'COMPLIANCE' },
@@ -56,10 +56,10 @@ export default function AddonManager() {
           name: 'SOC 2 Policy Template',
           version: '1.0.0',
           description: 'Comprehensive SOC 2 compliance policy template covering all Trust Services Criteria',
-          author: 'ComplianceOS Team',
+          author: 'GRCompliance Team',
           category: 'template',
           status: 'active',
-          homepage: 'https://complianceos.com/templates/soc2',
+          homepage: 'https://grcompliance.com/templates/soc2',
           tags: ['soc2', 'policy', 'security'],
           permissions: ['read:policies', 'write:policies'],
         },
@@ -68,10 +68,10 @@ export default function AddonManager() {
           name: 'AWS S3 Storage',
           version: '1.0.0',
           description: 'Store compliance evidence and documents in AWS S3 with encryption and versioning',
-          author: 'ComplianceOS Team',
+          author: 'GRCompliance Team',
           category: 'storage',
           status: 'inactive',
-          homepage: 'https://complianceos.com/addons/s3',
+          homepage: 'https://grcompliance.com/addons/s3',
           tags: ['aws', 's3', 'storage', 'evidence'],
           permissions: ['read:evidence', 'write:evidence'],
         },
@@ -91,7 +91,7 @@ export default function AddonManager() {
           name: 'Azure Blob Storage',
           version: '1.0.0',
           description: 'Store and manage compliance evidence in Microsoft Azure Blob Storage',
-          author: 'ComplianceOS Team',
+          author: 'GRCompliance Team',
           category: 'storage',
           status: 'error',
           error: 'Connection timeout. Please check your credentials.',
@@ -158,7 +158,7 @@ export default function AddonManager() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Addons Marketplace</h1>
             <p className="text-muted-foreground mt-1">
-              Extend ComplianceOS with integrations, templates, and storage providers
+              Extend GRCompliance with integrations, templates, and storage providers
             </p>
           </div>
           <div className="flex gap-2">

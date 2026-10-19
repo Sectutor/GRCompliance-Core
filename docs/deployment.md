@@ -1,6 +1,6 @@
 # Deployment Guide
 
-ComplianceOS is designed to be deployed on **Netlify** (Frontend + Serverless Functions) with a **PostgreSQL** database (e.g., Supabase, Neon, AWS RDS).
+GRCompliance is designed to be deployed on **Netlify** (Frontend + Serverless Functions) with a **PostgreSQL** database (e.g., Supabase, Neon, AWS RDS).
 
 ## 1. Database Deployment
 Before deploying the app, you need a hosted PostgreSQL database.

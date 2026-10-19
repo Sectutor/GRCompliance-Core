@@ -365,7 +365,7 @@ export default function ClientSettings() {
                                     <CardHeader>
                                         <CardTitle>License Management</CardTitle>
                                         <CardDescription>
-                                            Manage your ComplianceOS license and access premium features.
+                                            Manage your GRCompliance license and access premium features.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
@@ -407,7 +407,7 @@ export default function ClientSettings() {
                                                 <Button
                                                     variant="outline"
                                                     className="justify-start"
-                                                    onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank")}
+                                                    onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank")} // published Gumroad product id; do not rename
                                                 >
                                                     <CreditCard className="h-4 w-4 mr-2" />
                                                     Purchase License
@@ -415,7 +415,7 @@ export default function ClientSettings() {
                                                 <Button
                                                     variant="outline"
                                                     className="justify-start"
-                                                    onClick={() => window.open("https://docs.complianceos.com", "_blank")}
+                                                    onClick={() => window.open("https://docs.grcompliance.com", "_blank")}
                                                 >
                                                     <FileText className="h-4 w-4 mr-2" />
                                                     View Documentation

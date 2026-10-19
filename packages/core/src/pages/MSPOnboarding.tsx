@@ -463,7 +463,7 @@ export default function MSPOnboarding() {
                                                         {branding.customName || `${company.name || "Acme"} Compliance Portal`}
                                                     </div>
                                                     <div className="text-xs text-slate-400">
-                                                        {branding.motto || "Powered by ComplianceOS"}
+                                                        {branding.motto || "Powered by GRCompliance"}
                                                     </div>
                                                 </div>
                                             </div>

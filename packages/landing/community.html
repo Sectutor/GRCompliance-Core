@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community – ComplianceOS Open Source GRC</title>
+    <title>Community – GRCompliance Open Source GRC</title>
     <meta name="description"
-        content="ComplianceOS is the open-source GRC platform built by the security community, for the security community. Self-host, contribute, and shape the future of compliance automation.">
+        content="GRCompliance is the open-source GRC platform built by the security community, for the security community. Self-host, contribute, and shape the future of compliance automation.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -199,7 +199,7 @@
                 </h1>
 
                 <p class="text-xl text-slate-400 leading-relaxed mb-12 max-w-2xl mx-auto">
-                    ComplianceOS is a fully open-source GRC platform. Self-host it for free, inspect every line of code,
+                    GRCompliance is a fully open-source GRC platform. Self-host it for free, inspect every line of code,
                     and contribute to the security community that keeps organizations safe.
                 </p>
 
@@ -233,7 +233,7 @@
                     <div class="p-6 space-y-2 mono text-sm">
                         <p><span class="text-emerald-400">$</span> <span class="text-slate-300">git clone
                                 https://github.com/Sectutor/GRCompliance-Core</span></p>
-                        <p><span class="text-emerald-400">$</span> <span class="text-slate-300">cd complianceos</span>
+                        <p><span class="text-emerald-400">$</span> <span class="text-slate-300">cd grcompliance</span>
                         </p>
                         <p><span class="text-emerald-400">$</span> <span class="text-slate-300">cp .env.example
                                 .env</span></p>
@@ -465,7 +465,7 @@
                 <div>
                     <div class="text-blue-400 font-bold text-sm uppercase tracking-widest mb-4">Self-Hosting</div>
                     <h2 class="text-4xl font-black mb-6 leading-tight">Your infra. Your data.<br>Your compliance.</h2>
-                    <p class="text-slate-400 text-lg leading-relaxed mb-8">Run ComplianceOS on any server — on-premise,
+                    <p class="text-slate-400 text-lg leading-relaxed mb-8">Run GRCompliance on any server — on-premise,
                         your own cloud, or a VPS. Full Docker support with a single compose file. No phone-home, no
                         telemetry, no license fees.</p>
                     <ul class="space-y-4 mb-8">
@@ -517,14 +517,14 @@
                     <pre class="mono text-xs text-slate-300 p-6 overflow-x-auto leading-relaxed"><code><span class="text-slate-500">version:</span> <span class="text-emerald-300">'3.9'</span>
 <span class="text-slate-500">services:</span>
   <span class="text-blue-300">app:</span>
-    <span class="text-slate-500">image:</span> complianceos/app:latest
+    <span class="text-slate-500">image:</span> ghcr.io/sectutor/grcompliance-core:latest
     <span class="text-slate-500">ports:</span> [<span class="text-emerald-300">"5173:5173"</span>]
     <span class="text-slate-500">environment:</span>
       DATABASE_URL: <span class="text-yellow-300">${DATABASE_URL}</span>
       SUPABASE_URL: <span class="text-yellow-300">${SUPABASE_URL}</span>
       OPENAI_API_KEY: <span class="text-yellow-300">${OPENAI_API_KEY}</span>
   <span class="text-blue-300">server:</span>
-    <span class="text-slate-500">image:</span> complianceos/server:latest
+    <span class="text-slate-500">image:</span> ghcr.io/sectutor/grcompliance-core:latest
     <span class="text-slate-500">ports:</span> [<span class="text-emerald-300">"3002:3002"</span>]
     <span class="text-slate-500">depends_on:</span> [<span class="text-blue-300">app</span>]</code></pre>
                 </div>

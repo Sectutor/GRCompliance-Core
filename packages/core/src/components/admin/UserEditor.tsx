@@ -230,7 +230,7 @@ export function UserEditor({ user }: UserEditorProps) {
                         <div>
                             <h3 className="text-lg font-medium">Global Role</h3>
                             <p className="text-sm text-muted-foreground mb-4">
-                                Controls the user's access level across the entire ComplianceOS platform.
+                                Controls the user's access level across the entire GRCompliance platform.
                             </p>
 
                             <div className="border rounded-lg p-4 bg-slate-50 max-w-2xl space-y-4">

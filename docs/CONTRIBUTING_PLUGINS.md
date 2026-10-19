@@ -1,6 +1,6 @@
 # Contributing Compliance Framework Plugins
 
-ComplianceOS supports a plugin system that allows the community to add new compliance frameworks easily. This guide explains how to create, validate, and submit a new framework plugin.
+GRCompliance supports a plugin system that allows the community to add new compliance frameworks easily. This guide explains how to create, validate, and submit a new framework plugin.
 
 ## Plugin Structure
 
@@ -22,8 +22,8 @@ Your JSON file must adhere to the [JSON Schema](/data/schemas/framework-plugin.s
     "version": "1.0.0",
     "description": "A sample compliance framework.",
     "publisher": {
-      "name": "ComplianceOS",
-      "url": "https://complianceos.com"
+      "name": "GRCompliance",
+      "url": "https://grcompliance.com"
     },
     "license": "CC-BY-4.0",
     "type": "standard",
@@ -52,7 +52,7 @@ Your JSON file must adhere to the [JSON Schema](/data/schemas/framework-plugin.s
 ## Creating a Plugin
 
 1.  **Start with the Template**: Copy the structure above or use an existing plugin from `data/registry/plugins/` as a base.
-2.  **Define Phases**: ComplianceOS uses "Implementation Phases" to guide users. Group your requirements logically (e.g., "Policy Development", "Technical Controls", "Audit Prep").
+2.  **Define Phases**: GRCompliance uses "Implementation Phases" to guide users. Group your requirements logically (e.g., "Policy Development", "Technical Controls", "Audit Prep").
 3.  **Add Requirements**: Populate `content.requirements` with the controls or requirements of the framework.
     *   `identifier`: The unique code (e.g., "A.5.1.1").
     *   `phaseName`: Must match one of the names in `content.phases`.

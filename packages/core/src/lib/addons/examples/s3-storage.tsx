@@ -13,10 +13,10 @@ const s3StorageManifest: S3StorageManifest = {
   name: 'AWS S3 Storage',
   version: '1.0.0',
   description: 'Store compliance evidence and documents in AWS S3 with encryption and versioning',
-  author: 'ComplianceOS Team',
+  author: 'GRCompliance Team',
   category: 'storage',
   tags: ['aws', 's3', 'storage', 'evidence'],
-  homepage: 'https://complianceos.com/addons/s3',
+  homepage: 'https://grcompliance.com/addons/s3',
   compatibility: {
     minVersion: '1.0.0',
   },

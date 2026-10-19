@@ -47,11 +47,9 @@ export function RiskHeatmap({ assessments = [], onFilterChange, activeFilter, ty
             let i = 0;
 
             if (type === 'residual') {
-                const rScore = toViewScale(a.residualRisk);
-                if (rScore > 0) {
-                    l = rScore;
-                    i = rScore;
-                }
+                const snap = a.contextSnapshot && typeof a.contextSnapshot === 'object' ? a.contextSnapshot : {};
+                l = toViewScale(a.residualLikelihood ?? snap.residualLikelihood);
+                i = toViewScale(a.residualImpact ?? snap.residualImpact);
             } else {
                 l = toViewScale(a.likelihood); // Y-Axis
                 i = toViewScale(a.impact); // X-Axis

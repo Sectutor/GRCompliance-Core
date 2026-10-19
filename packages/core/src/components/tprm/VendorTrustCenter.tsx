@@ -267,7 +267,7 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
                 ) : (
                   <Badge variant="outline">Pending Scan</Badge>
                 )}
-                <span className="text-xs text-muted-foreground">Checked by ComplianceOS AI Agent</span>
+                <span className="text-xs text-muted-foreground">Checked by GRCompliance AI Agent</span>
               </div>
             </div>
           </div>

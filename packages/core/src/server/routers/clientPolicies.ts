@@ -369,7 +369,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                       ${dueDate ? `<p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>` : ''}
                       ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
                     </div>
-                    <p>Please log in to the ComplianceOS dashboard to review and provide your feedback.</p>
+                    <p>Please log in to the GRCompliance dashboard to review and provide your feedback.</p>
                     <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
                        style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
                       View Policy
@@ -876,6 +876,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
     linkControl: clientEditorProcedure
       .input(z.object({
+        clientId: z.number(),
         policyId: z.number(),
         controlId: z.number(), // This is client_control.id
         notes: z.string().optional()
@@ -883,7 +884,19 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .mutation(async ({ input }: any) => {
         const dbConn = await db.getDb();
 
-        // Check if exists
+        const policy = await db.getClientPolicyById(input.policyId);
+        if (!policy || policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found in this workspace." });
+        }
+
+        const [control] = await dbConn.select({
+          id: clientControls.id,
+          clientId: clientControls.clientId,
+        }).from(clientControls).where(eq(clientControls.id, input.controlId)).limit(1);
+        if (!control || control.clientId !== input.clientId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "That control is not assigned to this workspace." });
+        }
+
         const existing = await dbConn.select().from(controlPolicyMappings)
           .where(and(
             eq(controlPolicyMappings.clientPolicyId, input.policyId),
@@ -892,12 +905,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         if (existing.length > 0) return { success: true, message: "Already linked" };
 
-        // Get Client ID from policy
-        const policy = await db.getClientPolicyById(input.policyId);
-        if (!policy) throw new TRPCError({ code: "NOT_FOUND" });
-
         await dbConn.insert(controlPolicyMappings).values({
-          clientId: policy.clientPolicy.clientId,
+          clientId: input.clientId,
           clientPolicyId: input.policyId,
           clientControlId: input.controlId,
           notes: input.notes
@@ -907,14 +916,21 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
     unlinkControl: clientEditorProcedure
       .input(z.object({
+        clientId: z.number(),
         policyId: z.number(),
         controlId: z.number()
       }))
       .mutation(async ({ input }: any) => {
         const dbConn = await db.getDb();
 
+        const policy = await db.getClientPolicyById(input.policyId);
+        if (!policy || policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found in this workspace." });
+        }
+
         await dbConn.delete(controlPolicyMappings)
           .where(and(
+            eq(controlPolicyMappings.clientId, input.clientId),
             eq(controlPolicyMappings.clientPolicyId, input.policyId),
             eq(controlPolicyMappings.clientControlId, input.controlId)
           ));

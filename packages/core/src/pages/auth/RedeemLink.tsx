@@ -156,7 +156,7 @@ export default function RedeemLink() {
                         Exclusive Invitation
                     </CardTitle>
                     <CardDescription className="text-base text-slate-500 mt-2">
-                        {link.label || "You've been invited to join ComplianceOS"}
+                        {link.label || "You've been invited to join GRCompliance"}
                     </CardDescription>
                 </CardHeader>
 

@@ -36,7 +36,7 @@ export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedP
                 if (competitorDomains.includes(domain)) {
                     throw new TRPCError({
                         code: 'FORBIDDEN',
-                        message: "Access restricted for competitors. Please contact sales@complianceos.com"
+                        message: "Access restricted for competitors. Please contact sales@grcompliance.com"
                     });
                 }
 

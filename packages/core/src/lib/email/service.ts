@@ -72,7 +72,7 @@ export class EmailService {
                 <h2 style="color: #1a1a1a;">System Notification</h2>
                 <p style="font-size: 16px; line-height: 1.5; color: #444;">${message}</p>
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="color: #888; font-size: 12px;">This is an automated message from ComplianceOS.</p>
+                <p style="color: #888; font-size: 12px;">This is an automated message from GRCompliance.</p>
             </div>
         `;
 

@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import * as db from './db';
+import { postureScore } from './lib/postureScore';
 
 interface ReportData {
   client: {
@@ -287,11 +288,17 @@ function generatePDF(data: ReportData): Promise<Buffer> {
 
     const totalControls = data.controlsByStatus.implemented + data.controlsByStatus.inProgress +
       data.controlsByStatus.notImplemented + data.controlsByStatus.notApplicable;
+    const posture = postureScore({
+      implemented: data.controlsByStatus.implemented,
+      inProgress: data.controlsByStatus.inProgress,
+      notStarted: data.controlsByStatus.notImplemented,
+      notApplicable: data.controlsByStatus.notApplicable,
+    });
 
     doc.fontSize(11).fillColor('#1f2937');
     doc.text(`Implemented: `, { continued: true });
     doc.fillColor(successColor).text(`${data.controlsByStatus.implemented}`, { continued: true });
-    doc.fillColor('#1f2937').text(` (${totalControls > 0 ? Math.round((data.controlsByStatus.implemented / totalControls) * 100) : 0}%)`);
+    doc.fillColor('#1f2937').text(` (${posture.rate ?? 0}%)`);
 
     doc.text(`In Progress: `, { continued: true });
     doc.fillColor(warningColor).text(`${data.controlsByStatus.inProgress}`, { continued: true });

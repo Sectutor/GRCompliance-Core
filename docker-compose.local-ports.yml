@@ -1,0 +1,14 @@
+# Optional overlay. Publishes Postgres and Redis on loopback only.
+# The default docker-compose.yml does not publish these ports.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local-ports.yml up -d
+#
+# install.sh --bind-local and install.ps1 -BindLocal select this file.
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"

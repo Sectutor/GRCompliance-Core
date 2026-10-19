@@ -1,7 +1,7 @@
 /**
  * License Management Admin Page
  * 
- * Admin interface for managing ComplianceOS licenses:
+ * Admin interface for managing GRCompliance licenses:
  * - View license activations
  * - Validate licenses
  * - Manage Gumroad integration
@@ -81,6 +81,7 @@ export default function LicenseManagementPage() {
 
     validateLicenseMutation.mutate({
       licenseKey: licenseKey.trim(),
+      // Permalink kept; it is the published Gumroad product id.
       productPermalink: "complianceos-enterprise",
     });
   };
@@ -126,7 +127,7 @@ export default function LicenseManagementPage() {
       <div>
         <h1 className="text-3xl font-bold">License Management</h1>
         <p className="text-muted-foreground mt-1">
-          Manage ComplianceOS licenses and Gumroad integration
+          Manage GRCompliance licenses and Gumroad integration
         </p>
 
         {/* Build Info Banner */}
