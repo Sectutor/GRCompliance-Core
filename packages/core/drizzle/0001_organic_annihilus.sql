@@ -1277,7 +1277,7 @@ ALTER TABLE "control_mappings" ADD COLUMN "mapping_type" varchar(50) DEFAULT 'eq
 ALTER TABLE "control_mappings" ADD COLUMN "notes" text;--> statement-breakpoint
 ALTER TABLE "control_mappings" ADD COLUMN "created_by" integer;--> statement-breakpoint
 ALTER TABLE "embeddings" ADD COLUMN "client_id" integer;--> statement-breakpoint
-ALTER TABLE "embeddings" ADD COLUMN "embedding_vector" "vector(1536)";--> statement-breakpoint
+ALTER TABLE "embeddings" ADD COLUMN "embedding_vector" vector(1536);--> statement-breakpoint
 ALTER TABLE "embeddings" ADD COLUMN "content" text;--> statement-breakpoint
 ALTER TABLE "employees" ADD COLUMN "org_role_id" integer;--> statement-breakpoint
 ALTER TABLE "employees" ADD COLUMN "manager_id" integer;--> statement-breakpoint

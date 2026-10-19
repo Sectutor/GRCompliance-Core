@@ -285,7 +285,7 @@ ALTER TABLE "dsar_requests" ADD COLUMN "submission_method" varchar(50) DEFAULT '
 ALTER TABLE "dsar_requests" ADD COLUMN "audit_log" jsonb DEFAULT '[]'::jsonb;--> statement-breakpoint
 ALTER TABLE "embeddings" ADD COLUMN "entity_type" varchar(50);--> statement-breakpoint
 ALTER TABLE "embeddings" ADD COLUMN "entity_id" varchar(100);--> statement-breakpoint
-ALTER TABLE "embeddings" ADD COLUMN "embedding" "vector(1536)";--> statement-breakpoint
+ALTER TABLE "embeddings" ADD COLUMN "embedding" vector(1536);--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_consent_client" ON "consents" ("client_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_consent_subject" ON "consents" ("data_subject_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_consent_status" ON "consents" ("status");--> statement-breakpoint
