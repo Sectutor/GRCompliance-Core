@@ -16,14 +16,15 @@ export const slackManifest: IntegrationManifest = {
     version: '1.0.0',
     description: 'Connect to Slack to send security alerts, compliance notifications, and audit reports',
     author: {
-        name: 'ComplianceOS',
-        url: 'https://complianceos.com'
+        name: 'GRCompliance',
+        url: 'https://grcompliance.com'
     },
     license: 'MIT',
     category: 'communication',
     tags: ['notifications', 'collaboration', 'chatops'],
     icon: '💬',
     homepage: 'https://slack.com',
+    // Registry repo kept; it is not the Sectutor/GRCompliance-Core source repository.
     repository: 'https://github.com/complianceos/integrations',
 
     capabilities: {

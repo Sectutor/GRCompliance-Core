@@ -240,7 +240,7 @@ export default function TrustCenter() {
                 <div className="container mx-auto px-6 relative z-10 text-center">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-300 text-sm font-medium mb-6 border border-white/10 backdrop-blur-sm">
                         <Shield className="h-4 w-4" />
-                        <span>Official ComplianceOS Trust Center</span>
+                        <span>Official GRCompliance Trust Center</span>
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
@@ -299,7 +299,7 @@ export default function TrustCenter() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-black text-slate-900">{readinessData?.score?.complianceScore ?? 0}% Score</div>
-                            <p className="text-slate-500 text-xs mt-1 font-medium">Continuously Audited via ComplianceOS</p>
+                            <p className="text-slate-500 text-xs mt-1 font-medium">Continuously Audited via GRCompliance</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -432,7 +432,7 @@ export default function TrustCenter() {
                 <div className="text-center text-slate-400 text-sm mt-20 pt-10 border-t border-slate-100">
                     <div className="flex items-center justify-center gap-2 mb-4">
                         <Shield className="h-5 w-5 text-primary" />
-                        <span className="font-black text-slate-600 tracking-tighter uppercase text-xs">Secured & Monitored by ComplianceOS v4.0</span>
+                        <span className="font-black text-slate-600 tracking-tighter uppercase text-xs">Secured & Monitored by GRCompliance v4.0</span>
                     </div>
                     <p className="font-medium">&copy; {new Date().getFullYear()} {client?.name || "Company"}. Internal Use Only. NDA Restricted.</p>
                 </div>

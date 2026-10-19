@@ -79,7 +79,7 @@ export function PublicSubprocessorTable({ clientId, className }: PublicSubproces
                 </Table>
             </CardContent>
             <div className="p-3 border-t bg-slate-50 text-center text-xs text-muted-foreground">
-                Powered by ComplianceOS &bull; <a href="#" className="underline">Subscribe to updates</a>
+                Powered by GRCompliance &bull; <a href="#" className="underline">Subscribe to updates</a>
             </div>
         </Card>
     );

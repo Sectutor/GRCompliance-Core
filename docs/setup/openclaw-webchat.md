@@ -23,5 +23,6 @@
 - Build and run:
   - docker compose -f docker-compose.openclaw.yml up --build -d
 - Access Gateway on http://localhost:${OPENCLAW_PORT}
-- Run the wizard inside a temporary container if needed:
+- Run the wizard inside a temporary container if needed.
+  The image name below is kept so it matches images already built locally:
   - docker run --rm -it complianceos/openclaw:locked-box sh -lc "npm i -g openclaw@latest && openclaw onboard"

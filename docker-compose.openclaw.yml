@@ -2,13 +2,16 @@ services:
   openclaw:
     build:
       context: ./docker/openclaw
+    # Image repo kept so existing local tags and the webchat run command still match.
     image: complianceos/openclaw:locked-box
     container_name: openclaw_gateway
     environment:
       - OPENCLAW_PORT=${OPENCLAW_PORT:-18789}
       - TOOL_HMAC_SECRET=${TOOL_HMAC_SECRET}
+      # Database name kept: OpenClaw attaches to an existing Postgres database of this name.
       - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@db:5432/complianceos
     networks:
+      # External network name kept so installs that already created it still attach.
       - complianceos-network
     ports:
       - "${OPENCLAW_PORT:-18789}:18789"
@@ -20,5 +23,6 @@ services:
       retries: 12
 
 networks:
+  # External network name kept so existing OpenClaw installs still attach.
   complianceos-network:
     external: true

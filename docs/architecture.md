@@ -1,8 +1,8 @@
-# ComplianceOS Architecture
+# GRCompliance Architecture
 
 ## Overview
 
-ComplianceOS is a comprehensive Governance, Risk, and Compliance (GRC) platform designed to help organizations manage their security posture, compliance frameworks, and risks. It leverages a modern full-stack architecture with AI-driven capabilities.
+GRCompliance is a comprehensive Governance, Risk, and Compliance (GRC) platform designed to help organizations manage their security posture, compliance frameworks, and risks. It leverages a modern full-stack architecture with AI-driven capabilities.
 
 ## Technology Stack
 
@@ -67,7 +67,7 @@ The AI features (Compliance Advisor, Risk Analysis) rely on:
 ## Project Structure
 
 ```
-ComplianceOS/
+GRCompliance/
 ├── components/         # React components
 ├── docs/               # Documentation
 ├── drizzle/            # Database migrations

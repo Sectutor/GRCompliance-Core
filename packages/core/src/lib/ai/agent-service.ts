@@ -1,7 +1,7 @@
 /**
  * Agentic AI Service
  * 
- * Provides tools and execution environment for AI Agents in ComplianceOS.
+ * Provides tools and execution environment for AI Agents in GRCompliance.
  */
 
 import { integrationRegistry } from '../integrations/registry';

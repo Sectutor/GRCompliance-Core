@@ -1,5 +1,5 @@
 /**
- * Schema exports for ComplianceOS
+ * Schema exports for GRCompliance
  */
 
 export * from './licenses';

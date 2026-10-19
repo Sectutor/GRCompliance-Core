@@ -182,7 +182,7 @@ export default function FrameworksDashboard() {
                             {
                                 title: "Multi-Framework Strategy",
                                 example: "You need to comply with both ISO 27001 and SOC 2.",
-                                auditTip: "Import both frameworks. ComplianceOS automatically deduplicates controls. Implementing a 'Password Complexity' control once will satisfy both frameworks simultaneously."
+                                auditTip: "Import both frameworks. GRCompliance automatically deduplicates controls. Implementing a 'Password Complexity' control once will satisfy both frameworks simultaneously."
                             },
                             {
                                 title: "Handling Custom Audit Scopes",

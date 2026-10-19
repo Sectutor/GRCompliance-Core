@@ -246,7 +246,7 @@ export default function ISOManagementReview() {
                                 <ClipboardList className="h-12 w-12 text-slate-300 mb-4" />
                                 <h3 className="text-lg font-semibold text-slate-900">Standard Review Inputs</h3>
                                 <p className="text-slate-500 max-w-md mt-2">
-                                    This section will aggregate data from ComplianceOS modules (Status of actions, External/internal issues change, Audit results, Feedback, Risk Assessment results) to automatically populate your meeting agenda.
+                                    This section will aggregate data from GRCompliance modules (Status of actions, External/internal issues change, Audit results, Feedback, Risk Assessment results) to automatically populate your meeting agenda.
                                 </p>
                             </CardContent>
                         </Card>

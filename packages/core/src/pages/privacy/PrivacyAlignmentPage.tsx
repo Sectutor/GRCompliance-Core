@@ -302,7 +302,7 @@ export default function PrivacyAlignmentPage() {
                                                                     Platform Implementation
                                                                 </CardTitle>
                                                                 <CardDescription className="text-slate-400 text-sm lg:text-base">
-                                                                    ComplianceOS technical and organizational controls to address this requirement.
+                                                                    GRCompliance technical and organizational controls to address this requirement.
                                                                 </CardDescription>
                                                             </CardHeader>
                                                             <CardContent className="space-y-4 pt-4">

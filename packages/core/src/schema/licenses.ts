@@ -1,5 +1,5 @@
 /**
- * License Management Schema for ComplianceOS
+ * License Management Schema for GRCompliance
  * 
  * This schema handles license activations, validations, and feature tracking
  * for the dual-licensing model (AGPLv3 Community + Commercial Enterprise)

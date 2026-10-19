@@ -332,14 +332,14 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     // 6. Send Email Notification
                     if (targetEmail) {
                         const loginLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/login`;
-                        const defaultMsg = `You have been added as an administrator for the new organization <strong>${input.name}</strong> on ComplianceOS.`;
+                        const defaultMsg = `You have been added as an administrator for the new organization <strong>${input.name}</strong> on GRCompliance.`;
 
                         await sendEmail({
                             to: targetEmail,
-                            subject: `Welcome to ${input.name} on ComplianceOS`,
+                            subject: `Welcome to ${input.name} on GRCompliance`,
                             html: `
                                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-                                    <h2 style="color: #1a1a1a;">Welcome to ComplianceOS</h2>
+                                    <h2 style="color: #1a1a1a;">Welcome to GRCompliance</h2>
                                     <p>${input.welcomeMessage ? input.welcomeMessage.replace(/\n/g, '<br/>') : defaultMsg}</p>
                                     
                                     <div style="margin: 24px 0; background-color: #f9f9f9; padding: 16px; border-radius: 4px;">

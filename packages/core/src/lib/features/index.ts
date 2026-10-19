@@ -1,5 +1,5 @@
 /**
- * Feature Flag System for ComplianceOS Dual-Licensing
+ * Feature Flag System for GRCompliance Dual-Licensing
  * 
  * This system controls which features are available based on:
  * 1. Build type (AGPLv3, COMMERCIAL, TRIAL)
@@ -383,7 +383,7 @@ export const FEATURE_DEFINITIONS: Record<string, {
 
   [FEATURES.DEPLOYMENT_ON_PREMISES]: {
     name: 'On-Premises Deployment',
-    description: 'Deploy ComplianceOS in your own infrastructure',
+    description: 'Deploy GRCompliance in your own infrastructure',
     category: FEATURE_CATEGORIES.DEPLOYMENT,
     availableIn: ['COMMERCIAL'],
     requiresLicense: true,

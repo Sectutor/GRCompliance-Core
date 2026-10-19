@@ -60,7 +60,7 @@ export const isAuthed = middleware(async ({ ctx, next, path }) => {
     if (ctx.user.accessExpiresAt && new Date() > ctx.user.accessExpiresAt) {
         throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Your access to ComplianceOS has expired. Please contact support to renew."
+            message: "Your access to GRCompliance has expired. Please contact support to renew."
         });
     }
 

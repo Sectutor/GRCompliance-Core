@@ -130,7 +130,7 @@ export default function CompleteSubscription() {
                 </Card>
 
                 <p className="text-center text-xs text-slate-500 mt-8">
-                    Need help? Contact support@complianceos.com
+                    Need help? Contact support@grcompliance.com
                 </p>
             </div>
         </div>

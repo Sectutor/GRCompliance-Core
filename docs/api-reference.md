@@ -1,6 +1,6 @@
 # API Reference
 
-ComplianceOS uses a hybrid API approach:
+GRCompliance uses a hybrid API approach:
 1.  **tRPC:** For the majority of client-server communication (type-safe, efficient).
 2.  **REST:** For specific use cases like file uploads, webhooks, and generated exports.
 

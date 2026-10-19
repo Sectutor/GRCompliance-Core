@@ -87,13 +87,13 @@ function getSubject(daysLeft: number, licenseType: string): string {
 function getProductName(licenseType: string): string {
   switch (licenseType) {
     case 'enterprise':
-      return 'ComplianceOS Enterprise';
+      return 'GRCompliance Enterprise';
     case 'trial':
-      return 'ComplianceOS Trial';
+      return 'GRCompliance Trial';
     case 'community':
-      return 'ComplianceOS Community';
+      return 'GRCompliance Community';
     default:
-      return 'ComplianceOS';
+      return 'GRCompliance';
   }
 }
 
@@ -111,9 +111,9 @@ function getHtmlContent(daysLeft: number, license: LicenseData): string {
       })
     : 'Unknown date';
   
-  const renewalUrl = `https://app.complianceos.com/license/renew/${license.licenseKey}`;
-  const supportUrl = 'https://support.complianceos.com';
-  const billingUrl = 'https://billing.complianceos.com';
+  const renewalUrl = `https://app.grcompliance.com/license/renew/${license.licenseKey}`;
+  const supportUrl = 'https://support.grcompliance.com';
+  const billingUrl = 'https://billing.grcompliance.com';
   
   let urgencyClass = '';
   let urgencyText = '';
@@ -263,7 +263,7 @@ function getHtmlContent(daysLeft: number, license: LicenseData): string {
 <body>
     <div class="container">
         <div class="header">
-            <h1>ComplianceOS</h1>
+            <h1>GRCompliance</h1>
             <p>Security & Compliance Management Platform</p>
         </div>
         
@@ -319,18 +319,18 @@ function getHtmlContent(daysLeft: number, license: LicenseData): string {
             </div>
             
             <p>Best regards,<br>
-            The ComplianceOS Team</p>
+            The GRCompliance Team</p>
         </div>
         
         <div class="footer">
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>ComplianceOS Inc.<br>
+            <p>GRCompliance Inc.<br>
             123 Security Street, Suite 100<br>
             San Francisco, CA 94107</p>
             <p>
-                <a href="https://complianceos.com/privacy">Privacy Policy</a> | 
-                <a href="https://complianceos.com/terms">Terms of Service</a> | 
-                <a href="https://complianceos.com/unsubscribe">Unsubscribe</a>
+                <a href="https://grcompliance.com/privacy">Privacy Policy</a> | 
+                <a href="https://grcompliance.com/terms">Terms of Service</a> | 
+                <a href="https://grcompliance.com/unsubscribe">Unsubscribe</a>
             </p>
         </div>
     </div>

@@ -1,5 +1,5 @@
 /**
- * ComplianceOS Integrations
+ * GRCompliance Integrations
  * 
  * Main entry point for the integration marketplace system.
  * Exports all integration types and utilities.

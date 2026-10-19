@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
             <section>
               <h3 className="text-xl font-semibold mb-2">1. Introduction</h3>
               <p>
-                Welcome to ComplianceOS ("we," "our," or "us"). We are committed to protecting your personal data and respecting your privacy.
+                Welcome to GRCompliance ("we," "our," or "us"). We are committed to protecting your personal data and respecting your privacy.
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
                 We comply with the General Data Protection Regulation (GDPR) and other applicable data protection laws.
               </p>
@@ -77,7 +77,7 @@ export default function PrivacyPolicy() {
             <section>
               <h3 className="text-xl font-semibold mb-2">6. Contact Us</h3>
               <p>
-                If you have any questions about this privacy policy or our privacy practices, please contact us at: support@complianceos.com
+                If you have any questions about this privacy policy or our privacy practices, please contact us at: support@grcompliance.com
               </p>
             </section>
           </CardContent>

@@ -49,7 +49,7 @@ export function PersonalizationReference() {
                             <div className="grid grid-cols-1 gap-1.5 pt-1">
                                 <div className="flex flex-col gap-0.5 p-1.5 border rounded bg-white">
                                     <code className="text-indigo-600 font-bold text-[10px]">{`{{appName}}`}</code>
-                                    <span className="text-[9px] text-slate-500">Product name (ComplianceOS)</span>
+                                    <span className="text-[9px] text-slate-500">Product name (GRCompliance)</span>
                                 </div>
                                 <div className="flex flex-col gap-0.5 p-1.5 border rounded bg-white">
                                     <code className="text-indigo-600 font-bold text-[10px]">{`{{companyName}}`}</code>

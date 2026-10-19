@@ -18,14 +18,15 @@ export const githubManifest: IntegrationManifest = {
     version: '1.0.0',
     description: 'Connect to GitHub to sync repositories, issues, and security findings',
     author: {
-        name: 'ComplianceOS',
-        url: 'https://complianceos.com'
+        name: 'GRCompliance',
+        url: 'https://grcompliance.com'
     },
     license: 'MIT',
     category: 'source-control',
     tags: ['security', 'scanning', 'devops', 'sast'],
     icon: '🐙',
     homepage: 'https://github.com',
+    // Registry repo kept; it is not the Sectutor/GRCompliance-Core source repository.
     repository: 'https://github.com/complianceos/integrations',
 
     capabilities: {

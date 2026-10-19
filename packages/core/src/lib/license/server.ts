@@ -244,7 +244,7 @@ export class LicenseServerClient {
  * Default license server configuration
  */
 export const defaultLicenseServerConfig: LicenseServerConfig = {
-  endpoint: 'https://license.complianceos.com',
+  endpoint: 'https://license.grcompliance.com',
   timeout: 10000,
   cacheDuration: 5 * 60 * 1000 // 5 minutes
 };

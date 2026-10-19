@@ -139,7 +139,7 @@ export default function Clients() {
                   </span>
                   <PageGuide
                     title="Client Management"
-                    description="This page allows you to manage different legal entities, departments, or client organizations that you oversee within ComplianceOS."
+                    description="This page allows you to manage different legal entities, departments, or client organizations that you oversee within GRCompliance."
                     rationale="In a tiered compliance environment, isolation is key. Each client represents a dedicated workspace with its own policies, controls, and evidence, ensuring multi-tenant security and focused compliance management."
                     howToUse={[
                       {

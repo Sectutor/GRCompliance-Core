@@ -77,7 +77,7 @@ export default function ConsolidatedRequestPortal() {
                             <Shield className="text-white w-6 h-6" />
                         </div>
                         <div>
-                            <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">ComplianceOS</span>
+                            <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">GRCompliance</span>
                             <span className="ml-2 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] uppercase font-bold tracking-widest rounded-md">Secure Portal</span>
                         </div>
                     </div>
@@ -226,7 +226,7 @@ export default function ConsolidatedRequestPortal() {
             </main>
 
             <footer className="mt-20 border-t border-slate-200 pt-8 pb-12 text-center text-slate-400 text-xs">
-                &copy; {new Date().getFullYear()} ComplianceOS Security. All rights reserved. <br />
+                &copy; {new Date().getFullYear()} GRCompliance Security. All rights reserved. <br />
                 Secure end-to-end encryption active.
             </footer>
         </div>

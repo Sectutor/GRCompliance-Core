@@ -47,7 +47,7 @@ export function generateOscalSsp(pkg: any, ssp: any, controls: any[]) {
                     }
                 ],
                 "system-name": pkg.title,
-                "description": pkg.description || "FedRAMP System managed by ComplianceOS",
+                "description": pkg.description || "FedRAMP System managed by GRCompliance",
                 "security-sensitivity-level": (pkg.impactLevel || "moderate").toLowerCase(),
                 "security-impact-level": {
                     "security-objective-confidentiality": "moderate",

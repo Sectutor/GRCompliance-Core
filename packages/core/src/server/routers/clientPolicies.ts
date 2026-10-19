@@ -369,7 +369,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                       ${dueDate ? `<p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>` : ''}
                       ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
                     </div>
-                    <p>Please log in to the ComplianceOS dashboard to review and provide your feedback.</p>
+                    <p>Please log in to the GRCompliance dashboard to review and provide your feedback.</p>
                     <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
                        style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
                       View Policy

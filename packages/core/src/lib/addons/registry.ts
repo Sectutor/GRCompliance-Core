@@ -23,6 +23,7 @@ export type AddonEventHandler = (event: AddonEvent) => void;
 class AddonRegistry {
   private addons: Map<string, BaseAddon> = new Map();
   private eventHandlers: Map<AddonEventType, Set<AddonEventHandler>> = new Map();
+  // Key kept so addons already saved in the browser are still found.
   private storageKey = 'complianceos_addons';
 
   async register(addon: BaseAddon): Promise<AddonInfo> {

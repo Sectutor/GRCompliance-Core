@@ -68,6 +68,7 @@ interface RecentSearch {
   type?: SearchType;
 }
 
+// Keys kept so recent and saved searches already in the browser still load.
 const STORAGE_KEY = 'complianceos-recent-searches';
 const SAVED_SEARCHES_KEY = 'complianceos-saved-searches';
 

@@ -1,5 +1,5 @@
 /**
- * Gumroad API Client for ComplianceOS License Management
+ * Gumroad API Client for GRCompliance License Management
  * 
  * This module handles integration with Gumroad for license validation,
  * product management, and webhook handling.
@@ -246,10 +246,11 @@ export class GumroadClient {
 }
 
 /**
- * Helper function to map Gumroad product to ComplianceOS license type
+ * Helper function to map Gumroad product to GRCompliance license type.
+ * Permalink strings are published Gumroad product ids and stay unchanged.
  */
 export function mapGumroadProductToLicenseType(productPermalink: string): 'community' | 'enterprise' | 'trial' {
-  // Map your Gumroad product permalinks to license types
+  // Map your Gumroad product permalinks to license types. Do not rename the keys.
   const productMap: Record<string, 'community' | 'enterprise' | 'trial'> = {
     'complianceos-community': 'community',
     'complianceos-enterprise': 'enterprise',
@@ -325,6 +326,7 @@ export function getGumroadClient(config?: Partial<GumroadConfig>): GumroadClient
     
     gumroadClient = new GumroadClient({
       accessToken: config.accessToken,
+      // Default permalink kept; it matches the published Gumroad product.
       productPermalink: config.productPermalink || 'complianceos-enterprise',
       webhookSecret: config.webhookSecret,
       apiBaseUrl: config.apiBaseUrl,

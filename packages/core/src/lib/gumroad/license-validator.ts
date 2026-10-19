@@ -1,5 +1,5 @@
 /**
- * Gumroad License Validator for ComplianceOS
+ * Gumroad License Validator for GRCompliance
  * 
  * Integrates Gumroad license validation with the existing license system
  */
@@ -29,7 +29,7 @@ export class GumroadLicenseValidator {
   }
   
   /**
-   * Validate a Gumroad license and convert to ComplianceOS LicenseInfo
+   * Validate a Gumroad license and convert to GRCompliance LicenseInfo
    */
   async validateGumroadLicense(licenseKey: string, productPermalink?: string): Promise<LicenseInfo> {
     const cacheKey = `${licenseKey}:${productPermalink || 'default'}`;
@@ -59,7 +59,7 @@ export class GumroadLicenseValidator {
         throw new Error('License is under dispute');
       }
       
-      // Map Gumroad purchase to ComplianceOS LicenseInfo
+      // Map Gumroad purchase to GRCompliance LicenseInfo
       const licenseInfo: LicenseInfo = {
         type: mapGumroadProductToLicenseType(purchase.permalink),
         status: this.getLicenseStatus(purchase),
@@ -158,6 +158,7 @@ export class GumroadLicenseValidator {
    * Get max users based on product
    */
   private getMaxUsers(productPermalink: string): number | undefined {
+    // Permalink keys are published Gumroad product ids. Do not rename them.
     const limits: Record<string, number> = {
       'complianceos-community': 10,
       'complianceos-trial': 10,
@@ -173,6 +174,7 @@ export class GumroadLicenseValidator {
    * Get max clients based on product
    */
   private getMaxClients(productPermalink: string): number | undefined {
+    // Same published Gumroad product ids as getMaxUsers.
     const limits: Record<string, number> = {
       'complianceos-community': 5,
       'complianceos-trial': 5,
@@ -235,6 +237,7 @@ export class EnhancedLicenseValidator {
     this.gumroadValidator = gumroadValidator || new GumroadLicenseValidator(
       new GumroadClient({
         accessToken: process.env.GUMROAD_ACCESS_TOKEN || '',
+        // Default permalink kept; it matches the published Gumroad product.
         productPermalink: 'complianceos-enterprise'
       })
     );

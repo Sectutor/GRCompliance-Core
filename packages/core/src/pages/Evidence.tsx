@@ -413,7 +413,7 @@ export default function Evidence() {
               {
                 title: "Handling Multi-Framework Audits",
                 example: "You are being audited for both SOC 2 and ISO 27001 at the same time.",
-                auditTip: "Use the 'Framework Filter'. ComplianceOS uses 'Evidence Inheritance'—if you upload a password policy for SOC 2, it automatically maps to the equivalent ISO 27001 control to save you dual-work."
+                auditTip: "Use the 'Framework Filter'. GRCompliance uses 'Evidence Inheritance'—if you upload a password policy for SOC 2, it automatically maps to the equivalent ISO 27001 control to save you dual-work."
               }
             ]}
           />

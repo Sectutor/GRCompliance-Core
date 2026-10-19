@@ -64,7 +64,7 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
 
             await sendEmail({
                 to: input.email,
-                subject: 'Invitation to Audit Clean Room - ComplianceOS',
+                subject: 'Invitation to Audit Clean Room - GRCompliance',
                 html: `
                     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                         <h1>Audit Room Access</h1>

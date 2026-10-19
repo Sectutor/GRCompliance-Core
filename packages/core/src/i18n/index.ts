@@ -47,6 +47,7 @@ i18n
         detection: {
             order: ['localStorage', 'navigator', 'htmlTag'],
             caches: ['localStorage'],
+            // Key kept so a saved language preference still applies after this rename.
             lookupLocalStorage: 'complianceos-language',
         },
     });
@@ -55,7 +56,7 @@ export default i18n;
 
 export const changeLanguage = async (lang: string) => {
     await i18n.changeLanguage(lang);
-    localStorage.setItem('complianceos-language', lang);
+    localStorage.setItem('complianceos-language', lang); // same key as lookupLocalStorage
 };
 
 export const getCurrentLanguage = () => i18n.language;

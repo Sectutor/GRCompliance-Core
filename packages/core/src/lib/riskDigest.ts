@@ -168,7 +168,7 @@ export function formatDigestEmail(items: DigestItem[], recipientName: string): {
 
     html += `
             <p style="color: #666; font-size: 12px; margin-top: 24px;">
-                This is an automated digest from ComplianceOS.
+                This is an automated digest from GRCompliance.
             </p>
         </div>
     `;

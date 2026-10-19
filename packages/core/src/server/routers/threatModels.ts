@@ -1367,8 +1367,8 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                 return {
                     summary: {
                         title: model.name,
-                        owner: "ComplianceOS User",
-                        description: "Exported from ComplianceOS"
+                        owner: "GRCompliance User",
+                        description: "Exported from GRCompliance"
                     },
                     detail: {
                         diagrams: [

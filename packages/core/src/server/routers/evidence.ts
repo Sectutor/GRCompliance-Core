@@ -490,7 +490,7 @@ Provide a structured JSON response:
                         description: r.description,
                         type: "file",
                         status: "pending",
-                        owner: ctx.user?.email || "auditor@complianceos.com",
+                        owner: ctx.user?.email || "auditor@grcompliance.com",
                         location: r.location,
                         framework: framework,
                         createdAt: new Date(),

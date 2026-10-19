@@ -258,7 +258,7 @@ export default function FipsCategorizationPage() {
                             <section className="space-y-2">
                                 <h4 className="font-bold text-slate-900 border-b pb-1">1. Selecting Information Types</h4>
                                 <p className="text-sm text-slate-600">
-                                    ComplianceOS includes the full library of <strong>NIST SP 800-60</strong> information types. Each type comes with "Provisional" impact levels (Low, Moderate, or High) for Confidentiality, Integrity, and Availability (the CIA triad).
+                                    GRCompliance includes the full library of <strong>NIST SP 800-60</strong> information types. Each type comes with "Provisional" impact levels (Low, Moderate, or High) for Confidentiality, Integrity, and Availability (the CIA triad).
                                 </p>
                             </section>
                             <section className="space-y-2">

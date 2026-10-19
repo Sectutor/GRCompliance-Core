@@ -99,7 +99,7 @@ async function sendWebhookAlert(settings: ThreatAlertSettings, alert: ThreatAler
                 timestamp: alert.timestamp.toISOString(),
             },
             metadata: {
-                source: 'ComplianceOS Threat Intelligence',
+                source: 'GRCompliance Threat Intelligence',
                 version: '1.0',
             }
         };
@@ -291,10 +291,10 @@ export async function testAlertConfiguration(clientId: number): Promise<AlertRes
 
     const testAlert: ThreatAlert = {
         id: 'test-alert',
-        title: '🧪 Test Alert from ComplianceOS',
+        title: '🧪 Test Alert from GRCompliance',
         description: 'This is a test alert to verify your threat intelligence alert configuration is working correctly.',
         severity: 'high',
-        source: 'ComplianceOS Test',
+        source: 'GRCompliance Test',
         timestamp: new Date(),
     };
 

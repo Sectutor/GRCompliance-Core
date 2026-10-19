@@ -1,6 +1,6 @@
 # Database Schema
 
-ComplianceOS uses PostgreSQL with Drizzle ORM. The schema is defined in `schema.ts`.
+GRCompliance uses PostgreSQL with Drizzle ORM. The schema is defined in `schema.ts`.
 
 ## Core Modules
 

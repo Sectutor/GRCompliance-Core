@@ -83,7 +83,7 @@ export default function GapQuestionnaire() {
         }
 
         // Mock file upload to URLs
-        const mockFileUrls = files.map(f => `https://storage.complianceos.com/evidence/${f.name}`);
+        const mockFileUrls = files.map(f => `https://storage.grcompliance.com/evidence/${f.name}`);
 
         submitMutation.mutate({
             token: token!,

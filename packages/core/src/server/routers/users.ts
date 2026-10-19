@@ -594,11 +594,11 @@ export const usersSubRouter = router({
             const resetLink = data.properties.action_link;
             await sendEmail({
                 to: user.email,
-                subject: 'Reset Your ComplianceOS Password',
+                subject: 'Reset Your GRCompliance Password',
                 html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                             <h1>Password Reset Request</h1>
-                            <p>An administrator has requested a password reset for your ComplianceOS account.</p>
+                            <p>An administrator has requested a password reset for your GRCompliance account.</p>
                             <p>Click the button below to set a new password:</p>
                             <div style="margin: 24px 0;">
                                 <a href="${resetLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
@@ -655,10 +655,10 @@ export const usersSubRouter = router({
 
             await sendEmail({
                 to: input.email,
-                subject: 'You have been invited to ComplianceOS',
+                subject: 'You have been invited to GRCompliance',
                 html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h1>Welcome to ComplianceOS</h1>
+                            <h1>Welcome to GRCompliance</h1>
                             <p>You have been invited to join the organization as a <strong>${input.role}</strong>.</p>
                             <p>Click the button below to accept your invitation and set up your account:</p>
                             <div style="margin: 24px 0;">
