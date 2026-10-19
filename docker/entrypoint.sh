@@ -19,8 +19,13 @@ case "$APP_URL" in
     ;;
 esac
 
+COOKIE_CONSENT="false"
+case "${GRC_COOKIE_CONSENT:-}" in
+  1|true|TRUE|yes|YES) COOKIE_CONSENT="true" ;;
+esac
+
 cat > /app/packages/core/dist/env-config.js <<EOF
-window.__GRC_CONFIG__ = { authMode: "${AUTH_MODE}", appUrl: "${APP_URL}" };
+window.__GRC_CONFIG__ = { authMode: "${AUTH_MODE}", appUrl: "${APP_URL}", cookieConsent: ${COOKIE_CONSENT} };
 EOF
 
 echo "[entrypoint] Applying migrations and first-run seed"

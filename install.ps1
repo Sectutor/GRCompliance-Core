@@ -1,13 +1,19 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Install GRCompliance with Docker Compose on Windows.
+  Install GRCompliance with Docker Compose. Windows only.
 .DESCRIPTION
+  Linux and macOS use install.sh:
+    curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
+  Upgrade:
+    iex "& { $(irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1) } -Upgrade"
+
   Creates ~/grcompliance (or -Dir), writes a mode-restricted .env with random
   secrets, downloads docker-compose.yml, and starts the stack.
   Existing .env files are never overwritten. -Upgrade pulls or rebuilds.
   -BindLocal publishes Postgres and Redis on 127.0.0.1 only.
   HEALTH_RETRIES sets how many /health attempts run before a non-zero exit.
+  This script is not copied into the install directory.
 #>
 param(
     [switch]$Upgrade,
@@ -16,7 +22,24 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+function Test-WindowsHost {
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        return [bool]$IsWindows
+    }
+    return $env:OS -eq 'Windows_NT'
+}
+
+if (-not (Test-WindowsHost)) {
+    [Console]::Error.WriteLine(@"
+install.ps1 is Windows-only. No secrets were generated or written.
+On Linux and macOS, install with:
+  curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
+"@)
+    exit 1
+}
 $script:BindLocal = $BindLocal.IsPresent -or ($env:GRC_BIND_LOCAL -eq "1")
+$script:FreshInstall = $false
 if ($env:HEALTH_RETRIES) {
     if ($env:HEALTH_RETRIES -notmatch '^[1-9][0-9]*$') {
         Write-Error "HEALTH_RETRIES must be a positive integer (got: $($env:HEALTH_RETRIES))."
@@ -61,6 +84,48 @@ function New-SecretHex([int]$Bytes) {
     return ([System.BitConverter]::ToString($buffer) -replace "-", "").ToLowerInvariant()
 }
 
+function Write-RestrictedText {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Content
+    )
+    $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if (Test-Path $Path) {
+        Fail "Refusing to overwrite $Path"
+    }
+
+    $wrote = $false
+    try {
+        $acl = New-Object System.Security.AccessControl.FileSecurity
+        $acl.SetAccessRuleProtection($true, $false)
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($identity, 'Modify', 'Allow')
+        $acl.AddAccessRule($rule)
+        $stream = [System.IO.File]::Create($Path, 4096, [System.IO.FileOptions]::None, $acl)
+        $writer = New-Object System.IO.StreamWriter($stream, [System.Text.Encoding]::ASCII)
+        try {
+            $writer.Write($Content)
+        } finally {
+            $writer.Dispose()
+        }
+        $wrote = $true
+    } catch {
+        if (Test-Path $Path) {
+            Remove-Item -Force $Path
+        }
+    }
+
+    if ($wrote) { return }
+
+    # Restrict the empty file before any secret bytes are written.
+    New-Item -ItemType File -Path $Path | Out-Null
+    & icacls $Path /inheritance:r /grant:r "${identity}:(R,W)" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Remove-Item -Force $Path
+        Fail "Could not restrict permissions on $Path before writing secrets."
+    }
+    Set-Content -Path $Path -Value $Content -Encoding ascii
+}
+
 function Write-EnvFile {
     $postgresPassword = New-SecretHex 24
     $redisPassword = New-SecretHex 24
@@ -88,8 +153,8 @@ GRC_VERSION=$version
 AUTH_MODE=local
 "@
     $path = Join-Path (Get-Location) ".env"
-    Set-Content -Path $path -Value $content -Encoding ascii
-    icacls $path /inheritance:r /grant:r "${env:USERNAME}:(R,W)" | Out-Null
+    Write-RestrictedText -Path $path -Content $content
+    $script:FreshInstall = $true
     Write-Host "Created $path"
     Write-Host "Admin email: $adminEmail"
     Write-Host "Admin password (shown once): $adminPassword"
@@ -176,7 +241,11 @@ Inspect the stack from ${Dir}:
 }
 Write-Host "GRCompliance is up: http://127.0.0.1:$port"
 Write-Host "Sign in with the administrator email in .env."
-Write-Host "The first start loads the Latore LTD demo workspace."
+if ($script:FreshInstall) {
+    Write-Host "The first start loads the Latore LTD demo workspace."
+}
 if ($Upgrade) {
     Write-Host "Upgrade finished. The existing .env was left unchanged."
 }
+Write-Host "Upgrade later with:"
+Write-Host '  iex "& { $(irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1) } -Upgrade"'

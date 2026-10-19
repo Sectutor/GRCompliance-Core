@@ -322,7 +322,7 @@ export default function RiskAssessmentsPage() {
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                             <div>
                                 <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-sm font-medium text-slate-500">Unmitigated Critical</h3>
+                                    <h3 className="text-sm font-medium text-slate-500">High inherent, no treatment</h3>
                                     <div className="p-2 bg-amber-50 rounded-lg">
                                         <AlertTriangle className="w-5 h-5 text-amber-600" />
                                     </div>

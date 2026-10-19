@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { INHERENT_UNTREATED_LABEL } from "@/lib/riskMetricLabels";
 import DashboardLayout from "@/components/DashboardLayout";
 import { PageGuide } from '@/components/PageGuide';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -284,7 +285,7 @@ export default function GovernanceDashboard() {
                         <CardContent>
                             <div className="text-3xl font-bold text-orange-700">{riskStats?.unmitigatedCriticalRisks || 0}</div>
                             <p className="text-xs text-orange-600 mt-1">
-                                Critical Unmitigated Risks
+                                {INHERENT_UNTREATED_LABEL}
                             </p>
                         </CardContent>
                     </Card>

@@ -62,6 +62,20 @@ const mfaApi = {
     },
 };
 
+export function adoptLocalSession(body: {
+    access_token: string;
+    expires_at: number;
+    user: LocalSession['user'];
+}) {
+    const session: LocalSession = {
+        access_token: body.access_token,
+        expires_at: body.expires_at,
+        user: body.user,
+    };
+    writeSession(session);
+    emit('SIGNED_IN', session);
+}
+
 export function createLocalAuthClient() {
     return {
         auth: {

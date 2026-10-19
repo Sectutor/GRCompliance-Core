@@ -8,7 +8,7 @@ To run it as containers, use the one-line installer in the [README](README.md):
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
 ```
 
-This page is the supported way to run it from a Node checkout.
+This page is the supported way to run it from a Node checkout. Container installs on Linux and macOS use `install.sh`. `install.ps1` is Windows-only and exits before it writes secrets on any other operating system.
 
 ## Prerequisites
 

@@ -3,7 +3,7 @@ import { createLocalAuthClient } from './localAuthClient';
 
 declare global {
     interface Window {
-        __GRC_CONFIG__?: { authMode?: string; appUrl?: string };
+        __GRC_CONFIG__?: { authMode?: string; appUrl?: string; cookieConsent?: boolean };
     }
 }
 

@@ -4,6 +4,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, count, and, sql, or, inArray } from "drizzle-orm";
 import { postureScore } from "../../lib/postureScore";
+import { residualRiskInsight } from "../../lib/riskMetricLabels";
 import { TRPCError } from "@trpc/server";
 
 export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any) => {
@@ -509,11 +510,12 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const insights = [];
 
         if (unmitigated > 0) {
+          const residual = residualRiskInsight(unmitigated);
           insights.push({
             id: 'critical-risks',
             type: 'critical',
-            title: `${unmitigated} high residual risks`,
-            description: 'These risks are still high after treatment. Review the owners and actions in the register.',
+            title: residual.title,
+            description: residual.description,
             action: 'View Risk Register',
             link: '/risk-register/critical'
           });

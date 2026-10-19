@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'crypto';
+import { createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'crypto';
 import type { Request, Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
 import { getDb } from '../db';
@@ -72,6 +72,50 @@ export function verifyLocalToken(token: string): { sub: string; email?: string; 
     } catch {
         return null;
     }
+}
+
+export function isLocalAuthMode(): boolean {
+    return process.env.AUTH_MODE === 'local';
+}
+
+/** A new password for an administrator to hand to the user. Not logged. */
+export function generateLocalPassword(): string {
+    return randomBytes(18).toString('hex');
+}
+
+export async function upsertLocalCredential(userId: number, password: string): Promise<void> {
+    const db = await getDb();
+    const passwordHash = await hashPassword(password);
+    await db.execute(sql`
+        INSERT INTO local_credentials (user_id, password_hash)
+        VALUES (${userId}, ${passwordHash})
+        ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash
+    `);
+}
+
+export async function createLocalAccount(input: {
+    email: string;
+    name: string;
+    password: string;
+    role?: string;
+    planTier?: string | null;
+    maxClients?: number | null;
+    accessExpiresAt?: Date | null;
+}) {
+    const db = await getDb();
+    const [created] = await db.insert(users).values({
+        email: input.email,
+        name: input.name,
+        openId: `local:${randomUUID()}`,
+        loginMethod: 'local',
+        role: input.role || 'user',
+        planTier: input.planTier || undefined,
+        maxClients: input.maxClients ?? 2,
+        subscriptionStatus: 'active',
+        accessExpiresAt: input.accessExpiresAt ?? null,
+    }).returning();
+    await upsertLocalCredential(created.id, input.password);
+    return created;
 }
 
 export async function localLoginHandler(req: Request, res: Response): Promise<void> {

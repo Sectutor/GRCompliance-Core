@@ -3,7 +3,8 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.local-ports.yml up -d
 #
-# install.sh --bind-local and install.ps1 -BindLocal select this file.
+# Selected by: curl -fsSL .../install.sh | bash -s -- --bind-local
+# and by install.ps1 -BindLocal on Windows.
 
 services:
   db:
