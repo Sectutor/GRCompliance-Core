@@ -98,4 +98,22 @@ describe("community navigation", () => {
         expect(workbenchLine).toContain("isPremium: true");
         expect(source).toContain("filterNavForEdition");
     });
+
+    it("does not render the governance dashboard Premium badge in the community edition", () => {
+        const pagePath = [
+            path.resolve("packages/core/src/pages/governance/GovernanceDashboard.tsx"),
+            path.resolve("src/pages/governance/GovernanceDashboard.tsx"),
+        ].find((candidate) => {
+            try {
+                readFileSync(candidate);
+                return true;
+            } catch {
+                return false;
+            }
+        });
+        expect(pagePath).toBeTruthy();
+        const source = readFileSync(pagePath as string, "utf8");
+        expect(source).toContain("isCommunityEdition");
+        expect(source).toContain("!isCommunityEdition(import.meta.env.VITE_ENABLE_PREMIUM)");
+    });
 });

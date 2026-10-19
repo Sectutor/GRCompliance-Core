@@ -143,7 +143,7 @@ Restore the SQL file with `psql` inside the `db` container, and extract the uplo
 
 ## Community edition
 
-The image is built with premium features off (`VITE_ENABLE_PREMIUM=false`). Premium-only navigation entries, such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench, are omitted. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu. A commercial build can still show those entries with a Pro badge.
+The image is built with premium features off (`VITE_ENABLE_PREMIUM=false`). Premium-only navigation entries, such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench, are omitted. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge. A commercial build can still show those entries with a Pro badge.
 
 A community instance includes one workspace you create plus the free **Latore LTD** demo workspace. The seeded administrator can own both. Additional workspaces need a commercial license from [grcompliance.com](https://grcompliance.com/).
 
