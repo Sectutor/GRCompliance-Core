@@ -70,7 +70,7 @@ Replace every `replace-with-openssl-rand-hex` value. Generate them with `openssl
 docker compose up -d --build
 ```
 
-The app listens on `APP_PORT` (3001 by default). Postgres and Redis are not published to the host.
+The app listens on `APP_PORT` (3001 by default). Postgres and Redis are not published to the host. The database image is Postgres 16 with pgvector, which the schema uses for embeddings.
 
 ## Configuration
 

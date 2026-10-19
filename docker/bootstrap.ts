@@ -16,6 +16,7 @@ function sslOption(databaseUrl: string) {
 async function applyMigrations(databaseUrl: string) {
     const client = postgres(databaseUrl, { max: 1, ssl: sslOption(databaseUrl) });
     try {
+        await client.unsafe('CREATE EXTENSION IF NOT EXISTS vector');
         await migrate(drizzle(client), { migrationsFolder: path.join(process.cwd(), 'packages/core/drizzle') });
         console.log('[bootstrap] Migrations applied');
     } finally {
