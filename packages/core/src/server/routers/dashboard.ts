@@ -3,6 +3,7 @@ import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, count, and, sql, or, inArray } from "drizzle-orm";
+import { postureScore } from "../../lib/postureScore";
 import { TRPCError } from "@trpc/server";
 
 export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any) => {
@@ -289,6 +290,23 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const implementedCounts = await implementedOverviewQuery.groupBy(schema.clientControls.clientId);
         const implementedMap = new Map<number, number>(implementedCounts.map((r: any) => [r.clientId, Number(r.count)]));
 
+        const notApplicableOverviewQuery = dbConn.select({
+          clientId: schema.clientControls.clientId,
+          count: count()
+        })
+          .from(schema.clientControls)
+          .where(eq(schema.clientControls.status, 'not_applicable'));
+
+        if (frameworkFilter) {
+          notApplicableOverviewQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
+            .where(and(eq(schema.clientControls.status, 'not_applicable'), eq(schema.controls.framework, frameworkFilter)));
+        }
+        if (effectiveClientIds !== null) {
+          notApplicableOverviewQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
+        }
+        const notApplicableCounts = await notApplicableOverviewQuery.groupBy(schema.clientControls.clientId);
+        const notApplicableMap = new Map<number, number>(notApplicableCounts.map((r: any) => [r.clientId, Number(r.count)]));
+
         // Policies count
         const policiesOverviewQuery = dbConn.select({
           clientId: schema.clientPolicies.clientId,
@@ -315,18 +333,22 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
 
         // Map data to clients
         const clientsOverview = allClients.map((c: { id: number; name: string }) => {
-          const totalControls = controlsMap.get(c.id) || 0;
+          const assigned = controlsMap.get(c.id) || 0;
           const implemented = implementedMap.get(c.id) || 0;
+          const notApplicable = notApplicableMap.get(c.id) || 0;
           const policiesCount = policiesMap.get(c.id) || 0;
           const evidenceCount = evidenceMap.get(c.id) || 0;
-
-          const percentage = totalControls > 0 ? Math.round((implemented / totalControls) * 100) : 0;
+          const posture = postureScore({
+            implemented,
+            notStarted: Math.max(0, assigned - notApplicable - implemented),
+            notApplicable,
+          });
 
           return {
             id: c.id,
             name: c.name,
-            compliancePercentage: percentage,
-            controlsCount: totalControls,
+            compliancePercentage: posture.rate ?? 0,
+            controlsCount: posture.inScope,
             policiesCount: policiesCount,
             evidenceCount: evidenceCount
           };
@@ -538,15 +560,17 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           controlStatusQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
         }
         const controlStatusRows = await controlStatusQuery.groupBy(schema.clientControls.status);
-        const controlCounts = { implemented: 0, inProgress: 0, notStarted: 0 };
+        const controlCounts = { implemented: 0, inProgress: 0, notStarted: 0, notApplicable: 0 };
         for (const row of controlStatusRows) {
           const value = Number(row.value || 0);
           if (row.status === 'implemented') controlCounts.implemented = value;
           else if (row.status === 'in_progress') controlCounts.inProgress = value;
           else if (row.status === 'not_implemented') controlCounts.notStarted = value;
+          else if (row.status === 'not_applicable') controlCounts.notApplicable = value;
         }
-        const scopedControls = controlCounts.implemented + controlCounts.inProgress + controlCounts.notStarted;
-        const postureRate = scopedControls > 0 ? Math.round((controlCounts.implemented / scopedControls) * 100) : null;
+        const posture = postureScore(controlCounts);
+        const scopedControls = posture.inScope;
+        const postureRate = posture.rate;
         const controlLink = effectiveClientIds && effectiveClientIds.length === 1
           ? `/clients/${effectiveClientIds[0]}/controls`
           : '/controls';

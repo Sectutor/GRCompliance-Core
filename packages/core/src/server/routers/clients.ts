@@ -5,7 +5,8 @@ import { TRPCError } from "@trpc/server";
 import * as db from "../../db";
 import * as schema from "../../schema";
 import { clients, userClients } from "../../schema";
-import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, ne } from "drizzle-orm";
+import { policyCoverage, postureScore } from "../../lib/postureScore";
 import { generateGapAnalysisReport } from "../../lib/reporting";
 import { sendEmail } from "../../lib/email/transporter";
 
@@ -120,18 +121,23 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             .query(async ({ input }: any) => {
                 const dbConn = await db.getDb();
 
-                // Get total controls for client
-                const totalControls = await dbConn.select({ count: sql<number>`count(*)` })
+                const statusRows = await dbConn.select({
+                    status: schema.clientControls.status,
+                    count: sql<number>`count(*)`,
+                })
                     .from(schema.clientControls)
-                    .where(eq(schema.clientControls.clientId, input.clientId));
+                    .where(eq(schema.clientControls.clientId, input.clientId))
+                    .groupBy(schema.clientControls.status);
 
-                // Get implemented controls 
-                const implementedControls = await dbConn.select({ count: sql<number>`count(*)` })
-                    .from(schema.clientControls)
-                    .where(and(
-                        eq(schema.clientControls.clientId, input.clientId),
-                        eq(schema.clientControls.status, 'implemented')
-                    ));
+                const counts = { implemented: 0, inProgress: 0, notStarted: 0, notApplicable: 0 };
+                for (const row of statusRows) {
+                    const value = Number(row.count || 0);
+                    if (row.status === 'implemented') counts.implemented = value;
+                    else if (row.status === 'in_progress') counts.inProgress = value;
+                    else if (row.status === 'not_implemented') counts.notStarted = value;
+                    else if (row.status === 'not_applicable') counts.notApplicable = value;
+                }
+                const posture = postureScore(counts);
 
                 // Get evidence stats
                 const evidenceStats = await dbConn.select({
@@ -142,14 +148,10 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     .from(schema.evidence)
                     .where(eq(schema.evidence.clientId, input.clientId));
 
-                const total = Number(totalControls[0]?.count || 0);
-                const implemented = Number(implementedControls[0]?.count || 0);
-                const complianceScore = total > 0 ? Math.round((implemented / total) * 100) : 0;
-
                 return {
-                    complianceScore,
-                    totalControls: total,
-                    implementedControls: implemented,
+                    complianceScore: posture.rate ?? 0,
+                    totalControls: posture.inScope,
+                    implementedControls: posture.implemented,
                     evidenceStatus: {
                         verified: Number(evidenceStats[0]?.verified || 0),
                         pending: Number(evidenceStats[0]?.pending || 0),
@@ -162,27 +164,42 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             .query(async ({ input }: any) => {
                 const dbConn = await db.getDb();
 
-                // Get total controls
-                const totalControls = await dbConn.select({ count: sql<number>`count(*)` })
+                const statusRows = await dbConn.select({
+                    status: schema.clientControls.status,
+                    count: sql<number>`count(*)`,
+                })
                     .from(schema.clientControls)
-                    .where(eq(schema.clientControls.clientId, input.clientId));
+                    .where(eq(schema.clientControls.clientId, input.clientId))
+                    .groupBy(schema.clientControls.status);
 
-                // Get mapped controls (controls that have policy mappings)
+                const counts = { implemented: 0, inProgress: 0, notStarted: 0, notApplicable: 0 };
+                for (const row of statusRows) {
+                    const value = Number(row.count || 0);
+                    if (row.status === 'implemented') counts.implemented = value;
+                    else if (row.status === 'in_progress') counts.inProgress = value;
+                    else if (row.status === 'not_implemented') counts.notStarted = value;
+                    else if (row.status === 'not_applicable') counts.notApplicable = value;
+                }
+                const inScope = postureScore(counts).inScope;
+
                 const mappedControls = await dbConn.select({ count: sql<number>`count(distinct ${schema.controlPolicyMappings.clientControlId})` })
                     .from(schema.controlPolicyMappings)
                     .innerJoin(schema.clientControls, eq(schema.controlPolicyMappings.clientControlId, schema.clientControls.id))
-                    .where(eq(schema.clientControls.clientId, input.clientId));
+                    .where(and(
+                        eq(schema.clientControls.clientId, input.clientId),
+                        ne(schema.clientControls.status, 'not_applicable')
+                    ));
 
-                const total = Number(totalControls[0]?.count || 0);
-                const mapped = Number(mappedControls[0]?.count || 0);
-                const unmapped = total - mapped;
-                const coveragePercentage = total > 0 ? Math.round((mapped / total) * 100) : 0;
+                const coverage = policyCoverage({
+                    inScope,
+                    mappedInScope: Number(mappedControls[0]?.count || 0),
+                });
 
                 return {
-                    totalControls: total,
-                    mappedControls: mapped,
-                    unmappedControls: unmapped,
-                    coveragePercentage
+                    totalControls: coverage.inScope,
+                    mappedControls: coverage.mapped,
+                    unmappedControls: coverage.unmapped,
+                    coveragePercentage: coverage.rate ?? 0
                 };
             }),
         getOnboardingStatus: clientProcedure

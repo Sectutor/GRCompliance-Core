@@ -16,6 +16,7 @@ import {
 import { ISOLayout } from "./ISOLayout";
 import { PageGuide } from "@/components/PageGuide";
 import { trpc } from "@/lib/trpc";
+import { postureScoreFromStatuses } from "@/lib/postureScore";
 
 export default function ISODashboard() {
     const { id } = useParams<{ id: string }>();
@@ -31,10 +32,12 @@ export default function ISODashboard() {
         { enabled: clientId > 0 }
     );
 
-    const controls = (controlRows || []).map((row: any) => row.clientControl?.status || row.status).filter(Boolean);
-    const applicable = controls.filter((status: string) => status !== "not_applicable");
-    const implemented = applicable.filter((status: string) => status === "implemented").length;
-    const readiness = applicable.length > 0 ? Math.round((implemented / applicable.length) * 100) : null;
+    const posture = postureScoreFromStatuses(
+        (controlRows || []).map((row: any) => row.clientControl?.status || row.status)
+    );
+    const applicable = { length: posture.inScope };
+    const implemented = posture.implemented;
+    const readiness = posture.rate;
     const risks = riskRows || [];
     const treated = risks.filter((risk: any) => risk.treatmentOption && risk.treatmentOption !== "None").length;
     const riskProgress = risks.length > 0 ? Math.round((treated / risks.length) * 100) : null;

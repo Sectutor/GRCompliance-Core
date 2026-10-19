@@ -11,6 +11,7 @@ import { eq, and, desc } from 'drizzle-orm';
 // import { euAiAct } from '../data/regulations/eu_ai_act';
 import { llmService } from './llm/service';
 import { getClientStats, getClientComplianceScore, getClientControls } from '../db';
+import { postureScoreFromStatuses } from './postureScore';
 import { generateSoADocx } from './soaExport';
 import { generateComplianceReadinessReport } from '../complianceReport';
 import {
@@ -41,10 +42,11 @@ export async function generateGapAnalysisReport(clientId: number): Promise<Buffe
         .leftJoin(controls, eq(clientControls.controlId, controls.id))
         .where(eq(clientControls.clientId, clientId));
 
-    const totalControls = allClientControls.length;
-    const implemented = allClientControls.filter((c: any) => c.status === 'implemented').length;
-    const inProgress = allClientControls.filter((c: any) => c.status === 'in_progress').length;
-    const score = totalControls > 0 ? Math.round((implemented / totalControls) * 100) : 0;
+    const posture = postureScoreFromStatuses(allClientControls.map((c: any) => c.status));
+    const totalControls = posture.inScope;
+    const implemented = posture.implemented;
+    const inProgress = posture.inProgress;
+    const score = posture.rate ?? 0;
 
     // Create PDF
     const doc = new PDFDocument();
@@ -1351,9 +1353,10 @@ Keep total response under 100 words. Be direct, no filler words.`,
     if (options.sections.includes('gap_analysis')) {
         const controls_data = await getClientControls(clientId);
         const gaps = controls_data.filter((c: any) => c.clientControl?.status !== 'implemented').slice(0, 15);
-        const implemented = controls_data.filter((c: any) => c.clientControl?.status === 'implemented').length;
-        const total = controls_data.length;
-        const coverage = total > 0 ? Math.round((implemented / total) * 100) : 0;
+        const coveragePosture = postureScoreFromStatuses(controls_data.map((c: any) => c.clientControl?.status));
+        const implemented = coveragePosture.implemented;
+        const total = coveragePosture.inScope;
+        const coverage = coveragePosture.rate ?? 0;
 
         children.push(...createSectionHeader('Gap Analysis & Maturity', 'In-Depth Analysis of Compliance Coverage'));
 

@@ -15,6 +15,7 @@ import { WeeklyFocusWidget } from "@/components/dashboard/WeeklyFocusWidget";
 import { SubscriptionOnboardingChecklist } from "@/components/dashboard/SubscriptionOnboardingChecklist";
 import { MaturityNavigator } from "@/components/dashboard/MaturityNavigator";
 import { DemoImportDialog } from "@/components/admin/DemoImportDialog";
+import { postureScoreFromStatuses } from "@/lib/postureScore";
 
 export default function ClientWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -64,8 +65,8 @@ export default function ClientWorkspace() {
   // Compute Phase 2 Progress (Optimize)
   const phase2Progress = useMemo(() => {
       if (!controls) return 0;
-      const implemented = controls.filter(c => c.status === 'implemented').length;
-      return Math.min(100, Math.round((implemented / (controls.length || 1)) * 100));
+      const score = postureScoreFromStatuses(controls.map((c: any) => c.clientControl?.status || c.status));
+      return score.rate ?? 0;
   }, [controls]);
 
   // Compute Phase 3 Progress (Scale) - Placeholder
@@ -87,9 +88,10 @@ export default function ClientWorkspace() {
     if (!controls || !policies) return null;
 
     // Controls
-    const totalControls = controls.length;
-    const implementedControls = controls.filter(c => c.status === 'implemented').length;
-    const controlsProgress = totalControls > 0 ? Math.round((implementedControls / totalControls) * 100) : 0;
+    const posture = postureScoreFromStatuses(controls.map((c: any) => c.clientControl?.status || c.status));
+    const totalControls = posture.inScope;
+    const implementedControls = posture.implemented;
+    const controlsProgress = posture.rate ?? 0;
 
     // Policies
     const totalPolicies = policies.length;

@@ -298,7 +298,7 @@ export default function TrustCenter() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-slate-900">{readinessData?.complianceScore || 0}% Score</div>
+                            <div className="text-3xl font-black text-slate-900">{readinessData?.score?.complianceScore ?? 0}% Score</div>
                             <p className="text-slate-500 text-xs mt-1 font-medium">Continuously Audited via ComplianceOS</p>
                         </CardContent>
                     </Card>

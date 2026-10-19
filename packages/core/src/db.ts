@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { encrypt } from "./lib/crypto";
 import { getSecret } from "./lib/secrets";
+import { policyCoverage, postureScore } from "./lib/postureScore";
 
 import {
 
@@ -3097,8 +3098,7 @@ async function applyDemoControlMix(clientId: number) {
   }
 
   const evidenced = rows.filter((_, index) => cycle[index % cycle.length] === "implemented").slice(0, 8);
-  if (evidenced.length === 0) return;
-
+  if (evidenced.length > 0) {
   await db.insert(evidence).values(evidenced.map((row, index) => ({
     clientId,
     clientControlId: row.id,
@@ -3109,6 +3109,45 @@ async function applyDemoControlMix(clientId: number) {
     framework: row.framework || "ISO 27001",
     owner: "Alex Morgan",
   })) as any);
+  }
+}
+
+const DEMO_POLICY_CONTROL_LINKS: Record<string, string[]> = {
+  "Information Security Policy": ["A.5-Policies", "A.5.2", "NIS2-21-a"],
+  "Access Control Policy": ["A.9-Access", "A.8.2", "A.8.5", "NIS2-21-j"],
+  "Incident Response Policy": ["A.5.24", "NIS2-21-b"],
+  "Vendor Risk Management Policy": ["A.5.19", "A.5.23", "NIS2-21-d"],
+  "Business Continuity Policy": ["A.5.30", "A.8.13", "NIS2-21-c"],
+  "NIS2 Incident Notification Policy": ["NIS2-21-b", "A.5.24"],
+};
+
+async function seedDemoPolicyLinks(clientId: number) {
+  const db = await getDb();
+  const policyRows = await db.select({
+    id: clientPolicies.id,
+    name: clientPolicies.name,
+  }).from(clientPolicies).where(eq(clientPolicies.clientId, clientId));
+
+  const controlRows = await db.select({
+    id: clientControls.id,
+    controlId: controls.controlId,
+  }).from(clientControls)
+    .innerJoin(controls, eq(clientControls.controlId, controls.id))
+    .where(eq(clientControls.clientId, clientId));
+
+  const controlByCode = new Map(controlRows.map((row) => [row.controlId, row.id]));
+  const mappings: { clientControlId: number; clientPolicyId: number }[] = [];
+  for (const policy of policyRows) {
+    const codes = DEMO_POLICY_CONTROL_LINKS[policy.name];
+    if (!codes) continue;
+    for (const code of codes) {
+      const clientControlId = controlByCode.get(code);
+      if (!clientControlId) continue;
+      mappings.push({ clientControlId, clientPolicyId: policy.id });
+    }
+  }
+  if (mappings.length === 0) return { created: 0, skipped: 0 };
+  return bulkCreateMappings(clientId, mappings);
 }
 
 /**
@@ -3154,6 +3193,7 @@ export async function seedSampleData(userId: number, options: { name: string, in
   // 6. Mixed implementation statuses and evidence for the demo workspace
   try {
     await applyDemoControlMix(client.id);
+    await seedDemoPolicyLinks(client.id);
   } catch (err) {
     console.error("Failed to apply demo control mix:", err);
   }
@@ -3524,11 +3564,51 @@ export async function getEnhancedDashboardStats() {
 
 
 
-    const totalControls = (ccCount?.count || 0) + (cfcCount?.count || 0);
+    const [notApplicableNativeCount] = await db.select({ count: sql<number>`count(*)` })
 
-    const implemented = (implementedNativeCount?.count || 0) + (implementedFrameworkCount?.count || 0);
+      .from(clientControls)
 
-    const compliancePercentage = totalControls > 0 ? Math.round((implemented / totalControls) * 100) : 0;
+      .where(and(
+
+        eq(clientControls.clientId, client.id),
+
+        eq(clientControls.status, 'not_applicable')
+
+      ));
+
+    const [notApplicableFrameworkCount] = await db.select({ count: sql<number>`count(*)` })
+
+      .from(clientFrameworkControls)
+
+      .innerJoin(clientFrameworks, eq(clientFrameworkControls.frameworkId, clientFrameworks.id))
+
+      .where(and(
+
+        eq(clientFrameworks.clientId, client.id),
+
+        eq(clientFrameworkControls.status, 'not_applicable')
+
+      ));
+
+    const assigned = Number(ccCount?.count || 0) + Number(cfcCount?.count || 0);
+
+    const implemented = Number(implementedNativeCount?.count || 0) + Number(implementedFrameworkCount?.count || 0);
+
+    const notApplicable = Number(notApplicableNativeCount?.count || 0) + Number(notApplicableFrameworkCount?.count || 0);
+
+    const posture = postureScore({
+
+      implemented,
+
+      notStarted: Math.max(0, assigned - notApplicable - implemented),
+
+      notApplicable,
+
+    });
+
+    const totalControls = posture.inScope;
+
+    const compliancePercentage = posture.rate ?? 0;
 
 
 
@@ -4658,23 +4738,24 @@ export async function getClientComplianceScore(clientId: number): Promise<{
 
 
 
-  const totalControls = clientControlsData.length;
-
   const implementedControls = clientControlsData.filter(c => c.clientControl.status === 'implemented').length;
 
   const inProgressControls = clientControlsData.filter(c => c.clientControl.status === 'in_progress').length;
 
   const notStartedControls = clientControlsData.filter(c => c.clientControl.status === 'not_implemented').length;
 
+  const notApplicableControls = clientControlsData.filter(c => c.clientControl.status === 'not_applicable').length;
 
+  const posture = postureScore({
+    implemented: implementedControls,
+    inProgress: inProgressControls,
+    notStarted: notStartedControls,
+    notApplicable: notApplicableControls,
+  });
 
-  // Calculate score (implemented = 100%, in_progress = 50%, not_started = 0%)
+  const totalControls = posture.inScope;
 
-  const complianceScore = totalControls > 0
-
-    ? Math.round(((implementedControls * 100) + (inProgressControls * 50)) / totalControls)
-
-    : 0;
+  const complianceScore = posture.rate ?? 0;
 
 
 
@@ -4691,6 +4772,8 @@ export async function getClientComplianceScore(clientId: number): Promise<{
       frameworkMap.set(framework, { total: 0, implemented: 0 });
 
     }
+
+    if (clientControl.status === 'not_applicable') continue;
 
     const entry = frameworkMap.get(framework)!;
 
@@ -4832,19 +4915,18 @@ export async function getAllClientComplianceScores(): Promise<{
 
 
 
-    const totalControls = controlsData.length;
+    const posture = postureScore({
+      implemented: controlsData.filter(c => c.status === 'implemented').length,
+      inProgress: controlsData.filter(c => c.status === 'in_progress').length,
+      notStarted: controlsData.filter(c => c.status === 'not_implemented').length,
+      notApplicable: controlsData.filter(c => c.status === 'not_applicable').length,
+    });
 
-    const implementedControls = controlsData.filter(c => c.status === 'implemented').length;
+    const totalControls = posture.inScope;
 
-    const inProgressControls = controlsData.filter(c => c.status === 'in_progress').length;
+    const implementedControls = posture.implemented;
 
-
-
-    const complianceScore = totalControls > 0
-
-      ? Math.round(((implementedControls * 100) + (inProgressControls * 50)) / totalControls)
-
-      : 0;
+    const complianceScore = posture.rate ?? 0;
 
 
 
@@ -5092,9 +5174,11 @@ export async function getPolicyCoverageAnalysis(clientId: number): Promise<{
 
 
 
+  const inScopeControls = clientControlsList.filter(cc => cc.clientControl.status !== 'not_applicable');
+
   // Find unmapped controls
 
-  const unmappedControlsList = clientControlsList
+  const unmappedControlsList = inScopeControls
 
     .filter(cc => !mappedControlIds.has(cc.clientControl.id))
 
@@ -5116,13 +5200,17 @@ export async function getPolicyCoverageAnalysis(clientId: number): Promise<{
 
 
 
-  const totalControls = clientControlsList.length;
+  const mappedInScope = inScopeControls.filter(cc => mappedControlIds.has(cc.clientControl.id)).length;
 
-  const mappedControls = mappedControlIds.size;
+  const coverage = policyCoverage({ inScope: inScopeControls.length, mappedInScope });
 
-  const unmappedControls = totalControls - mappedControls;
+  const totalControls = coverage.inScope;
 
-  const coveragePercentage = totalControls > 0 ? Math.round((mappedControls / totalControls) * 100) : 0;
+  const mappedControls = coverage.mapped;
+
+  const unmappedControls = coverage.unmapped;
+
+  const coveragePercentage = coverage.rate ?? 0;
 
 
 

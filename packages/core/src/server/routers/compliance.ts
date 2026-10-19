@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { llmService } from "../../lib/llm/service";
 import { cosineSimilarity } from "../../lib/utils";
 import { EmailService } from "../../lib/email/service";
+import { postureScoreFromStatuses } from "../../lib/postureScore";
 
 function cosineSimilarity(vecA: number[], vecB: number[]) {
   let dotProduct = 0;
@@ -564,26 +565,22 @@ export const createComplianceRouter = (
               .innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
               .where(eq(schema.clientControls.clientId, clientId));
 
-            // Aggregate
-            const stats = new Map<string, { total: number; implemented: number }>();
-
+            const buckets = new Map<string, string[]>();
             for (const c of allControls) {
               const fw = c.framework || "Unknown";
-              if (!stats.has(fw)) stats.set(fw, { total: 0, implemented: 0 });
-
-              const entry = stats.get(fw)!;
-              entry.total++;
-              if (c.status === 'implemented') {
-                entry.implemented++;
-              }
+              if (!buckets.has(fw)) buckets.set(fw, []);
+              buckets.get(fw)!.push(c.status);
             }
 
-            const finalStats = Array.from(stats.entries()).map(([framework, data]) => ({
-              framework,
-              total: data.total,
-              implemented: data.implemented,
-              percentage: data.total > 0 ? Math.round((data.implemented / data.total) * 100) : 0
-            }));
+            const finalStats = Array.from(buckets.entries()).map(([framework, statuses]) => {
+              const posture = postureScoreFromStatuses(statuses);
+              return {
+                framework,
+                total: posture.inScope,
+                implemented: posture.implemented,
+                percentage: posture.rate ?? 0
+              };
+            });
 
             // Defensive: Check for double-wrapping issues locally, though less likely here than raw query
             return finalStats;
@@ -867,10 +864,12 @@ export const createComplianceRouter = (
         const clientPolicies = await db.getClientPolicies(clientId);
         const clientEvidence = await db.getEvidence(clientId);
 
-        // Calculate Control Stats
+        const controlPosture = postureScoreFromStatuses(
+          clientControls.map((c: any) => c.clientControl?.status)
+        );
         const controlStats = {
-          implemented: clientControls.filter((c: any) => c.clientControl.status === 'implemented').length,
-          total: clientControls.length
+          implemented: controlPosture.implemented,
+          total: controlPosture.inScope
         };
 
         // Calculate Policy Stats
