@@ -645,7 +645,7 @@ export default function Dashboard() {
                       </div>
                       Compliance Performance Trend
                     </CardTitle>
-                    <CardDescription className="font-medium text-slate-500">Overall compliance improvement over the last 6 months</CardDescription>
+                    <CardDescription className="font-medium text-slate-500">Historical scores appear here after they are recorded.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 relative z-10">
                     {scoresLoading ? (
@@ -707,7 +707,7 @@ export default function Dashboard() {
                         <EmptyState
                           icon={Activity}
                           title="No Trend Data"
-                          description="Complete your first assessments to start seeing compliance trends."
+                          description="This workspace does not have stored historical scores yet."
                           className="border-none bg-transparent"
                         />
                       </div>
