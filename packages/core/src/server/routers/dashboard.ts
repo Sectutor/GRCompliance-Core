@@ -490,8 +490,8 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           insights.push({
             id: 'critical-risks',
             type: 'critical',
-            title: `${unmitigated} Unmitigated Critical Risks`,
-            description: 'Risks remain high despite treatments. Immediate control implementation required.',
+            title: `${unmitigated} high residual risks`,
+            description: 'These risks are still high after treatment. Review the owners and actions in the register.',
             action: 'View Risk Register',
             link: '/risk-register/critical'
           });
