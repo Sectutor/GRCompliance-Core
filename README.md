@@ -11,8 +11,8 @@ GRCompliance helps a team run controls, policies, risk, evidence, vendors, and a
 Requirements: Node.js 20+, npm, and PostgreSQL 15+.
 
 ```bash
-git clone https://github.com/Sectutor/ComplianceOS-Core.git
-cd ComplianceOS-Core
+git clone https://github.com/Sectutor/GRCompliance-Core.git
+cd GRCompliance-Core
 npm install
 cp .env.example .env
 npm run db:push

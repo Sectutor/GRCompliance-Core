@@ -4,7 +4,7 @@
 # This script does not push. Do not point it at GitHub until the owner has
 # approved a force-push. Run it on a fresh mirror clone:
 #
-#   git clone --mirror git@github.com:Sectutor/ComplianceOS-Core.git /tmp/grc-mirror.git
+#   git clone --mirror git@github.com:Sectutor/GRCompliance-Core.git /tmp/grc-mirror.git
 #   cd /tmp/grc-mirror.git
 #   PURGE_REPLACEMENTS=/secure/path/history-purge-replacements.txt \
 #     /path/to/scripts/history-purge.sh

@@ -12,8 +12,8 @@ GRCompliance is the open-source core for governance, risk, and compliance. This 
 ## Install
 
 ```bash
-git clone https://github.com/Sectutor/ComplianceOS-Core.git
-cd ComplianceOS-Core
+git clone https://github.com/Sectutor/GRCompliance-Core.git
+cd GRCompliance-Core
 npm install
 cp .env.example .env
 ```
