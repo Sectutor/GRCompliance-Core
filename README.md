@@ -12,15 +12,17 @@ The hosted product is at [grcompliance.com](https://grcompliance.com/). The week
 
 ## Product
 
+Screenshots are from the Latore LTD demo workspace after a community install.
+
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ![Risk register](docs/screenshots/risk-register.png)
 
-![Controls](docs/screenshots/controls.png)
+![Control library](docs/screenshots/controls.png)
 
 ![Policies](docs/screenshots/policies.png)
 
-![Frameworks](docs/screenshots/frameworks.png)
+![Compliance](docs/screenshots/compliance.png)
 
 ![Evidence](docs/screenshots/evidence.png)
 
