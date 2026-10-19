@@ -63,5 +63,5 @@ console.log(`VITE_LICENSE_KEY: ${process.env.VITE_LICENSE_KEY ? '*** set ***' : 
 console.log('\n=== Test Complete ===');
 console.log('\nTo test different license types:');
 console.log('1. Community Edition: Set VITE_ENABLE_PREMIUM=false or unset');
-console.log('2. Enterprise Edition: Set VITE_ENABLE_PREMIUM=true and VITE_LICENSE_KEY=example-enterprise-license');
+console.log('2. Enterprise Edition: Set VITE_ENABLE_PREMIUM=true and VITE_LICENSE_KEY to the key issued for your deployment');
 console.log('3. Trial Edition: Set VITE_ENABLE_PREMIUM=true without VITE_LICENSE_KEY');

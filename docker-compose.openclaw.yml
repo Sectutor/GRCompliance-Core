@@ -7,7 +7,7 @@ services:
     environment:
       - OPENCLAW_PORT=${OPENCLAW_PORT:-18789}
       - TOOL_HMAC_SECRET=${TOOL_HMAC_SECRET}
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/complianceos
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@db:5432/complianceos
     networks:
       - complianceos-network
     ports:

@@ -33,18 +33,15 @@ export const config = {
             webhookSecret: getEnv('STRIPE_WEBHOOK_SECRET'),
             publishableKey: getEnv('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'VITE_STRIPE_PUBLISHABLE_KEY'),
             prices: {
-                // "Self-Service" / Startup
                 startup: {
-                    monthly: getEnv('STRIPE_PRICE_STARTUP_MONTHLY') || 'REDACTED',
-                    yearly: getEnv('STRIPE_PRICE_STARTUP_YEARLY') || 'REDACTED',
+                    monthly: getEnv('STRIPE_PRICE_STARTUP_MONTHLY'),
+                    yearly: getEnv('STRIPE_PRICE_STARTUP_YEARLY'),
                 },
-                // "Guided" / Pro
                 guided: {
-                    monthly: getEnv('STRIPE_PRICE_GUIDED_MONTHLY') || 'REDACTED',
-                    yearly: getEnv('STRIPE_PRICE_GUIDED_YEARLY') || 'REDACTED',
+                    monthly: getEnv('STRIPE_PRICE_GUIDED_MONTHLY'),
+                    yearly: getEnv('STRIPE_PRICE_GUIDED_YEARLY'),
                 },
-                // "Managed" / Enterprise (Custom/Placeholder - usually Contact Sales)
-                managed: getEnv('STRIPE_PRICE_MANAGED') || 'REDACTED',
+                managed: getEnv('STRIPE_PRICE_MANAGED'),
             }
         },
 
@@ -52,15 +49,15 @@ export const config = {
         gumroad: {
             accessToken: getEnv('GUMROAD_ACCESS_TOKEN'),
             webhookSecret: getEnv('GUMROAD_WEBHOOK_SECRET'),
-            productPermalink: getEnv('GUMROAD_PRODUCT_PERMALINK') || 'complianceos-enterprise',
+            productPermalink: getEnv('GUMROAD_PRODUCT_PERMALINK'),
         },
 
-    // Auth
-    jwtSecret: getEnv('JWT_SECRET') || 'REDACTED',
+    // Auth. No default. A missing JWT_SECRET must not fall back to a published string.
+    jwtSecret: getEnv('JWT_SECRET'),
 
     // App Info
-    appName: 'ComplianceOS',
-    companyName: 'REDACTED',
+    appName: 'GRCompliance',
+    companyName: 'GRCompliance',
 };
 
 // Named exports for frontend convenience

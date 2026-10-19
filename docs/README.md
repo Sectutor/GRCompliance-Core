@@ -1,25 +1,25 @@
-# ComplianceOS Documentation
+# GRCompliance documentation
 
-Welcome to the comprehensive documentation for ComplianceOS.
+Public docs for running and contributing to GRCompliance.
 
-## Table of Contents
+## Start
 
-### 🚀 Getting Started
-*   [**Getting Started**](./getting-started.md): Installation, configuration, and running the app locally.
-*   [**Deployment Guide**](./deployment.md): How to deploy to Netlify and production databases.
+- [Install](../INSTALL.md)
+- [Getting started](./getting-started.md)
+- [Deployment](./deployment.md)
+- [Contributing](../CONTRIBUTING.md)
+- [Security](../SECURITY.md)
 
-### 🏗 Architecture & Design
-*   [**System Architecture**](./architecture.md): Overview of the Tech Stack, Frontend, Backend, and AI services.
-*   [**Database Schema**](./database-schema.md): Detailed breakdown of the data model and core modules.
+## Product
 
-### 🔌 API & Development
-*   [**API Reference**](./api-reference.md): Documentation for REST endpoints and tRPC usage.
+- [Architecture](./architecture.md)
+- [Database schema](./database-schema.md)
+- [API reference](./api-reference.md)
+- [Plugin architecture](./plugins/plugin-architecture.md)
+- [Contributing a framework plugin](./CONTRIBUTING_PLUGINS.md)
 
-### 📚 Features & Guides
-*   [**Methodology**](./features/METHODOLOGY.md): The 3-Phase Maturity Framework.
-*   [**User Guide**](./features/governance-workbench-user-guide.md): Governance Workbench manual.
-*   [**Pricing & Plans**](./features/pricing_matrix.md): Subscription tier details.
+## Examples
 
-## Quick Links
-*   **Repository:** [GitHub / GitLab Link]
-*   **Production Site:** [Netlify Link]
+- [Pentest parser workflow](./examples/pentest-parser-workflow.md)
+- [ISO 27001 plan template](./iso27001_plan_template.md)
+- [OpenClaw quickstart](./setup/clawbot-quickstart.md)

@@ -1,4 +1,4 @@
-# ComplianceOS Docker Setup
+# GRCompliance Docker Setup
 
 This guide explains how to run ComplianceOS using Docker. This setup allows you to run the full application (Frontend + Backend + Database) with a single command.
 

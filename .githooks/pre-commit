@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Reject internal docs and leaked secrets before a commit is created.
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+bash "$root/scripts/check-public-tree.sh"
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner --exit-code 1
+else
+  echo "warning: gitleaks is not installed; CI will still scan the push" >&2
+fi

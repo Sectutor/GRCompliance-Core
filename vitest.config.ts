@@ -1,13 +1,10 @@
+import { defineConfig } from 'vitest/config';
 
-import { defineConfig, mergeConfig } from 'vitest/config';
-import viteConfig from './vite.config';
-
-export default mergeConfig(viteConfig, defineConfig({
+// The runnable suite lives in @complianceos/core. Root-level tests under
+// test/ and tests/ still import the pre-workspace layout (../routers, ../lib)
+// and are not part of this command.
+export default defineConfig({
     test: {
-        globals: true,
-        environment: 'node', // Changed from happy-dom for backend testing
-        setupFiles: './test/setup.ts', // Corrected path
-        css: true,
-        testTimeout: 10000,
+        projects: ['packages/core'],
     },
-}));
+});

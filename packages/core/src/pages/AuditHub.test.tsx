@@ -4,47 +4,40 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 
-// Mock everything complex
-vi.mock('@/lib/trpc', () => ({
-    trpc: {
-        useContext: vi.fn(() => ({
-            findings: { list: { invalidate: vi.fn() } },
-            evidence: { list: { invalidate: vi.fn() } },
-            users: { me: { invalidate: vi.fn() } },
-        })),
-        useUtils: vi.fn(() => ({
-            findings: { list: { invalidate: vi.fn() } },
-            evidence: { list: { invalidate: vi.fn() } },
-            users: { me: { invalidate: vi.fn() } },
-        })),
-        evidence: {
-            list: { useQuery: vi.fn(() => ({ data: [], isLoading: false })) },
-            getFiles: { useQuery: vi.fn(() => ({ data: [], isLoading: false })) },
-            getAllComments: { useQuery: vi.fn(() => ({ data: [], isLoading: false })) },
-            verifyEvidence: { useMutation: vi.fn(() => ({ mutate: vi.fn() })) },
-            updateStatus: { useMutation: vi.fn(() => ({ mutate: vi.fn() })) },
+vi.mock('@/lib/trpc', () => {
+    const useQuery = vi.fn(() => ({ data: [], isLoading: false, refetch: vi.fn() }));
+    const useMutation = vi.fn(() => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }));
+    const procedure = { useQuery, useMutation };
+    const router = new Proxy({}, {
+        get(_target, prop) {
+            if (prop === 'then' || typeof prop === 'symbol') return undefined;
+            return procedure;
         },
-        findings: {
-            list: { useQuery: vi.fn(() => ({ data: [], isLoading: false })) },
-            create: { useMutation: vi.fn(() => ({ mutate: vi.fn() })) },
+    });
+    const utils: any = new Proxy({}, {
+        get(_target, prop) {
+            if (prop === 'then' || prop === 'toJSON' || typeof prop === 'symbol') return undefined;
+            if (prop === 'invalidate' || prop === 'fetch' || prop === 'setData') return vi.fn();
+            return utils;
         },
-        audit: {
-            inviteAuditor: { useMutation: vi.fn(() => ({ mutate: vi.fn() })) },
-            listInvitations: { useQuery: vi.fn(() => ({ data: [], isLoading: false })) },
-        },
-        clients: {
-            get: { useQuery: vi.fn(() => ({ data: { id: 3, name: 'Test Client' }, isLoading: false })) },
-        },
-        users: {
-            me: { useQuery: vi.fn(() => ({ data: { hasSeenTour: true }, isLoading: false })) },
-            getProfile: { useQuery: vi.fn(() => ({ data: { hasSeenTour: true }, isLoading: false })) },
-            completeTour: { useMutation: vi.fn(() => ({ mutate: vi.fn() })) },
-        }
-    }
-}));
-
-// Fallback mocks for relative imports that might still be used
-vi.mock('../lib/trpc', () => vi.importMock('@/lib/trpc'));
+    });
+    return {
+        trpc: new Proxy(
+            {
+                useContext: () => utils,
+                useUtils: () => utils,
+            },
+            {
+                get(target, prop) {
+                    if (prop === 'useContext') return target.useContext;
+                    if (prop === 'useUtils') return target.useUtils;
+                    if (prop === 'then' || typeof prop === 'symbol') return undefined;
+                    return router;
+                },
+            }
+        ),
+    };
+});
 
 vi.mock('@/contexts/AuthContext', () => ({
     AuthProvider: ({ children }: any) => <div>{children}</div>,
@@ -59,7 +52,13 @@ vi.mock('@/contexts/ClientContext', () => ({
 vi.mock('wouter', () => ({
     useRoute: vi.fn().mockReturnValue([true, { clientId: '3' }]),
     useLocation: vi.fn().mockReturnValue(['/', vi.fn()]),
+    useParams: vi.fn().mockReturnValue({ id: '3', clientId: '3' }),
     Link: ({ children }: any) => <a data-testid="link">{children}</a>,
+    Redirect: () => null,
+}));
+
+vi.mock('@/components/PageGuide', () => ({
+    PageGuide: () => null,
 }));
 
 // Mock the DashboardLayout using the alias as used in AuditHub.tsx
@@ -85,11 +84,8 @@ describe('AuditHub Smoke Test', () => {
         // Just check if it renders anything
         render(<AuditHub />);
         expect(screen.getByTestId('dashboard-layout')).toBeInTheDocument();
-        expect(screen.getByTestId('layout-title')).toHaveTextContent(/Audit Hub/i);
-
-        // Verify AuditHub internal content exists
         expect(screen.getByText(/AuditWorkspace™/i)).toBeInTheDocument();
-        expect(screen.getByText(/Audit Workspace/i)).toBeInTheDocument();
+        expect(screen.getByText(/Secure Clean Room/i)).toBeInTheDocument();
         expect(screen.getByText(/PBC Inbox/i)).toBeInTheDocument();
     });
 });

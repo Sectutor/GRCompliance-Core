@@ -72,11 +72,10 @@ export function getSecret(key: SecretKey, fallback?: string): string {
  */
 export function getEncryptionKeys(): Record<string, string> {
     const keyString = getSecret('ENCRYPTION_KEY');
-    const DEFAULT_DEV_KEY = 'REDACTED';
 
-    // Default fallback if nothing is set
+    // No published fallback. Callers must set ENCRYPTION_KEY.
     if (!keyString) {
-        return { 'v1': DEFAULT_DEV_KEY };
+        return {};
     }
 
     // Try to parse versioned keys

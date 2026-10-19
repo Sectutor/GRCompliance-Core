@@ -5,7 +5,7 @@ import { AdvisorProvider } from '../contexts/AdvisorContext';
 import { ClientContextProvider } from '../contexts/ClientContext';
 import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
-import { TooltipProvider } from '../components/ui/tooltip';
+import { TooltipProvider } from '@complianceos/ui/ui/tooltip';
 
 import superjson from 'superjson';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

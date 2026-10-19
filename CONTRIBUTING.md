@@ -1,51 +1,32 @@
 # Contributing to GRCompliance
 
-Thank you for your interest in contributing to GRCompliance! We welcome contributions from the community to help make GRC tools accessible to everyone.
+Thanks for helping improve GRCompliance. The public repository is the open-source product. Internal plans, customer evidence, and credentials stay out of it.
 
-## Getting Started
+## Setup
 
-1.  **Fork the repository** on GitHub.
-2.  **Clone your fork** locally.
-3.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-4.  **Create a branch** for your feature or fix:
-    ```bash
-    git checkout -b feature/amazing-feature
-    ```
+Follow [INSTALL.md](INSTALL.md). Then:
 
-## Development Workflow
-
-### Project Structure
-This is a monorepo managed with npm workspaces:
-- `packages/core`: The main open-source application logic.
-- `packages/ui`: Shared UI components (shadcn/ui).
-
-**Note:** Premium features are not included in the open-source repository. The build system automatically mocks these components.
-
-### Running Locally
-To start the development server:
 ```bash
-npm run dev
+git checkout -b feature/short-description
+git config core.hooksPath .githooks
 ```
 
-To start the backend (TRPC) server:
-```bash
-npm run server
-```
+The app lives in npm workspaces:
 
-## Pull Request Guidelines
+- `packages/core` is the application
+- `packages/ui` is the shared interface kit
+- `packages/plugin-sdk` and `packages/plugins` are the plugin surface
+- `packages/landing` is the public site
 
-1.  **Scope**: Keep PRs focused on a single feature or fix.
-2.  **Tests**: Ensure your changes don't break existing functionality. Run `npm test` before submitting.
-3.  **Style**: Follow the existing code style. We use ESLint and Prettier.
-4.  **Description**: Provide a clear description of what your PR does and why.
+## Pull requests
 
-## Code of Conduct
+- Keep each request to one change
+- Run `npm test` and `npm run build -w @complianceos/core` when you touch application code
+- Do not add `.env` files, uploads, build output, or one-off database scripts
+- Do not add paths under `.cursor/`, `.claude/`, `plans/`, `notes/`, or `internal/`, and do not add `*.chat.md`
 
-Please be respectful and professional in all interactions. We are committed to providing a friendly, safe, and welcoming environment for all.
+CI rejects those paths and fails on gitleaks findings in the tree you push.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions are licensed under the GNU Affero General Public License v3.0, the same license as the rest of GRCompliance. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).

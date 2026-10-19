@@ -1,71 +1,25 @@
+# GRCompliance core
 
-# ComplianceOS Core (Open Source)
+Open-source application package for GRCompliance.
 
-The open-source core of ComplianceOS, a comprehensive GRC (Governance, Risk, and Compliance) platform.
+## Run
 
-## Features
-
-- **Dashboard**: Centralized view of compliance status.
-- **Client Management**: Manage multiple clients or organizations.
-- **Control Library**: Manage compliance controls.
-- **Policy Management**: Create and distribute policies.
-- **Risk Management**: Risk register, assessments, and heatmaps.
-- **Vendor Management**: Track vendor risks and assessments.
-- **Business Continuity**: BCP planning and analysis.
-- **Evidence Collection**: Upload and link evidence to controls.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL (Supabase recommended)
-
-### Installation
-
-1.  Clone the repository.
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-
-### Environment Setup
-
-Copy `.env.example` to `.env` and fill in your Supabase credentials.
+From the repository root, follow [INSTALL.md](../../INSTALL.md).
 
 ```bash
+npm install
 cp .env.example .env
-```
-
-Required variables:
-- `DATABASE_URL`: Connection string to your PostgreSQL database.
-- `VITE_SUPABASE_URL`: Your Supabase Project URL.
-- `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key.
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase Service Role Key (for backend).
-
-### Running the App
-
-Start the development server:
-
-```bash
 npm run dev
-```
-
-Start the backend server (for API/TRPC):
-
-```bash
 npm run server
 ```
 
-## Architecture
+Set `DATABASE_URL` to your own PostgreSQL database. Set `JWT_SECRET` and `ENCRYPTION_KEY` yourself. This package does not contain a usable default for either value.
 
-This project is a Monorepo.
-- `packages/core`: The main application logic and UI.
-- `packages/ui`: Shared UI components (shadcn/ui).
+## Layout
 
-**Note on Premium Features**:
-Some features referenced in the code (like AI Advisor/Copilot) are part of the Premium edition. In this open-source build, these features are disabled or mocked automatically.
+- `src/` is the application
+- `drizzle/` and `migrations/` are the schema
 
 ## License
 
-[License Name Here]
+GNU Affero General Public License v3.0. See the repository [LICENSE](../../LICENSE).

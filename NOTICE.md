@@ -1,48 +1,19 @@
-# ComplianceOS Licensing Notice
+# GRCompliance licensing notice
 
-## Dual-Licensing Model
+GRCompliance is dual-licensed.
 
-ComplianceOS is available under two licensing models:
+## Community edition
 
-### 1. Community Edition (AGPLv3)
-- **License**: GNU Affero General Public License v3.0 (AGPLv3)
-- **Use Case**: Free, open source use for self-hosting and development
-- **Requirements**: Modifications must be shared under same license
-- **Best For**: Individuals, small businesses, developers, researchers
+The source in this repository is licensed under the GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
 
-### 2. Enterprise Edition (Commercial)
-- **License**: Commercial License Agreement
-- **Use Case**: Commercial use, enterprise features, white-labeling
-- **Requirements**: Purchase commercial license from ComplianceOS, Inc.
-- **Best For**: MSPs, enterprises, consultants, commercial hosting
+If you modify GRCompliance and make it available as a network service, you must offer the corresponding source under AGPLv3 to users of that service.
 
-## Important Notes
+## Commercial license
 
-### AGPLv3 Requirements
-If you modify ComplianceOS and make it available as a network service (SaaS), you must:
-1. Make your modified source code available under AGPLv3
-2. Provide access to the source code to all users of your service
-3. Include this notice in all copies
-
-### Commercial Licensing
-To obtain a commercial license:
-1. Contact: sales@complianceos.com
-2. Review: [LICENSE-COMMERCIAL.md](./LICENSE-COMMERCIAL.md)
-3. Discuss: Your specific use case and requirements
-
-### Premium Features
-The following features require a commercial license:
-- AI-Powered Intelligence Suite
-- White-label branding and customization
-- Enterprise scalability features
-- Professional support and SLA
-- Commercial hosting rights
+Organizations that need terms other than AGPLv3 can take a commercial license. The template is [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com or legal@grcompliance.com.
 
 ## Copyright
-Copyright (c) 2026 ComplianceOS, Inc. All rights reserved.
 
-The ComplianceOS software is dual-licensed under:
-1. AGPLv3 for community use
-2. Commercial license for enterprise use
+Copyright (c) 2026 GRCompliance contributors.
 
-For questions about licensing, please contact: legal@complianceos.com
+The GNU Affero General Public License v3.0 text itself is Copyright (C) 2007 Free Software Foundation, Inc.

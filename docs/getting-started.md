@@ -1,116 +1,30 @@
-# Getting Started with ComplianceOS
+# Getting started with GRCompliance
 
-This guide will help you set up the ComplianceOS development environment on your local machine.
+Install and run the app with [INSTALL.md](../INSTALL.md). This page is the short map of what you do after clone.
 
-## Prerequisites
+## Configure
 
-Before you begin, ensure you have the following installed:
+Copy `.env.example` to `.env`. Fill in your own database URL and generate your own `JWT_SECRET` and `ENCRYPTION_KEY`. Leave every secret out of git.
 
-- **Node.js** (v18 or higher recommended)
-- **npm** (comes with Node.js)
-- **PostgreSQL** (v15+ recommended, or use a cloud provider like Supabase/Neon)
-- **Git**
+## Database
 
-## Installation
+```bash
+npm run db:push
+```
 
-1.  **Clone the repository:**
+That applies the Drizzle schema to the database named by `DATABASE_URL`.
 
-    ```bash
-    git clone <repository-url>
-    cd ComplianceOS
-    ```
-
-2.  **Install dependencies:**
-
-    ```bash
-    npm install
-    ```
-
-## Environment Configuration
-
-1.  Copy the example environment file:
-
-    ```bash
-    cp .env.example .env
-    ```
-
-2.  Update the `.env` file with your local configuration:
-
-    ```env
-    # Database Connection String
-    DATABASE_URL="postgres://user:pass@host:5432/dbname?sslmode=require"
-    
-    # Server Port
-    PORT=3001
-    
-    # CORS Settings (Frontend URL)
-    CORS_ORIGIN=http://localhost:5173
-    
-    # Rate Limiting
-    RATE_LIMIT_WINDOW_MS=60000
-    RATE_LIMIT_MAX=200
-    
-    # AI Services (Optional for basic dev, required for AI features)
-    OPENAI_API_KEY="sk-..."
-    ANTHROPIC_API_KEY="sk-..."
-    
-    # Stripe (Optional for billing features)
-    STRIPE_SECRET_KEY="sk_test_..."
-    STRIPE_WEBHOOK_SECRET="whsec_..."
-    ```
-
-## Database Setup
-
-1.  **Push the schema to your database:**
-
-    ```bash
-    npm run db:push
-    ```
-
-    This command uses Drizzle Kit to apply the schema defined in `schema.ts` to your PostgreSQL database.
-
-2.  **Seed default data (Optional):**
-
-    The application attempts to seed default data on startup, but you can also run specific seed scripts found in `scripts/seed/`.
-
-3.  **Open Drizzle Studio (Database GUI):**
-
-    ```bash
-    npm run db:studio
-    ```
-
-    This will open a web interface to view and edit your database records.
-
-## Running the Application
-
-ComplianceOS consists of a Frontend (Vite/React) and a Backend (Express/Node).
-
-### 1. Start the Backend Server
+## Run
 
 ```bash
 npm run server
-```
-
-This starts the Express server on `http://localhost:3001` (or the PORT defined in .env).
-
-### 2. Start the Frontend Development Server
-
-Open a new terminal and run:
-
-```bash
 npm run dev
 ```
 
-This starts the Vite development server, usually at `http://localhost:5173`.
+The API defaults to port 3001. The web app defaults to port 5173.
 
-## Development Commands
+## Develop
 
--   `npm run check`: Run TypeScript type checking.
--   `npm run lint`: Run ESLint to catch code quality issues.
--   `npm run test`: Run unit tests with Vitest.
--   `npm run build`: Build the frontend for production.
-
-## Next Steps
-
--   Review the [Architecture Guide](./architecture.md) to understand the system design.
--   Check the [API Reference](./api-reference.md) for backend endpoints.
+- `npm test` runs Vitest
+- `npm run build -w @complianceos/core` builds the app
+- [Architecture](./architecture.md) and the [API reference](./api-reference.md) describe the tree

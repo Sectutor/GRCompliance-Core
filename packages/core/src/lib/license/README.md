@@ -151,7 +151,7 @@ VITE_ENABLE_PREMIUM=false
 # Enterprise edition (real license)
 VITE_ENABLE_PREMIUM=true
 VITE_LICENSE_KEY=<customer-license-key>
-VITE_LICENSE_SERVER=https://license.complianceos.com
+VITE_LICENSE_SERVER=https://license.example.com
 ```
 
 ## Server Integration

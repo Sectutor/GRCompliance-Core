@@ -1,7 +1,7 @@
 {
   "name": "compliance-os",
   "version": "1.0.0",
-  "description": "ComplianceOS Application",
+  "description": "GRCompliance open-source core",
   "type": "module",
   "workspaces": [
     "packages/*"
@@ -35,8 +35,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "server:enterprise:dev": "tsx --watch server-enterprise.ts",
-    "server:enterprise:prod": "NODE_ENV=production tsx server-enterprise.ts",
     "infrastructure:init": "tsx scripts/infrastructure/init.ts",
     "infrastructure:health": "tsx scripts/infrastructure/health.ts",
     "infrastructure:metrics": "tsx scripts/infrastructure/metrics.ts",

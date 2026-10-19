@@ -14577,7 +14577,7 @@ export const magicLinks = pgTable("magic_links", {
   expiresAt: timestamp("expires_at"), // Link expiration (different from access duration)
   usageLimit: integer("usage_limit").default(1), // null = unlimited
   useCount: integer("use_count").default(0),
-  restrictedDomains: json("restricted_domains").$type<string[]>(), // e.g. ["REDACTED"]
+  restrictedDomains: json("restricted_domains").$type<string[]>(), // e.g. ["example.com"]
 });
 
 export const magicLinkRedemptions = pgTable("magic_link_redemptions", {

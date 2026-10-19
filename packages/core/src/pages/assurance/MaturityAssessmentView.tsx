@@ -218,7 +218,7 @@ export default function MaturityAssessmentView({ frameworkId: initialFrameworkId
                                 {
                                     name: "Framework Documentation",
                                     description: "Official source of truth for these requirements.",
-                                    href: "https://compliance.REDACTED/docs"
+                                    href: "https://grcompliance.com"
                                 }
                             ]}
                         />

@@ -16,15 +16,15 @@
     // Minimal Location for libraries that expect it
     if (typeof (g as any).location === 'undefined') {
         (g as any).location = {
-            href: 'https://app.grcompliance.com/',
-            origin: 'https://app.grcompliance.com',
-            protocol: 'https:',
-            host: 'app.grcompliance.com',
-            hostname: 'app.grcompliance.com',
+            href: 'http://localhost:3001/',
+            origin: 'http://localhost:3001',
+            protocol: 'http:',
+            host: 'localhost:3001',
+            hostname: 'localhost',
             pathname: '/',
             search: '',
             hash: '',
-            toString: () => 'https://app.grcompliance.com/',
+            toString: () => 'http://localhost:3001/',
         };
     }
 })();
