@@ -9,6 +9,7 @@ GIT_REF="${GRC_REF:-main}"
 IMAGE="ghcr.io/sectutor/grcompliance-core"
 INSTALL_DIR="${GRC_HOME:-${HOME}/grcompliance}"
 UPGRADE=0
+FRESH=0
 BIND_LOCAL=0
 if [[ "${GRC_BIND_LOCAL:-0}" == "1" ]]; then
   BIND_LOCAL=1
@@ -16,10 +17,16 @@ fi
 HEALTH_RETRIES="${HEALTH_RETRIES:-90}"
 
 usage() {
-  cat <<'EOF'
-Usage: install.sh [--upgrade] [--bind-local] [--dir PATH]
+  cat <<EOF
+Usage:
+  curl -fsSL ${RAW_BASE}/install.sh | bash
+  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade
+  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --bind-local
+  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --dir PATH
 
-  --dir PATH     Install directory (default: ~/grcompliance or $GRC_HOME)
+The installer is not copied into the install directory. Upgrade with the curl command above.
+
+  --dir PATH     Install directory (default: ~/grcompliance or \$GRC_HOME)
   --upgrade      Pull the current image, or rebuild from source, without touching .env
   --bind-local   Also publish Postgres and Redis on 127.0.0.1 (off by default)
 
@@ -134,6 +141,7 @@ EOF
     exit 1
   fi
   echo "Created ${INSTALL_DIR}/.env with mode 600."
+  FRESH=1
   echo "Admin email: ${admin_email}"
   echo "Admin password (shown once): ${admin_password}"
   echo "Store this password now. It will not be printed again."
@@ -188,10 +196,14 @@ wait_for_health() {
     if [[ "${code}" == "200" ]]; then
       echo "GRCompliance is up: http://127.0.0.1:${port}"
       echo "Sign in with the administrator email in .env."
-      echo "The first start loads the Latore LTD demo workspace."
+      if [[ "${FRESH}" -eq 1 ]]; then
+        echo "The first start loads the Latore LTD demo workspace."
+      fi
       if [[ "${UPGRADE}" -eq 1 ]]; then
         echo "Upgrade finished. The existing .env was left unchanged."
       fi
+      echo "Upgrade later with:"
+      echo "  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade"
       return 0
     fi
     if [[ "${attempt}" -lt "${HEALTH_RETRIES}" ]]; then

@@ -58,7 +58,7 @@ async function ensureAdmin() {
             name: 'Alex Morgan',
             openId: `local:${randomUUID()}`,
             loginMethod: 'local',
-            role: 'user',
+            role: 'admin',
             maxClients: 2,
             hasSeenTour: true,
             planTier: 'free',

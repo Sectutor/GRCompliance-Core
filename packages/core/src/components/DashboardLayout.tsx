@@ -59,6 +59,7 @@ import { Slider } from "@complianceos/ui/ui/slider";
 import { toast } from "sonner";
 import { NotificationCenter } from "./notifications/NotificationCenter";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
+import { filterNavForEdition, isCommunityEdition } from "@/lib/communityNav";
 
 // ... (existing imports)
 
@@ -570,7 +571,7 @@ function DashboardLayoutContent({
       {
         label: "Governance",
         items: [
-          { icon: LayoutDashboard, label: "Dashboard", path: "/governance", isPremium: true } as any,
+          { icon: LayoutDashboard, label: "Dashboard", path: "/governance" },
           { icon: Shield, label: "Controls", path: "/client-controls" },
           { icon: ListTodo, label: "Workbench", path: "/governance/workbench", isPremium: true } as any,
           {
@@ -789,7 +790,10 @@ function DashboardLayoutContent({
     });
   }
 
-  const filteredGroups = groups.map(group => {
+  const communityEdition = isCommunityEdition(import.meta.env.VITE_ENABLE_PREMIUM);
+  const navigationGroups = filterNavForEdition(groups as any, communityEdition);
+
+  const filteredGroups = navigationGroups.map(group => {
     // If no search, return group as is
     if (!menuSearch) return group;
 
@@ -820,7 +824,7 @@ function DashboardLayoutContent({
 
   // Flatten to find best match active item (handling 1 level of nesting)
   // Note: we need to handle the structure of groups -> items -> potentially submenu
-  const allItems = groups.flatMap(group =>
+  const allItems = navigationGroups.flatMap(group =>
     group.items.flatMap((item: any) =>
       item.submenu ? [item, ...item.submenu] : [item]
     )
@@ -1289,7 +1293,7 @@ function CollapsibleGroup({
                           className={`h-4.5 w-4.5 min-w-[1.125rem] ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
                         />
                         <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(item.label, menuSearch)}</span>
-                        {item.isPremium && (
+                        {item.isPremium && !isCommunityEdition(import.meta.env.VITE_ENABLE_PREMIUM) && (
                           <Badge className="ml-auto bg-indigo-500/20 text-indigo-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
                             Pro
                           </Badge>

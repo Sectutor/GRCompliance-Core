@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Shield, User, Loader2, Plus, Trash2, Building2, X, LogIn, Edit, Check, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { UserEditor } from "@/components/admin/UserEditor";
+import { adoptLocalSession } from "@/lib/localAuthClient";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -61,8 +62,13 @@ export default function UserManagement() {
 
     const impersonateMutation = trpc.users.impersonate.useMutation({
         onSuccess: (data: any) => {
+            if (data.access_token && data.user) {
+                adoptLocalSession(data);
+                toast.success("Signed in as that user.");
+                window.location.href = "/dashboard";
+                return;
+            }
             toast.success("Redirecting to user session...");
-            // Redirect to the magic link
             if (data.url) {
                 window.location.href = data.url;
             }

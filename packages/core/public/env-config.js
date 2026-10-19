@@ -1,1 +1,1 @@
-window.__GRC_CONFIG__ = window.__GRC_CONFIG__ || { authMode: "supabase" };
+window.__GRC_CONFIG__ = window.__GRC_CONFIG__ || { authMode: "supabase", cookieConsent: false };

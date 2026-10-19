@@ -110,7 +110,7 @@ export default function MFAChallengeModal({ open, onOpenChange, factorId: initia
   const handleLogout = async () => {
     await supabase.auth.signOut();
     onOpenChange(false);
-    window.location.href = '/auth/login';
+    window.location.href = '/login';
   };
 
   const startEnrollInline = async () => {

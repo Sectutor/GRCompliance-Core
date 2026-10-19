@@ -34,6 +34,23 @@ describe("requiresMFA middleware", () => {
     expect(result).toEqual({ ok: true });
   });
 
+  it("allows a privileged local-auth session without a second factor", async () => {
+    const previous = process.env.AUTH_MODE;
+    process.env.AUTH_MODE = "local";
+    try {
+      const result = await guard({
+        ctx: { aal: "aal1", user: { id: 1, role: "admin", email: "admin@example.com" }, req: {}, res: {} },
+        path: "users.list",
+        type: "query",
+        next: () => ({ ok: true }),
+      });
+      expect(result).toEqual({ ok: true });
+    } finally {
+      if (previous === undefined) delete process.env.AUTH_MODE;
+      else process.env.AUTH_MODE = previous;
+    }
+  });
+
   it("blocks when client requires MFA and aal is aal1", async () => {
     state.requireMfa = true;
     await expect(

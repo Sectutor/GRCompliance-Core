@@ -43,7 +43,7 @@ Docker and the Docker Compose plugin are required. The installer creates `~/grco
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
 ```
 
-Windows (PowerShell):
+Windows only (PowerShell). `install.ps1` exits before it generates secrets when it is not running on Windows. Linux and macOS use the shell command above.
 
 ```powershell
 irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1 | iex
@@ -104,9 +104,10 @@ The database image is Postgres 16 with pgvector, which the schema uses for embed
 | `APP_URL` | Public URL of this instance, used in links. |
 | `APP_PORT` | Host port mapped to the app. |
 | `GRC_VERSION` | Image tag. `latest`, or a `v*` release tag. |
-| `AUTH_MODE` | `local` for the bundled login. `supabase` if you bring your own Supabase project. |
+| `AUTH_MODE` | `local` for the bundled login. `supabase` if you bring your own Supabase project. Local mode does not read Supabase settings. |
 | `HEALTH_RETRIES` | Installer `/health` attempts before a non-zero exit. Default 90. |
 | `GRC_BIND_LOCAL` | Set to `1` to publish Postgres and Redis on `127.0.0.1` only. |
+| `GRC_COOKIE_CONSENT` | Set to `1` to show an optional in-browser preference notice. Default off. The app does not load advertising, analytics, or other third-party tracking scripts. Session storage does not need a notice. |
 | `POSTGRES_HOST_PORT` | Loopback port for Postgres when `--bind-local` is set. Default 5432. |
 | `REDIS_HOST_PORT` | Loopback port for Redis when `--bind-local` is set. Default 6379. |
 
@@ -114,11 +115,19 @@ Optional integration keys (`OPENAI_API_KEY`, `SENDGRID_API_KEY`, and similar) st
 
 ## Upgrade
 
+The install directory does not contain `install.sh`. Run the installer again:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --upgrade
 ```
 
-`--upgrade` keeps the existing `.env`, pulls `ghcr.io/sectutor/grcompliance-core`, and recreates the app container. If the image is not published yet, it rebuilds from a git clone. The administrator password is not rotated.
+Windows (PowerShell):
+
+```powershell
+iex "& { $(irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1) } -Upgrade"
+```
+
+`--upgrade` keeps the existing `.env`, pulls `ghcr.io/sectutor/grcompliance-core`, and recreates the app container. If the image is not published yet, it rebuilds from a git clone. The administrator password is not rotated. The Latore LTD sentence is printed only when the installer creates `.env` for the first time.
 
 ## Backup
 
@@ -134,7 +143,13 @@ Restore the SQL file with `psql` inside the `db` container, and extract the uplo
 
 ## Community edition
 
-The image is built with premium features off. A community instance includes one workspace you create plus the free **Latore LTD** demo workspace. The seeded administrator can own both. Additional workspaces need a commercial license from [grcompliance.com](https://grcompliance.com/).
+The image is built with premium features off (`VITE_ENABLE_PREMIUM=false`). Premium-only navigation entries, such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench, are omitted. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge. A commercial build can still show those entries with a Pro badge.
+
+A community instance includes one workspace you create plus the free **Latore LTD** demo workspace. The seeded administrator can own both. Additional workspaces need a commercial license from [grcompliance.com](https://grcompliance.com/).
+
+The first page does not show a cookie or advertising consent dialog. GRCompliance does not load third-party tracking, analytics, or advertising scripts. Sign-in uses strictly necessary session storage. Set `GRC_COOKIE_CONSENT=1` only if you want an optional notice that records a browser preference and still loads no third-party scripts.
+
+`AUTH_MODE=local` does not call Supabase. The process log says user administration uses the local database. Invited people who set a password, and an administrator password reset, are stored in `local_credentials`. Reset shows the new password once to the administrator and does not email a Supabase link. Impersonation starts a local session. Local authentication has no MFA enrollment, so privileged API routes are not blocked for lack of a second factor. Hosted Supabase magic links are unused in this mode. The generated administrator is created with role `admin`.
 
 ## Contributing
 

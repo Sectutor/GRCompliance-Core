@@ -282,6 +282,12 @@ export const requiresMFA = middleware(async ({ ctx, next, path }) => {
     const dbUser = ctx.user;
     if (!dbUser) return next();
 
+    // Local authentication has no MFA enrollment. Blocking privileged routes
+    // on aal2 would make every admin and client call fail for a self-hosted install.
+    if (process.env.AUTH_MODE === 'local') {
+        return next();
+    }
+
     // AL 3: Mandatory MFA for all Global Admins and Owners
     const isPrivilegedRole = PLATFORM_ADMIN_ROLES.includes(dbUser.role || '');
 

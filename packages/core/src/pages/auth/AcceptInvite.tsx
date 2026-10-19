@@ -28,9 +28,9 @@ export default function AcceptInvite() {
                 // Or we can return the email from the mutation.
                 // For now, redirect to login.
                 toast.success("Please sign in with your email and new password.");
-                navigate('/auth/login');
+                navigate('/login');
             } catch (e) {
-                navigate('/auth/login');
+                navigate('/login');
             }
         },
         onError: (err) => {
@@ -38,7 +38,7 @@ export default function AcceptInvite() {
                 toast.error(err.message, {
                     action: {
                         label: 'Sign In',
-                        onClick: () => navigate('/auth/login')
+                        onClick: () => navigate('/login')
                     },
                     duration: 10000
                 });
@@ -73,7 +73,7 @@ export default function AcceptInvite() {
                     </CardHeader>
                     <CardFooter>
                         <Button asChild className="w-full">
-                            <Link to="/auth/login">Go to Login</Link>
+                            <Link href="/login">Go to Login</Link>
                         </Button>
                     </CardFooter>
                 </Card>
@@ -138,7 +138,7 @@ export default function AcceptInvite() {
                                         variant="outline"
                                         size="sm"
                                         className="w-full border-amber-200 hover:bg-amber-100 text-amber-900 font-bold"
-                                        onClick={() => navigate('/auth/login')}
+                                        onClick={() => navigate('/login')}
                                     >
                                         Sign In
                                     </Button>
@@ -162,7 +162,7 @@ export default function AcceptInvite() {
                 </CardContent>
                 <CardFooter className="bg-slate-50 border-t border-slate-100 p-4 justify-center">
                     <Button asChild variant="link" className="text-slate-500 text-xs">
-                        <Link to="/auth/login">Already have an account?</Link>
+                        <Link href="/login">Already have an account?</Link>
                     </Button>
                 </CardFooter>
             </Card>

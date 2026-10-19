@@ -9,6 +9,7 @@ import { users, userClients, clients, userInvitations, magicLinks, magicLinkRede
 import { sendEmail } from "../../lib/email/transporter";
 import { sql } from "drizzle-orm";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { createLocalAccount, generateLocalPassword, isLocalAuthMode, signLocalToken, upsertLocalCredential } from "../localAuth";
 
 import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure, protectedProcedure } from "../trpc";
 
@@ -77,43 +78,56 @@ export const usersSubRouter = router({
                 });
             }
 
-            // 3. Create User in Supabase
-            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                email: userEmail,
-                password: input.password,
-                email_confirm: true,
-                user_metadata: { full_name: input.name }
-            });
-
-            if (authError) {
-                if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
-                    throw new TRPCError({
-                        code: "CONFLICT",
-                        message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
-                    });
-                }
-                throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
-            }
-
-            if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
-
-            // 3. Create User in DB
+            // 3. Create the account in local auth, or in Supabase when that mode is on.
             const isWaitlistOrigin = (link as any).waitlistId != null;
             const globalRole = input.clientId
                 ? 'user'
                 : (isWaitlistOrigin ? 'user' : (['admin', 'owner', 'user'].includes(link.role || '') ? link.role : 'user'));
 
-            const [newUser] = await dbConn.insert(users).values({
-                openId: authUser.user.id,
-                email: userEmail,
-                name: input.name,
-                role: globalRole as any,
-                planTier: link.planTier as any,
-                maxClients: link.maxClients ?? 2,
-                subscriptionStatus: 'active',
-                loginMethod: 'email_password',
-                accessExpiresAt: input.clientId ? null : accessExpiresAt
-            }).returning();
+            let newUser;
+            if (isLocalAuthMode()) {
+                newUser = await createLocalAccount({
+                    email: userEmail,
+                    name: input.name,
+                    password: input.password,
+                    role: globalRole,
+                    planTier: link.planTier,
+                    maxClients: link.maxClients ?? 2,
+                    accessExpiresAt: input.clientId ? null : accessExpiresAt,
+                });
+            } else {
+                const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                    email: userEmail,
+                    password: input.password,
+                    email_confirm: true,
+                    user_metadata: { full_name: input.name }
+                });
+
+                if (authError) {
+                    if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
+                        throw new TRPCError({
+                            code: "CONFLICT",
+                            message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
+                        });
+                    }
+                    throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
+                }
+
+                if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+
+                const [created] = await dbConn.insert(users).values({
+                    openId: authUser.user.id,
+                    email: userEmail,
+                    name: input.name,
+                    role: globalRole as any,
+                    planTier: link.planTier as any,
+                    maxClients: link.maxClients ?? 2,
+                    subscriptionStatus: 'active',
+                    loginMethod: 'email_password',
+                    accessExpiresAt: input.clientId ? null : accessExpiresAt
+                }).returning();
+                newUser = created;
+            }
 
             // 3b. Add to Client if clientId provided
             if (input.clientId) {
@@ -199,36 +213,45 @@ export const usersSubRouter = router({
                 });
             }
 
-            // 3. Create User in Supabase
-            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                email: invite.email,
-                password: input.password,
-                email_confirm: true,
-                user_metadata: { full_name: input.name }
-            });
+            // 3. Create the account in local auth, or in Supabase when that mode is on.
+            let newUser;
+            if (isLocalAuthMode()) {
+                newUser = await createLocalAccount({
+                    email: invite.email,
+                    name: input.name,
+                    password: input.password,
+                    role: invite.role || 'user',
+                });
+            } else {
+                const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                    email: invite.email,
+                    password: input.password,
+                    email_confirm: true,
+                    user_metadata: { full_name: input.name }
+                });
 
-            if (authError) {
-                if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
-                    throw new TRPCError({
-                        code: "CONFLICT",
-                        message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
-                    });
+                if (authError) {
+                    if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
+                        throw new TRPCError({
+                            code: "CONFLICT",
+                            message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
+                        });
+                    }
+                    throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
                 }
-                throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
+
+                if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+
+                const [created] = await dbConn.insert(users).values({
+                    openId: authUser.user.id,
+                    email: invite.email,
+                    name: input.name,
+                    role: (invite.role || 'user') as any,
+                    subscriptionStatus: 'active',
+                    loginMethod: 'email_password'
+                }).returning();
+                newUser = created;
             }
-
-            if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
-
-            // 3. Create User in DB (users table)
-            // User invitations are currently platform-wide.
-            const [newUser] = await dbConn.insert(users).values({
-                openId: authUser.user.id,
-                email: invite.email,
-                name: input.name,
-                role: (invite.role || 'user') as any, // Default to user if not specified
-                subscriptionStatus: 'active',
-                loginMethod: 'email_password'
-            }).returning();
 
             // 4. Mark Invitation Accepted
             await dbConn.update(userInvitations)
@@ -543,10 +566,29 @@ export const usersSubRouter = router({
             const user = usersList[0];
             if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
 
+            if (isLocalAuthMode()) {
+                if (!user.openId || !user.email) {
+                    throw new TRPCError({ code: 'BAD_REQUEST', message: 'This user has no local sign-in identity.' });
+                }
+                const accessToken = signLocalToken({ sub: user.openId, email: user.email });
+                const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7;
+                return {
+                    url: null,
+                    access_token: accessToken,
+                    expires_at: expiresAt,
+                    user: {
+                        id: user.openId,
+                        email: user.email,
+                        aud: 'authenticated',
+                        role: 'authenticated',
+                        app_metadata: {},
+                        user_metadata: { name: user.name, full_name: user.name },
+                    },
+                };
+            }
+
             if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-                // Fallback for dev/mock: Just return success and frontend handles "fake" login if possible?
-                // Or throw error.
-                throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Impersonation requires service role key.' });
+                throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Impersonation requires SUPABASE_SERVICE_ROLE_KEY when AUTH_MODE=supabase.' });
             }
 
             const { supabaseAdmin } = await import('../lib/supabaseAdmin');
@@ -573,8 +615,17 @@ export const usersSubRouter = router({
             if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
             if (!user.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'User has no email address' });
 
+            if (isLocalAuthMode()) {
+                const password = generateLocalPassword();
+                await upsertLocalCredential(user.id, password);
+                return {
+                    success: true,
+                    message: `Local password replaced for ${user.email}. Shown once: ${password}`,
+                };
+            }
+
             if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-                throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Password reset requires Supabase service role key.' });
+                throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Password reset email requires SUPABASE_SERVICE_ROLE_KEY when AUTH_MODE=supabase.' });
             }
 
             const { supabaseAdmin } = await import('../lib/supabaseAdmin');
