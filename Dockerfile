@@ -1,56 +1,61 @@
-# Stage 1: Build the application
-FROM node:20-alpine AS builder
+# Community edition image. Secrets are supplied at runtime, never baked in.
+FROM node:20-bookworm-slim AS deps
 
 WORKDIR /app
 
-# Copy dependency definitions
-COPY package.json package-lock.json ./
-# Create directory structure for workspace
-COPY packages/core/package.json ./packages/core/
+COPY package.json package-lock.json .npmrc ./
+COPY packages/core/package.json packages/core/package.json
+COPY packages/ui/package.json packages/ui/package.json
+COPY packages/plugin-sdk/package.json packages/plugin-sdk/package.json
+COPY packages/landing/package.json packages/landing/package.json
 
-# Install dependencies
-RUN npm ci --legacy-peer-deps
+RUN npm ci
 
-# Copy source code
+FROM node:20-bookworm-slim AS builder
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the frontend
-# We navigate to packages/core because that's where the vite app lives
-WORKDIR /app/packages/core
-# Skip type checking (tsc) to allow build to proceed despite existing type errors
+ENV CI=true
+ENV BUILD_TYPE=AGPLv3
 ENV VITE_ENABLE_PREMIUM=false
-RUN npx vite build
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
-# Stage 2: Production Runtime
-FROM node:20-alpine AS runner
+RUN npm run build -w @complianceos/core
+
+FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV BUILD_TYPE=AGPLv3
+ENV VITE_ENABLE_PREMIUM=false
 
-# Copy package.json files
-COPY --from=builder /app/package.json /app/package-lock.json ./
-COPY --from=builder /app/packages/core/package.json ./packages/core/
-COPY --from=builder /app/packages/ui/package.json ./packages/ui/
-# packages/premium skipped in Open Core
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 grc \
+    && useradd --system --uid 1001 --gid grc --create-home --home-dir /home/grc grc
 
-# Copy node_modules from builder
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder --chown=grc:grc /app /app
 
-# Copy built assets
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
+RUN mkdir -p /app/uploads && chown grc:grc /app/uploads \
+    && chmod 755 /app/docker/entrypoint.sh
 
-# Copy backend source code
-COPY --from=builder /app/packages/core/src ./packages/core/src
-COPY --from=builder /app/packages/core/drizzle ./packages/core/drizzle
-COPY --from=builder /app/packages/ui/src ./packages/ui/src
-COPY --from=builder /app/server_entry.ts ./
-COPY --from=builder /app/drizzle.config.ts ./
-COPY --from=builder /app/tsconfig.json ./
+USER grc
 
-# Expose the port
 EXPOSE 3001
 
-# Start the server
-CMD ["npx", "tsx", "server_entry.ts"]
+LABEL org.opencontainers.image.title="GRCompliance Core" \
+      org.opencontainers.image.description="Open-source GRC and compliance platform" \
+      org.opencontainers.image.url="https://grcompliance.com/" \
+      org.opencontainers.image.source="https://github.com/Sectutor/GRCompliance-Core" \
+      org.opencontainers.image.licenses="AGPL-3.0-only"
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=180s --retries=12 \
+    CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+ENTRYPOINT ["docker/entrypoint.sh"]

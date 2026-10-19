@@ -9,17 +9,20 @@ import { logger } from './logger';
 type SecretKey =
     | 'DATABASE_URL'
     | 'ENCRYPTION_KEY'
+    | 'JWT_SECRET'
     | 'SUPABASE_SERVICE_ROLE_KEY'
     | 'SUPABASE_URL'
     | 'TOOL_HMAC_SECRET'
     | 'RATE_LIMIT_REDIS_URL';
 
-const REQUIRED_SECRETS_PROD: SecretKey[] = [
-    'DATABASE_URL',
-    'ENCRYPTION_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'SUPABASE_URL'
-];
+const REQUIRED_SECRETS_PROD: SecretKey[] = process.env.AUTH_MODE === 'local'
+    ? ['DATABASE_URL', 'ENCRYPTION_KEY', 'JWT_SECRET']
+    : [
+        'DATABASE_URL',
+        'ENCRYPTION_KEY',
+        'SUPABASE_SERVICE_ROLE_KEY',
+        'SUPABASE_URL'
+    ];
 
 /**
  * Validates that all required secrets are present in production.

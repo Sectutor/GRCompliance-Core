@@ -208,8 +208,9 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 
     try {
       if (!_sql) {
+        const disableSsl = process.env.DATABASE_SSL === 'false' || /(?:\?|&)sslmode=disable(?:&|$)/.test(databaseUrl);
         _sql = postgres(databaseUrl, {
-          ssl: { rejectUnauthorized: false }, // Critical for Supabase Transaction Pooler compatibility
+          ssl: disableSsl ? false : { rejectUnauthorized: false }, // TLS for hosted Postgres; local compose sets sslmode=disable
           prepare: false, // Required for Supabase Transaction Pooler (port 6543)
           idle_timeout: 30,      // Close idle connections after 30s (reduced from 60s)
           max_lifetime: 300,     // Force-recycle connections every 5 min — prevents stale TCP after Supabase drops idle sessions
