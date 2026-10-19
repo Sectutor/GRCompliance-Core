@@ -8,22 +8,36 @@ import {
     Shield,
     FileText,
     CheckCircle2,
-    AlertTriangle,
     ArrowRight,
-    TrendingUp,
     Calendar,
-    Users,
-    Key,
     Lock
 } from "lucide-react";
 
 import { ISOLayout } from "./ISOLayout";
 import { PageGuide } from "@/components/PageGuide";
+import { trpc } from "@/lib/trpc";
 
 export default function ISODashboard() {
     const { id } = useParams<{ id: string }>();
     const clientId = parseInt(id || "0");
     const [, setLocation] = useLocation();
+
+    const { data: controlRows } = trpc.clientControls.list.useQuery(
+        { clientId, framework: "ISO 27001" },
+        { enabled: clientId > 0 }
+    );
+    const { data: riskRows } = trpc.risks.getRiskAssessments.useQuery(
+        { clientId },
+        { enabled: clientId > 0 }
+    );
+
+    const controls = (controlRows || []).map((row: any) => row.clientControl?.status || row.status).filter(Boolean);
+    const applicable = controls.filter((status: string) => status !== "not_applicable");
+    const implemented = applicable.filter((status: string) => status === "implemented").length;
+    const readiness = applicable.length > 0 ? Math.round((implemented / applicable.length) * 100) : null;
+    const risks = riskRows || [];
+    const treated = risks.filter((risk: any) => risk.treatmentOption && risk.treatmentOption !== "None").length;
+    const riskProgress = risks.length > 0 ? Math.round((treated / risks.length) * 100) : null;
 
     const modules = [
         {
@@ -31,39 +45,38 @@ export default function ISODashboard() {
             description: "Define your ISMS scope and Annex A control usage.",
             icon: CheckCircle2,
             path: `/clients/${clientId}/iso27001/soa`,
-            progress: 78,
-            status: "In Progress"
+            progress: readiness,
+            status: applicable.length === 0 ? "No data" : implemented === applicable.length ? "Complete" : "In progress"
         },
         {
             title: "Risk Management",
             description: "ISO 27005 aligned risk assessment and treatment.",
             icon: Shield,
             path: `/clients/${clientId}/iso27001/risks`,
-            progress: 45,
-            status: "Needs Review"
+            progress: riskProgress,
+            status: risks.length === 0 ? "No data" : "In progress"
         },
         {
             title: "Asset Register",
             description: "Classify and manage information assets and owners.",
             icon: Lock,
             path: `/clients/${clientId}/iso27001/assets`,
-            progress: 92,
-            status: "Active"
+            progress: null,
+            status: "Open"
         },
         {
             title: "Internal Audit",
             description: "Plan and track ISO internal audit cycles.",
             icon: FileText,
             path: `/clients/${clientId}/audit-manager`,
-            progress: 10,
-            status: "Scheduled"
+            progress: null,
+            status: "Open"
         }
     ];
 
     return (
         <ISOLayout clientId={clientId}>
             <div className="p-8 space-y-8 animate-in fade-in duration-500">
-                {/* Hero Section */}
                 <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-8 md:p-12 text-white shadow-2xl">
                     <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
 
@@ -75,68 +88,38 @@ export default function ISODashboard() {
                                 <span className="text-indigo-400">Command Center</span>
                             </h1>
                             <p className="text-slate-400 text-lg max-w-xl">
-                                Continuous compliance monitoring for your Information Security Management System.
+                                Counts on this page come from the controls and risks recorded for this workspace.
                             </p>
                         </div>
                         <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl w-full md:w-80">
                             <div className="flex justify-between items-center mb-4">
-                                <span className="text-sm font-medium text-slate-300">Total Readiness</span>
-                                <span className="text-2xl font-bold text-indigo-400">68%</span>
+                                <span className="text-sm font-medium text-slate-300">Control readiness</span>
+                                <span className="text-2xl font-bold text-indigo-400">{readiness === null ? "—" : `${readiness}%`}</span>
                             </div>
-                            <Progress value={68} className="h-2 bg-white/10" />
+                            <Progress value={readiness ?? 0} className="h-2 bg-white/10" />
                             <div className="mt-4 flex gap-2">
                                 <div className="flex-1 bg-white/5 rounded-lg p-3 text-center border border-white/5">
                                     <p className="text-[10px] text-slate-500 uppercase">Controls</p>
-                                    <p className="font-bold text-emerald-400 text-lg">93/93</p>
+                                    <p className="font-bold text-emerald-400 text-lg">{applicable.length === 0 ? "—" : `${implemented}/${applicable.length}`}</p>
                                 </div>
                                 <div className="flex-1 bg-white/5 rounded-lg p-3 text-center border border-white/5">
                                     <p className="text-[10px] text-slate-500 uppercase">Risks</p>
-                                    <p className="font-bold text-amber-400 text-lg">12</p>
+                                    <p className="font-bold text-amber-400 text-lg">{risks.length}</p>
                                 </div>
                             </div>
                             <div className="mt-3 flex justify-end">
                                 <PageGuide
                                     title="ISO 27001:2022 ISMS"
-                                    description="Manage your Information Security Management System across the full Annex A control set."
-                                    rationale="ISO 27001 certification demonstrates a systematic approach to managing sensitive information. Regular audits against this standard build trust with customers, partners, and regulators."
+                                    description="Manage your Information Security Management System across the controls assigned to this workspace."
+                                    rationale="ISO 27001 certification demonstrates a systematic approach to managing sensitive information."
                                     howToUse={[
-                                        {
-                                            step: "Statement of Applicability",
-                                            description: "Start by defining which Annex A controls apply to your ISMS scope.",
-                                            targetId: "iso-statement-of-applicability-card"
-                                        },
-                                        {
-                                            step: "Risk Management",
-                                            description: "Identify and treat information security risks aligned to ISO 27005.",
-                                            targetId: "iso-risk-management-card"
-                                        },
-                                        {
-                                            step: "Asset Register",
-                                            description: "Classify all information assets and assign owners to ensure accountability.",
-                                            targetId: "iso-asset-register-card"
-                                        },
-                                        {
-                                            step: "Internal Audit",
-                                            description: "Schedule and conduct periodic internal audits to verify control effectiveness.",
-                                            targetId: "iso-internal-audit-card"
-                                        }
+                                        { step: "Statement of Applicability", description: "Start by defining which controls apply to your ISMS scope.", targetId: "iso-statement-of-applicability-card" },
+                                        { step: "Risk Management", description: "Identify and treat information security risks aligned to ISO 27005.", targetId: "iso-risk-management-card" },
+                                        { step: "Asset Register", description: "Classify information assets and assign owners.", targetId: "iso-asset-register-card" },
+                                        { step: "Internal Audit", description: "Schedule internal audits against the assigned controls.", targetId: "iso-internal-audit-card" }
                                     ]}
-                                    scenarios={[
-                                        {
-                                            title: "Stage 2 Audit Preparation",
-                                            example: "Your certification body is arriving next month. Use the 'Compliance Timeline' to verify evidence collection for all in-scope Annex A controls.",
-                                            auditTip: "Auditors sample your Statement of Applicability to check that justifications for excluded controls are documented and defensible."
-                                        },
-                                        {
-                                            title: "Annual Management Review",
-                                            example: "ISMS requires an annual Management Review. Export the readiness score and risk treatment status to present to your leadership team.",
-                                            auditTip: "ISO 27001 Clause 9.3 mandates management review. Document meeting minutes, attendees, and decisions as mandatory audit evidence."
-                                        }
-                                    ]}
-                                    integrations={[
-                                        { name: "Risk Management", description: "ISO 27005 risk treatments sync with the central risk register." },
-                                        { name: "Internal Audit", description: "Audit findings automatically generate corrective action items." }
-                                    ]}
+                                    scenarios={[]}
+                                    integrations={[]}
                                 />
                             </div>
                         </div>
@@ -144,8 +127,8 @@ export default function ISODashboard() {
                 </div>
 
                 <div id="iso-modules-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {modules.map((module, i) => (
-                        <Card id={`iso-${module.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-card`} key={i} className="group hover:border-indigo-300 transition-all duration-300 shadow-sm hover:shadow-md border-slate-200">
+                    {modules.map((module) => (
+                        <Card id={`iso-${module.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-card`} key={module.title} className="group hover:border-indigo-300 transition-all duration-300 shadow-sm hover:shadow-md border-slate-200">
                             <CardHeader className="space-y-1">
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="p-2 bg-slate-50 rounded-lg text-slate-600 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
@@ -160,9 +143,9 @@ export default function ISODashboard() {
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 tracking-widest">
                                         <span>Progress</span>
-                                        <span>{module.progress}%</span>
+                                        <span>{module.progress === null ? "—" : `${module.progress}%`}</span>
                                     </div>
-                                    <Progress value={module.progress} className="h-1" />
+                                    <Progress value={module.progress ?? 0} className="h-1" />
                                 </div>
                                 <Button
                                     variant="ghost"
@@ -176,66 +159,33 @@ export default function ISODashboard() {
                     ))}
                 </div>
 
-                {/* Recent Findings/Activity */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <Card className="lg:col-span-2 border-slate-200 shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 pb-4 mb-4">
-                            <div>
-                                <CardTitle className="text-xl">Compliance Timeline</CardTitle>
-                                <CardDescription>Recent ISMS activities and evidence collections.</CardDescription>
-                            </div>
-                            <Button variant="outline" size="sm">View All</Button>
+                        <CardHeader className="border-b border-slate-50 pb-4 mb-4">
+                            <CardTitle className="text-xl">Compliance timeline</CardTitle>
+                            <CardDescription>Activity appears here when this workspace records it.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            {[
-                                { title: "Risk Treatment Updated", meta: "2 hours ago", author: "Sarah Jones", type: "Risk" },
-                                { title: "Internal Audit Stage 1 Started", meta: "Yesterday", author: "Internal Auditor", type: "Audit" },
-                                { title: "Evidence Collected: A.8.1", meta: "2 days ago", author: "System Task", type: "Evidence" },
-                                { title: "Policy Review Completed", meta: "3 days ago", author: "Michael Chen", type: "Governance" }
-                            ].map((activity, i) => (
-                                <div key={i} className="flex items-start gap-4 group">
-                                    <div className="mt-1 flex flex-col items-center">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 group-hover:scale-125 transition-transform shadow-[0_0_0_4px_rgba(79,70,229,0.1)]" />
-                                        {i < 3 && <div className="w-px h-12 bg-slate-100 mt-1" />}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-0.5">
-                                            <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-xs">{activity.title}</h4>
-                                            <span className="text-[10px] text-slate-400 font-medium">{activity.meta}</span>
-                                        </div>
-                                        <p className="text-[11px] text-slate-500">By {activity.author} • <span className="text-indigo-500 font-semibold">{activity.type}</span></p>
-                                    </div>
-                                </div>
-                            ))}
+                        <CardContent>
+                            <p className="text-sm text-slate-500">No activity has been recorded for this workspace yet.</p>
                         </CardContent>
                     </Card>
 
                     <Card className="bg-indigo-600 text-white shadow-xl shadow-indigo-100 overflow-hidden relative">
-                        <TrendingUp className="absolute bottom-0 right-0 -mb-8 -mr-8 h-48 w-48 text-white/5 opacity-50" />
                         <CardHeader>
-                            <CardTitle className="text-white">Certification Readiness</CardTitle>
-                            <CardDescription className="text-indigo-100">Projected target: March 2026</CardDescription>
+                            <CardTitle className="text-white">Certification readiness</CardTitle>
+                            <CardDescription className="text-indigo-100">No certification date is scheduled.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="p-4 bg-white/10 rounded-2xl border border-white/20">
                                 <h3 className="font-bold mb-3 flex items-center gap-2">
-                                    <Calendar className="h-4 w-4" /> Next Steps
+                                    <Calendar className="h-4 w-4" /> Next steps
                                 </h3>
                                 <ul className="space-y-2 text-xs text-indigo-50">
-                                    <li className="flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-white rounded-full" /> Complete SoA Justifications
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-white rounded-full" /> Conduct Internal Audit
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-white rounded-full" /> Management Sign-off
-                                    </li>
+                                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full" /> Complete the statement of applicability</li>
+                                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full" /> Treat open risks</li>
+                                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full" /> Record an internal audit</li>
                                 </ul>
                             </div>
-                            <Button className="w-full bg-white text-indigo-600 hover:bg-indigo-50 font-bold py-6 rounded-xl shadow-lg">
-                                Run Readiness Report
-                            </Button>
                         </CardContent>
                     </Card>
                 </div>

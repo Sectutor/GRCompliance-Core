@@ -8,7 +8,7 @@ import {
 import { RiskAssessmentWizard } from '../components/risk/RiskAssessmentWizard';
 import { RiskTreatmentDialog } from '../components/risk/RiskTreatmentDialog';
 import { AddAssetDialog } from '../components/risk/AddAssetDialog';
-import { Radar, Zap, ShieldAlert, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { ShieldAlert, ArrowUpRight, TrendingUp } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 
 // ... imports
@@ -63,29 +63,6 @@ export default function RiskRegister() {
                     <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/5 blur-[100px]" />
                 </div>
                 <div className="relative z-10 space-y-6 max-w-7xl mx-auto">
-                    {/* AI Threat Intel Banner */}
-                    <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-1 rounded-2xl shadow-xl mb-2">
-                        <div className="bg-slate-900/40 backdrop-blur-xl rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 border border-white/10">
-                            <div className="flex items-center gap-4">
-                                <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-blue-500/20 text-blue-400">
-                                    <Radar className="w-6 h-6 animate-[spin_4s_linear_infinite]" />
-                                    <div className="absolute inset-0 rounded-full animate-ping bg-blue-500/20 duration-1000"></div>
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-white font-bold text-sm tracking-wide">AI THREAT INTELLIGENCE</h3>
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">ACTIVE</span>
-                                    </div>
-                                    <p className="text-slate-300 text-sm mt-0.5">Monitoring global CISA alerts. <span className="text-white font-semibold flex items-center gap-1">2 new critical CVEs</span> identified matching your tech stack.</p>
-                                </div>
-                            </div>
-                            <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-colors border border-white/10 flex items-center gap-2 whitespace-nowrap">
-                                <Zap className="w-4 h-4 text-amber-400" />
-                                Analyze Assets
-                            </button>
-                        </div>
-                    </div>
-
                     {/* Header */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-premium">
                         <div className="flex items-center gap-4">

@@ -55,7 +55,7 @@ async function ensureAdmin() {
     if (!user) {
         const [created] = await db.insert(users).values({
             email,
-            name: 'Administrator',
+            name: 'Alex Morgan',
             openId: `local:${randomUUID()}`,
             loginMethod: 'local',
             role: 'user',

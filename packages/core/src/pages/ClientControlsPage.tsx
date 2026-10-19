@@ -34,8 +34,8 @@ import {
 import { NISTBaselineWizard } from "@/components/frameworks/NISTBaselineWizard";
 
 export default function ClientControlsPage() {
-    const { clientId: idParam } = useParams<{ clientId: string }>();
-    const clientId = parseInt(idParam || "0");
+    const params = useParams<{ id?: string; clientId?: string }>();
+    const clientId = parseInt(params.id || params.clientId || "0");
     const { user } = useAuth();
     const [location, setLocation] = useLocation();
 

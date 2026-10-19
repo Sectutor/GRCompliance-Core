@@ -423,7 +423,9 @@ export default function Dashboard() {
                   Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Commander'}.
                 </h1>
                 <p className="text-slate-600 font-medium mt-2 text-lg">
-                  Your compliance posture is active and scanning. Here is your daily briefing.
+                  {totalControlsAssigned > 0
+                    ? `${overallComplianceRate}% of in-scope controls are implemented.`
+                    : "Assign controls to calculate a posture score."}
                 </p>
               </motion.div>
 
@@ -443,7 +445,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">AI Posture Insights</h3>
                   </div>
-                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Scanning Live</Badge>
+                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Workspace data</Badge>
                 </div>
 
                 <div className="space-y-4 relative z-10 mt-6">
@@ -488,16 +490,25 @@ export default function Dashboard() {
                 <h3 className="text-sm font-extrabold text-slate-500 uppercase tracking-widest mb-6 relative z-10">Live Posture Score</h3>
 
                 <div className="relative z-10">
-                  <CircularProgress
-                    value={overallComplianceRate}
-                    size={220}
-                    strokeWidth={16}
-                    showValue={true}
-                    color={overallComplianceRate >= 80 ? '#10b981' : overallComplianceRate >= 50 ? '#f59e0b' : '#ef4444'}
-                  />
-                  <div className="mt-8 flex items-center justify-center gap-2">
-                    <StatusIndicator rate={overallComplianceRate} />
-                  </div>
+                  {totalControlsAssigned > 0 ? (
+                    <>
+                      <CircularProgress
+                        value={overallComplianceRate}
+                        size={220}
+                        strokeWidth={16}
+                        showValue={true}
+                        color={overallComplianceRate >= 80 ? '#10b981' : overallComplianceRate >= 50 ? '#f59e0b' : '#ef4444'}
+                      />
+                      <div className="mt-8 flex items-center justify-center gap-2">
+                        <StatusIndicator rate={overallComplianceRate} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-16 px-4">
+                      <p className="text-lg font-semibold text-slate-900">No score yet</p>
+                      <p className="text-sm text-slate-500 mt-2 max-w-xs">An empty workspace is not a critical finding. Assign controls to calculate posture.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -569,6 +580,7 @@ export default function Dashboard() {
                   <option value="" className="bg-white">All Protocols</option>
                   <option value="ISO 27001" className="bg-white text-slate-900">ISO 27001</option>
                   <option value="SOC 2" className="bg-white text-slate-900">SOC 2</option>
+                  <option value="NIS2" className="bg-white text-slate-900">NIS2</option>
                 </select>
                 <div className="ml-[-1.5rem] pointer-events-none text-slate-500 group-hover:text-slate-900 transition-colors">
                   <ChevronDown className="w-4 h-4" />
@@ -605,11 +617,9 @@ export default function Dashboard() {
                 <div className="grid gap-6 md:grid-cols-3">
                   <AnimatedMetricCard
                     title="Overall Compliance"
-                    value={`${overallComplianceRate}%`}
+                    value={totalControlsAssigned > 0 ? `${overallComplianceRate}%` : "—"}
                     icon={<Shield className="w-5 h-5" />}
-                    trend="up"
-                    trendLabel="12%"
-                    variant="success"
+                    variant={totalControlsAssigned === 0 ? "default" : overallComplianceRate >= 80 ? "success" : overallComplianceRate >= 50 ? "warning" : "error"}
                   />
                   <AnimatedMetricCard
                     title="Risk Profile"

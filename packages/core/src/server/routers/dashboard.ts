@@ -401,15 +401,8 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
       }),
 
     complianceScores: isAuthed.query(async () => {
-      // Mock data for compliance trend over the last 6 months
-      const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-      const currentYear = new Date().getFullYear();
-
-      return months.map((month, i) => ({
-        date: month,
-        score: 20 + (i * 12) + Math.round(Math.random() * 5), // Improving trend
-        target: 80
-      }));
+      // Historical snapshots are not stored. The live posture score is the source of truth.
+      return [];
     }),
 
     getInsights: isAuthed
@@ -536,15 +529,53 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           });
         }
 
-        // Default insight if everything is quiet
-        if (insights.length === 0) {
+        const controlStatusQuery = dbConn.select({
+          status: schema.clientControls.status,
+          value: count(),
+        }).from(schema.clientControls);
+        if (effectiveClientIds !== null && effectiveClientIds.length > 0) {
+          controlStatusQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
+        }
+        const controlStatusRows = await controlStatusQuery.groupBy(schema.clientControls.status);
+        const controlCounts = { implemented: 0, inProgress: 0, notStarted: 0 };
+        for (const row of controlStatusRows) {
+          const value = Number(row.value || 0);
+          if (row.status === 'implemented') controlCounts.implemented = value;
+          else if (row.status === 'in_progress') controlCounts.inProgress = value;
+          else if (row.status === 'not_implemented') controlCounts.notStarted = value;
+        }
+        const scopedControls = controlCounts.implemented + controlCounts.inProgress + controlCounts.notStarted;
+        const postureRate = scopedControls > 0 ? Math.round((controlCounts.implemented / scopedControls) * 100) : null;
+        const controlLink = effectiveClientIds && effectiveClientIds.length === 1
+          ? `/clients/${effectiveClientIds[0]}/controls`
+          : '/controls';
+
+        if (postureRate === null && insights.length === 0) {
+          insights.push({
+            id: 'no-posture-data',
+            type: 'info',
+            title: 'No posture data yet',
+            description: 'Assign controls to this workspace before a score can be calculated.',
+            action: 'Open controls',
+            link: controlLink
+          });
+        } else if (postureRate !== null && postureRate < 80) {
+          insights.unshift({
+            id: 'posture-score',
+            type: postureRate < 50 ? 'critical' : 'warning',
+            title: `Posture score is ${postureRate}%`,
+            description: `${controlCounts.implemented} of ${scopedControls} in-scope controls are implemented.`,
+            action: 'View controls',
+            link: controlLink
+          });
+        } else if (insights.length === 0 && postureRate !== null && postureRate >= 80) {
           insights.push({
             id: 'all-clear',
             type: 'success',
             title: 'Compliance is on Track',
-            description: 'All core metrics are within healthy ranges. Great job!',
-            action: 'Run Audit Prep',
-            link: '/audit-prep'
+            description: `${controlCounts.implemented} of ${scopedControls} in-scope controls are implemented.`,
+            action: 'View controls',
+            link: controlLink
           });
         }
 

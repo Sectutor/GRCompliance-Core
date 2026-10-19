@@ -30,9 +30,13 @@ export default function ClientCompliancePage() {
     // Ideally score should provide this, but controls list is fine for now.
     const frameworkStats = useMemo(() => {
         if (!controls) return [];
-        const frameworks = Array.from(new Set(controls.map(c => c.framework))).filter(Boolean);
+        const rows = controls.map((entry: any) => ({
+            framework: entry.framework || entry.control?.framework,
+            status: entry.status || entry.clientControl?.status,
+        })).filter((entry) => entry.framework);
+        const frameworks = Array.from(new Set(rows.map((entry) => entry.framework)));
         return frameworks.map(fw => {
-            const fwControls = controls.filter(c => c.framework === fw);
+            const fwControls = rows.filter(c => c.framework === fw);
             const fwImplemented = fwControls.filter(c => c.status === 'implemented').length;
             return {
                 name: fw,

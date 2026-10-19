@@ -9,20 +9,9 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { PageGuide } from '@/components/PageGuide';
 import { Breadcrumb } from '@/components/Breadcrumb';
 
-const mockAlerts = [
-    { id: 'SIEM-001', title: 'Brute Force Attack Detected', severity: 'high', source: 'Firewall', timestamp: '2026-02-24T14:30:00Z', status: 'open' },
-    { id: 'SIEM-002', title: 'Suspicious PowerShell Execution', severity: 'critical', source: 'EDR', timestamp: '2026-02-24T13:45:00Z', status: 'open' },
-    { id: 'SIEM-003', title: 'Failed Login Attempts', severity: 'medium', source: 'AD', timestamp: '2026-02-24T12:00:00Z', status: 'investigating' },
-    { id: 'SIEM-004', title: 'Malware Detected - Trojan', severity: 'critical', source: 'Antivirus', timestamp: '2026-02-23T22:15:00Z', status: 'contained' },
-    { id: 'SIEM-005', title: 'Data Exfiltration Pattern', severity: 'high', source: 'DLP', timestamp: '2026-02-23T18:30:00Z', status: 'open' },
-    { id: 'SIEM-006', title: 'Privilege Escalation', severity: 'high', source: 'AD Security', timestamp: '2026-02-23T15:20:00Z', status: 'resolved' }
-];
+const mockAlerts: { id: string; title: string; severity: string; source: string; timestamp: string; status: string }[] = [];
 
-const mockIncidents = [
-    { id: 'INC-001', title: 'Active Intrusion Attempt', severity: 'critical', status: 'open', assignee: 'Security Team', created: '2026-02-24T14:30:00Z' },
-    { id: 'INC-002', title: 'Data Leak Investigation', severity: 'high', status: 'investigating', assignee: 'DLP Team', created: '2026-02-23T18:30:00Z' },
-    { id: 'INC-003', title: 'Unauthorized Access', severity: 'medium', status: 'resolved', assignee: 'Jane Doe', created: '2026-02-24T08:30:00Z' }
-];
+const mockIncidents: { id: string; title: string; severity: string; status: string; assignee: string; created: string }[] = [];
 
 const severityColors: Record<string, string> = {
     critical: 'bg-red-100 text-red-800',

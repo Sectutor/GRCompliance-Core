@@ -114,7 +114,7 @@ export async function localLoginHandler(req: Request, res: Response): Promise<vo
                 aud: 'authenticated',
                 role: 'authenticated',
                 app_metadata: {},
-                user_metadata: { name: user.name },
+                user_metadata: { name: user.name, full_name: user.name },
             },
         });
     } catch (error) {

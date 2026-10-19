@@ -18,11 +18,11 @@ Screenshots are from the Latore LTD demo workspace after a community install.
 
 ![Risk register](docs/screenshots/risk-register.png)
 
-![Control library](docs/screenshots/controls.png)
+![Client controls](docs/screenshots/controls.png)
 
 ![Policies](docs/screenshots/policies.png)
 
-![Compliance](docs/screenshots/compliance.png)
+![Compliance frameworks](docs/screenshots/compliance.png)
 
 ![Evidence](docs/screenshots/evidence.png)
 

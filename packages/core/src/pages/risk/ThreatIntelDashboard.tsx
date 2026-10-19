@@ -10,19 +10,9 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { PageGuide } from '@/components/PageGuide';
 import { Breadcrumb } from '@/components/Breadcrumb';
 
-const mockIOCs = [
-    { id: 'IOC-001', indicator: '192.168.1.100', type: 'ip', reputation: 'malicious', confidence: 85, source: 'AlienVault OTX', tags: ['c2', 'botnet'] },
-    { id: 'IOC-002', indicator: 'malware.example.com', type: 'domain', reputation: 'malicious', confidence: 92, source: 'VirusTotal', tags: ['malware', 'phishing'] },
-    { id: 'IOC-003', indicator: 'a1b2c3d4e5f6...', type: 'hash', reputation: 'suspicious', confidence: 65, source: 'AbuseIPDB', tags: ['spam'] },
-    { id: 'IOC-004', indicator: '10.0.0.50', type: 'ip', reputation: 'clean', confidence: 95, source: 'AlienVault OTX', tags: [] },
-    { id: 'IOC-005', indicator: 'evil-panel.xyz', type: 'domain', reputation: 'malicious', confidence: 98, source: 'VirusTotal', tags: ['c2', 'ransomware'] }
-];
+const mockIOCs: { id: string; indicator: string; type: string; reputation: string; confidence: number; source: string; tags: string[] }[] = [];
 
-const mockReports = [
-    { id: 'RPT-001', title: 'APT29 Campaign 2026', severity: 'critical', summary: 'New APT29 activity targeting government entities', iocs: 45, published: '2026-02-20T00:00:00Z', source: 'CISA' },
-    { id: 'RPT-002', title: 'Emotet Resurgence', severity: 'high', summary: 'Emotet malware distributing through phishing', iocs: 23, published: '2026-02-18T00:00:00Z', source: 'US-CERT' },
-    { id: 'RPT-003', title: 'Log4j Vulnerability Advisory', severity: 'critical', summary: 'New Log4j variants being exploited', iocs: 12, published: '2026-02-15T00:00:00Z', source: 'NVD' }
-];
+const mockReports: { id: string; title: string; severity: string; summary: string; iocs: number; published: string; source: string }[] = [];
 
 const typeIcons: Record<string, any> = {
     ip: Globe,

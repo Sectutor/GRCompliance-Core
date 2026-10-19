@@ -9,19 +9,9 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { PageGuide } from '@/components/PageGuide';
 import { Breadcrumb } from '@/components/Breadcrumb';
 
-const mockPlaybooks = [
-    { id: 'PB-001', name: 'Phishing Response', description: 'Automated response to suspected phishing', status: 'active', successRate: 92, avgDuration: 45 },
-    { id: 'PB-002', name: 'Malware Containment', description: 'Isolate endpoint and block malware', status: 'active', successRate: 88, avgDuration: 120 },
-    { id: 'PB-003', name: 'Brute Force Protection', description: 'Block IP after failed logins', status: 'active', successRate: 95, avgDuration: 15 },
-    { id: 'PB-004', name: 'Data Exfiltration Response', description: 'Block transfer and notify DLP', status: 'active', successRate: 78, avgDuration: 180 },
-    { id: 'PB-005', name: 'Vulnerability Remediation', description: 'Patch critical vulnerabilities', status: 'draft', successRate: 0, avgDuration: 0 }
-];
+const mockPlaybooks: { id: string; name: string; description: string; status: string; successRate: number; avgDuration: number }[] = [];
 
-const mockCases = [
-    { id: 'CASE-001', title: 'Suspected Phishing Campaign', severity: 'high', status: 'open', assignee: 'John Smith', created: '2026-02-24T09:00:00Z', playbook: 'Phishing Response' },
-    { id: 'CASE-002', title: 'Ransomware Detection', severity: 'critical', status: 'investigating', assignee: 'Security Team', created: '2026-02-23T22:15:00Z', playbook: 'Malware Containment' },
-    { id: 'CASE-003', title: 'Unauthorized Access Attempt', severity: 'medium', status: 'resolved', assignee: 'Jane Doe', created: '2026-02-24T08:30:00Z', playbook: 'Brute Force Protection' }
-];
+const mockCases: { id: string; title: string; severity: string; status: string; assignee: string; created: string; playbook: string }[] = [];
 
 const severityColors: Record<string, string> = {
     critical: 'bg-red-100 text-red-800',

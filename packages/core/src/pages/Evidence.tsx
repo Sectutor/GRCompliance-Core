@@ -52,7 +52,7 @@ export default function Evidence() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [frameworkFilter, setFrameworkFilter] = useState("NIST 800-53");
+  const [frameworkFilter, setFrameworkFilter] = useState("all");
 
   const { data: client } = trpc.clients.get.useQuery(
     { id: clientId },

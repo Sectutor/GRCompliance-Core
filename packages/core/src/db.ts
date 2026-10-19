@@ -1300,9 +1300,38 @@ export async function ensureDefaultDataSeeded() {
 
     ];
 
-    await db.insert(controls).values(defaultControls);
+    const catalogControls: InsertControl[] = [
+      { controlId: "A.5.2", name: "Information security roles", description: "Roles and responsibilities for information security are defined and assigned.", framework: "ISO 27001", owner: "CISO", frequency: "Annual", evidenceType: "Document", status: "active", category: "Governance" },
+      { controlId: "A.5.7", name: "Threat intelligence", description: "Information about threats is collected and analysed.", framework: "ISO 27001", owner: "Security", frequency: "Quarterly", evidenceType: "Report", status: "active", category: "Governance" },
+      { controlId: "A.5.9", name: "Inventory of information", description: "An inventory of information and other associated assets is maintained.", framework: "ISO 27001", owner: "IT", frequency: "Quarterly", evidenceType: "Register", status: "active", category: "Asset Management" },
+      { controlId: "A.5.10", name: "Acceptable use", description: "Rules for acceptable use of information and assets are identified and documented.", framework: "ISO 27001", owner: "HR", frequency: "Annual", evidenceType: "Policy", status: "active", category: "People" },
+      { controlId: "A.5.19", name: "Supplier relationships", description: "Processes for managing information security in supplier relationships are defined.", framework: "ISO 27001", owner: "Procurement", frequency: "Annual", evidenceType: "Contract", status: "active", category: "Suppliers" },
+      { controlId: "A.5.23", name: "Cloud services", description: "Processes for acquisition, use, and exit of cloud services are established.", framework: "ISO 27001", owner: "IT", frequency: "Annual", evidenceType: "Procedure", status: "active", category: "Suppliers" },
+      { controlId: "A.5.24", name: "Incident planning", description: "The organisation plans and prepares for managing information security incidents.", framework: "ISO 27001", owner: "Security", frequency: "Annual", evidenceType: "Plan", status: "active", category: "Incident" },
+      { controlId: "A.5.30", name: "ICT readiness", description: "ICT readiness is planned, implemented, and tested against business continuity objectives.", framework: "ISO 27001", owner: "Operations", frequency: "Annual", evidenceType: "Test record", status: "active", category: "Continuity" },
+      { controlId: "A.6.3", name: "Security awareness", description: "Personnel receive appropriate information security awareness and training.", framework: "ISO 27001", owner: "HR", frequency: "Annual", evidenceType: "Training record", status: "active", category: "People" },
+      { controlId: "A.8.2", name: "Privileged access", description: "Allocation and use of privileged access rights is restricted and managed.", framework: "ISO 27001", owner: "IT Security", frequency: "Quarterly", evidenceType: "Access review", status: "active", category: "Access Control" },
+      { controlId: "A.8.5", name: "Secure authentication", description: "Secure authentication technologies and procedures are implemented.", framework: "ISO 27001", owner: "IT Security", frequency: "Annual", evidenceType: "Configuration", status: "active", category: "Access Control" },
+      { controlId: "A.8.8", name: "Technical vulnerabilities", description: "Information about technical vulnerabilities is obtained and exposure is evaluated.", framework: "ISO 27001", owner: "Security", frequency: "Monthly", evidenceType: "Scan report", status: "active", category: "Operations" },
+      { controlId: "A.8.13", name: "Information backup", description: "Backup copies of information, software, and systems are maintained and tested.", framework: "ISO 27001", owner: "Operations", frequency: "Quarterly", evidenceType: "Restore test", status: "active", category: "Operations" },
+      { controlId: "A.8.15", name: "Logging", description: "Logs that record activities, exceptions, and security events are produced and stored.", framework: "ISO 27001", owner: "Security", frequency: "Continuous", evidenceType: "Log", status: "active", category: "Operations" },
+      { controlId: "A.8.16", name: "Monitoring", description: "Networks, systems, and applications are monitored for anomalous behaviour.", framework: "ISO 27001", owner: "Security", frequency: "Continuous", evidenceType: "Alert review", status: "active", category: "Operations" },
+      { controlId: "A.8.24", name: "Cryptography", description: "Rules for effective use of cryptography are defined and implemented.", framework: "ISO 27001", owner: "Security", frequency: "Annual", evidenceType: "Standard", status: "active", category: "Operations" },
+      { controlId: "NIS2-21-a", name: "Risk analysis policies", description: "Policies on risk analysis and information system security are adopted.", framework: "NIS2", owner: "CISO", frequency: "Annual", evidenceType: "Policy", status: "active", category: "Governance" },
+      { controlId: "NIS2-21-b", name: "Incident handling", description: "Incident handling procedures, including detection and reporting, are in place.", framework: "NIS2", owner: "Security", frequency: "Annual", evidenceType: "Procedure", status: "active", category: "Incident" },
+      { controlId: "NIS2-21-c", name: "Business continuity", description: "Backup management and disaster recovery are maintained.", framework: "NIS2", owner: "Operations", frequency: "Annual", evidenceType: "Plan", status: "active", category: "Continuity" },
+      { controlId: "NIS2-21-d", name: "Supply chain security", description: "Security aspects of relationships with direct suppliers are assessed.", framework: "NIS2", owner: "Procurement", frequency: "Annual", evidenceType: "Assessment", status: "active", category: "Suppliers" },
+      { controlId: "NIS2-21-e", name: "Secure acquisition", description: "Security is considered in the acquisition, development, and maintenance of systems.", framework: "NIS2", owner: "Engineering", frequency: "Annual", evidenceType: "Standard", status: "active", category: "Development" },
+      { controlId: "NIS2-21-f", name: "Vulnerability handling", description: "Procedures to assess and disclose vulnerabilities are maintained.", framework: "NIS2", owner: "Security", frequency: "Monthly", evidenceType: "Register", status: "active", category: "Operations" },
+      { controlId: "NIS2-21-g", name: "Cyber hygiene training", description: "Basic cyber hygiene practices and cybersecurity training are provided.", framework: "NIS2", owner: "HR", frequency: "Annual", evidenceType: "Training record", status: "active", category: "People" },
+      { controlId: "NIS2-21-h", name: "Cryptography policies", description: "Policies and procedures on the use of cryptography are established.", framework: "NIS2", owner: "Security", frequency: "Annual", evidenceType: "Policy", status: "active", category: "Operations" },
+      { controlId: "NIS2-21-i", name: "Human resources security", description: "Human resources security, access control, and asset management are applied.", framework: "NIS2", owner: "HR", frequency: "Annual", evidenceType: "Procedure", status: "active", category: "People" },
+      { controlId: "NIS2-21-j", name: "Access and asset management", description: "Access control policies and asset management practices are enforced.", framework: "NIS2", owner: "IT Security", frequency: "Quarterly", evidenceType: "Review", status: "active", category: "Access Control" },
+    ];
 
-    logger.info(`[Seed] Inserted ${defaultControls.length} default controls`);
+    await db.insert(controls).values([...defaultControls, ...catalogControls]);
+
+    logger.info(`[Seed] Inserted ${defaultControls.length + catalogControls.length} default controls`);
 
   }
 
@@ -1588,6 +1617,28 @@ export async function ensureDefaultDataSeeded() {
           { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
         ],
         content: "Establishes due diligence and monitoring of third-party service providers.",
+      },
+      {
+        templateId: "POL-005",
+        name: "Business Continuity Policy",
+        frameworks: ["ISO 27001", "NIS2"],
+        sections: [
+          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
+          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
+          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
+        ],
+        content: "[COMPANY NAME] maintains backups and recovery objectives for essential services.",
+      },
+      {
+        templateId: "POL-006",
+        name: "NIS2 Incident Notification Policy",
+        frameworks: ["NIS2"],
+        sections: [
+          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
+          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
+          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
+        ],
+        content: "[COMPANY NAME] notifies the competent authority of significant incidents within the NIS2 time limits.",
       },
 
     ];
@@ -2758,28 +2809,52 @@ async function seedRiskModule(clientId: number) {
       description: "Older administration tool does not support modern auth."
     } as any).returning();
 
-    // 4. Scenarios & Assessments
-    await db.insert(schema.riskAssessments).values([
-      {
+    // 4. Fictional assessments for the demo workspace. Residual likelihood and impact
+    // are stored on the assessment and in contextSnapshot so the heat map can plot them.
+    const year = new Date().getFullYear();
+    const level = (score: number) => score >= 15 ? "High" : score >= 8 ? "High" : score >= 4 ? "Medium" : "Low";
+    const demoRisks = [
+      { n: 1, title: "Unauthorized access to the client file store", description: "A stolen staff credential could expose customer proposals stored in the file share.", l: 4, i: 5, rl: 2, ri: 3, owner: "Priya Shah", treatment: "Mitigate", status: "approved" },
+      { n: 2, title: "Ransomware on the document system", description: "Malware delivered by email could encrypt the document management system.", l: 3, i: 5, rl: 2, ri: 4, owner: "Jordan Hale", treatment: "Mitigate", status: "reviewed" },
+      { n: 3, title: "Late NIS2 incident notification", description: "An incident might be detected too late to meet the 24-hour early warning.", l: 2, i: 4, rl: 1, ri: 3, owner: "Alex Morgan", treatment: "Mitigate", status: "approved" },
+      { n: 4, title: "Hosted email provider outage", description: "A multi-day outage at the email host would stop client communication.", l: 3, i: 4, rl: 2, ri: 3, owner: "Sam Okonkwo", treatment: "Transfer", status: "reviewed" },
+      { n: 5, title: "Lost laptop with customer proposals", description: "A consultant laptop could leave the office without disk encryption confirmed.", l: 3, i: 3, rl: 2, ri: 2, owner: "Riley Chen", treatment: "Mitigate", status: "approved" },
+      { n: 6, title: "Unpatched public website", description: "The marketing site CMS could stay exposed after a published vulnerability.", l: 4, i: 4, rl: 2, ri: 2, owner: "Jordan Hale", treatment: "Mitigate", status: "reviewed" },
+      { n: 7, title: "Excessive contractor access", description: "Contractors may keep access to the finance folder after a project ends.", l: 3, i: 4, rl: 2, ri: 3, owner: "Priya Shah", treatment: "Mitigate", status: "approved" },
+      { n: 8, title: "Untested backup restore", description: "Backups exist, but a full restore of the client portal has not been rehearsed this year.", l: 2, i: 5, rl: 2, ri: 4, owner: "Sam Okonkwo", treatment: "Mitigate", status: "draft" },
+      { n: 9, title: "Phishing of the finance team", description: "A forged invoice email could redirect a supplier payment.", l: 4, i: 3, rl: 2, ri: 2, owner: "Riley Chen", treatment: "Mitigate", status: "reviewed" },
+      { n: 10, title: "Incomplete processing record", description: "The record of processing activities does not yet cover the new client portal.", l: 2, i: 3, rl: 1, ri: 2, owner: "Alex Morgan", treatment: "Accept", status: "draft" },
+    ];
+    await db.insert(schema.riskAssessments).values(demoRisks.map((risk) => {
+      const inherentScore = risk.l * risk.i;
+      const residualScore = risk.rl * risk.ri;
+      return {
         clientId,
-        assessmentId: `RA-${new Date().getFullYear()}-001`,
-        title: "Unauthorized Access to Production Database",
-        status: "approved",
-        likelihood: "2", impact: "5", inherentScore: 10, inherentRisk: "Medium",
-        riskOwner: "CISO",
-        assetId: asset.id,
-        threatId: threat.id,
-        vulnerabilityId: vuln.id
-      },
-      {
-        clientId,
-        assessmentId: `RA-${new Date().getFullYear()}-002`,
-        title: "DDoS Attack on Public API",
-        status: "reviewed",
-        likelihood: "3", impact: "4", inherentScore: 12, inherentRisk: "High",
-        riskOwner: "SRE Lead"
-      }
-    ] as any);
+        assessmentId: `RA-${year}-${String(risk.n).padStart(3, "0")}`,
+        title: risk.title,
+        threatDescription: risk.description,
+        status: risk.status,
+        likelihood: String(risk.l),
+        impact: String(risk.i),
+        inherentScore,
+        inherentRisk: level(inherentScore),
+        residualScore,
+        residualRisk: level(residualScore),
+        riskOwner: risk.owner,
+        treatmentOption: risk.treatment,
+        threatId: risk.n === 1 ? threat.id : undefined,
+        vulnerabilityId: risk.n === 1 ? vuln.id : undefined,
+        contextSnapshot: {
+          description: risk.description,
+          residualLikelihood: String(risk.rl),
+          residualImpact: String(risk.ri),
+          residualRisk: level(residualScore),
+          treatmentStrategy: risk.treatment,
+          riskOwner: risk.owner,
+          assetId: risk.n === 1 ? asset.id : undefined,
+        },
+      };
+    }) as any);
 
     return { assetId: asset.id };
   } catch (err) {
@@ -2988,9 +3063,52 @@ async function seedAuditModule(clientId: number) {
       mappedType: "policy",
       mappedId: 1 // Mock
     } as any);
+
+    await db.insert(schema.certificationAudits).values({
+      clientId,
+      auditFirm: "Fieldnote Assurance",
+      auditorName: "Morgan Ellis",
+      status: "in_progress",
+      stage: "stage_1",
+      startDate: new Date(),
+      notes: "Fictional ISO 27001 stage 1 readiness review for the Latore LTD demo workspace.",
+    } as any);
   } catch (err) {
     console.error("Failed to seed Audit module:", err);
   }
+}
+
+async function applyDemoControlMix(clientId: number) {
+  const db = await getDb();
+  const rows = await db.select({
+    id: clientControls.id,
+    framework: controls.framework,
+    name: controls.name,
+  }).from(clientControls)
+    .leftJoin(controls, eq(clientControls.controlId, controls.id))
+    .where(eq(clientControls.clientId, clientId))
+    .orderBy(clientControls.id);
+
+  const cycle = ["implemented", "implemented", "in_progress", "not_implemented", "implemented", "in_progress", "not_applicable"] as const;
+  for (let index = 0; index < rows.length; index++) {
+    await db.update(clientControls)
+      .set({ status: cycle[index % cycle.length] })
+      .where(eq(clientControls.id, rows[index].id));
+  }
+
+  const evidenced = rows.filter((_, index) => cycle[index % cycle.length] === "implemented").slice(0, 8);
+  if (evidenced.length === 0) return;
+
+  await db.insert(evidence).values(evidenced.map((row, index) => ({
+    clientId,
+    clientControlId: row.id,
+    evidenceId: `LTD-EV-${String(index + 1).padStart(3, "0")}`,
+    description: `Demo record for ${row.name || "this control"}: the procedure was reviewed and filed for Latore LTD.`,
+    status: index % 3 === 0 ? "collected" : "verified",
+    type: "document",
+    framework: row.framework || "ISO 27001",
+    owner: "Alex Morgan",
+  })) as any);
 }
 
 /**
@@ -3016,8 +3134,8 @@ export async function seedSampleData(userId: number, options: { name: string, in
     console.log('[DEBUG seedSampleData] Assigned user:', userId, 'to demo client:', client.id);
   }
 
-  // 3. Bulk Assign ISO 27001 & SOC 2 Controls
-  await bulkAssignControls(client.id, ['ISO 27001', 'SOC 2']);
+  // 3. Bulk Assign ISO 27001, SOC 2, and NIS2 controls
+  await bulkAssignControls(client.id, ['ISO 27001', 'SOC 2', 'NIS2']);
 
   // 4. Bulk Generate Policies
   await bulkGeneratePolicies(client.id, options.name);
@@ -3033,28 +3151,11 @@ export async function seedSampleData(userId: number, options: { name: string, in
   await seedAuditModule(client.id);
   await seedPeopleModule(client.id);
 
-  // 6. Seed some mock Evidence (enhanced)
+  // 6. Mixed implementation statuses and evidence for the demo workspace
   try {
-    const cControls = await db.select().from(clientControls).where(eq(clientControls.clientId, client.id)).limit(5);
-    if (cControls.length > 0) {
-      await db.insert(evidence).values(cControls.map((cc: any, i: number) => ({
-        clientId: client.id,
-        clientControlId: cc.id, // Fixed: should be clientControlId, not controlId if linking to client_controls
-        evidenceId: `DEMO-EV-${i}`,
-        description: "Automatic evidence generated for demo purposes.",
-        status: i % 2 === 0 ? "verified" : "collected",
-        type: "automated"
-      })) as any);
-
-      // Set some controls to 'implemented'
-      for (const cc of cControls) {
-        await db.update(clientControls)
-          .set({ status: 'implemented' })
-          .where(eq(clientControls.id, cc.id));
-      }
-    }
+    await applyDemoControlMix(client.id);
   } catch (err) {
-    console.error("Failed to seed sample evidence:", err);
+    console.error("Failed to apply demo control mix:", err);
   }
 
   return client;

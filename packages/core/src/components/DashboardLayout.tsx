@@ -1150,7 +1150,7 @@ function DashboardLayoutContent({
                       {user?.user_metadata?.full_name || user?.email || "-"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {user?.email || "-"}
+                      {user?.user_metadata?.full_name ? "Workspace owner" : (user?.email || "-")}
                     </p>
                   </div>
                 </button>
