@@ -1,6 +1,7 @@
 {
   "name": "@complianceos/plugin-sdk",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "description": "Plugin SDK for locked-box, single-tenant GRCompliance with OpenClaw.",
   "type": "module",
   "main": "dist/index.js",

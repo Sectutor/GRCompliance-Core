@@ -21,7 +21,7 @@ export const githubManifest: IntegrationManifest = {
         name: 'GRCompliance',
         url: 'https://grcompliance.com'
     },
-    license: 'MIT',
+    license: 'AGPL-3.0-only',
     category: 'source-control',
     tags: ['security', 'scanning', 'devops', 'sast'],
     icon: '🐙',

@@ -151,7 +151,7 @@ export const threatIntelManifest: IntegrationManifest = {
     version: '1.0.0',
     description: 'Connect to threat intelligence platforms (AlienVault OTX, VirusTotal, AbuseIPDB) to gather IOC data and threat reports',
     author: { name: 'GRCompliance', url: 'https://grcompliance.com' },
-    license: 'MIT',
+    license: 'AGPL-3.0-only',
     category: 'scanner',
     tags: ['threat-intel', 'ioc', 'tip', 'alienvault', 'virustotal', 'abuseipdb', 'misp', 'security', 'iso27001'],
     icon: '🕵️',

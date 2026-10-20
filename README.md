@@ -3,7 +3,7 @@
 Open-source governance, risk, and compliance for teams that run ISO 27001, SOC 2, NIS2, and GDPR in one place.
 
 [![CI](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml/badge.svg)](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml)
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 [![Container image](https://img.shields.io/badge/ghcr.io-grcompliance--core-2496ED)](https://github.com/Sectutor/GRCompliance-Core/pkgs/container/grcompliance-core)
 
 GRCompliance is the self-hosted core of a GRC platform. It keeps controls, policies, risks, evidence, and audits together so a team can see what is done and what is still open.
@@ -161,7 +161,7 @@ See [SECURITY.md](SECURITY.md). Do not commit `.env` files, credentials, or cust
 
 ## License
 
-GRCompliance is licensed under the GNU Affero General Public License v3.0. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+GRCompliance is licensed under the GNU Affero General Public License v3.0 only (SPDX `AGPL-3.0-only`). See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 
 If you modify GRCompliance and offer it as a network service, AGPLv3 requires you to offer the corresponding source to users of that service.
 
