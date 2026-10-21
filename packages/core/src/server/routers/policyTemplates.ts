@@ -4,10 +4,55 @@ import { TRPCError } from "@trpc/server";
 import * as schema from "../../schema";
 import { policyTemplates, clientPolicies } from "../../schema";
 import { getDb } from "../../db";
-import { eq, desc, or, and, sql, inArray } from "drizzle-orm";
+import { eq, desc, or, and, inArray } from "drizzle-orm";
+import { filterPolicyTemplatesByFramework, resolveStoredFrameworks, withReadableFrameworks } from "../../lib/policy/templateFrameworks";
 
 // Configurable concurrency limit for policy generation to avoid overwhelming the LLM API
 const CONCURRENCY_LIMIT = Number(process.env.POLICY_GENERATION_CONCURRENCY) || 3;
+
+const optionalTrimmed = (max: number) => z.preprocess((value) => {
+    if (value == null) return undefined;
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed === "" ? undefined : trimmed;
+}, z.string().min(1).max(max).optional());
+
+export const createPolicyTemplateInput = z.object({
+    name: z.string(),
+    content: z.string().optional(),
+    sections: z.any().optional(),
+    isPublic: z.boolean().default(false),
+    clientId: z.number().optional(),
+    tailoringQuestions: z.any().optional(),
+    templateId: optionalTrimmed(50),
+    framework: optionalTrimmed(200),
+    frameworks: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+});
+
+export const updatePolicyTemplateInput = z.object({
+    id: z.number(),
+    name: z.string().optional(),
+    content: z.string().optional(),
+    isPublic: z.boolean().optional(),
+    sections: z.any().optional(),
+    tailoringQuestions: z.any().optional(),
+    templateId: optionalTrimmed(50),
+    framework: optionalTrimmed(200),
+    frameworks: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+});
+
+function isUniqueViolation(error: unknown): boolean {
+    return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "23505";
+}
+
+async function assertTemplateIdAvailable(db: any, templateId: string, currentId?: number) {
+    const [clash] = await db.select({ id: policyTemplates.id })
+        .from(policyTemplates)
+        .where(eq(policyTemplates.templateId, templateId));
+    if (clash && clash.id !== currentId) {
+        throw new TRPCError({ code: "CONFLICT", message: "Template ID already exists" });
+    }
+}
 
 export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuthed: any) => {
     return t.router({
@@ -30,18 +75,14 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
 
                 const whereClause = and(...baseConditions as any);
 
-                // If framework filter is provided and not 'all', filter by framework
-                // frameworks is a JSON array, so we check if it contains the framework
-                if (input?.framework && input.framework !== 'all') {
-                    return await db.select().from(policyTemplates)
-                        .where(and(
-                            whereClause,
-                            sql`${policyTemplates.frameworks}::jsonb @> ${JSON.stringify([input.framework])}::jsonb`
-                        ));
-                }
-
-                return await db.select().from(policyTemplates)
+                const rows = await db.select().from(policyTemplates)
                     .where(whereClause);
+
+                // Filter after the read. Stored frameworks are often a JSON string, so
+                // `frameworks::jsonb @>` matches nothing. Drizzle usually parses that
+                // string on the way out; the helper also accepts the raw text.
+                return filterPolicyTemplatesByFramework(rows, input?.framework)
+                    .map(withReadableFrameworks);
             }),
 
         get: publicProcedure
@@ -71,47 +112,43 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     }
                 }
 
-                return template;
+                return withReadableFrameworks(template);
             }),
 
         create: publicProcedure
             .use(isAuthed)
-            .input(z.object({
-                name: z.string(),
-                content: z.string().optional(),
-                sections: z.any().optional(),
-                isPublic: z.boolean().default(false),
-                clientId: z.number().optional(),
-                tailoringQuestions: z.any().optional()
-            }))
+            .input(createPolicyTemplateInput)
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
-                const templateId = `tpl_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                const templateId = input.templateId ?? `tpl_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                await assertTemplateIdAvailable(db, templateId);
+                const frameworks = resolveStoredFrameworks(input);
 
-                const [template] = await db.insert(policyTemplates).values({
-                    templateId,
-                    name: input.name,
-                    content: input.content || "",
-                    sections: input.sections,
-                    ownerId: ctx.user.id,
-                    isPublic: input.isPublic,
-                    clientId: input.clientId,
-                    tailoringQuestions: input.tailoringQuestions
-                }).returning();
+                try {
+                    const [template] = await db.insert(policyTemplates).values({
+                        templateId,
+                        name: input.name,
+                        content: input.content || "",
+                        sections: input.sections,
+                        ownerId: ctx.user.id,
+                        isPublic: input.isPublic,
+                        clientId: input.clientId,
+                        tailoringQuestions: input.tailoringQuestions,
+                        ...(frameworks ? { frameworks } : {}),
+                    }).returning();
 
-                return template;
+                    return template ? withReadableFrameworks(template) : template;
+                } catch (error) {
+                    if (isUniqueViolation(error)) {
+                        throw new TRPCError({ code: "CONFLICT", message: "Template ID already exists" });
+                    }
+                    throw error;
+                }
             }),
 
         update: publicProcedure
             .use(isAuthed)
-            .input(z.object({
-                id: z.number(),
-                name: z.string().optional(),
-                content: z.string().optional(),
-                isPublic: z.boolean().optional(),
-                sections: z.any().optional(),
-                tailoringQuestions: z.any().optional()
-            }))
+            .input(updatePolicyTemplateInput)
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
 
@@ -123,13 +160,35 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     throw new TRPCError({ code: "FORBIDDEN", message: "Not your template" });
                 }
 
-                const { id, ...data } = input;
-                const [updated] = await db.update(policyTemplates)
-                    .set(data)
-                    .where(eq(policyTemplates.id, id))
-                    .returning();
+                if (input.templateId && input.templateId !== existing.templateId) {
+                    await assertTemplateIdAvailable(db, input.templateId, existing.id);
+                }
 
-                return updated;
+                const frameworks = resolveStoredFrameworks(input, existing.frameworks);
+                const data: any = {};
+                if (input.name !== undefined) data.name = input.name;
+                if (input.content !== undefined) data.content = input.content;
+                if (input.isPublic !== undefined) data.isPublic = input.isPublic;
+                if (input.sections !== undefined) data.sections = input.sections;
+                if (input.tailoringQuestions !== undefined) data.tailoringQuestions = input.tailoringQuestions;
+                if (input.templateId !== undefined) data.templateId = input.templateId;
+                if (frameworks !== undefined) data.frameworks = frameworks;
+
+                if (Object.keys(data).length === 0) return withReadableFrameworks(existing);
+
+                try {
+                    const [updated] = await db.update(policyTemplates)
+                        .set(data)
+                        .where(eq(policyTemplates.id, input.id))
+                        .returning();
+
+                    return updated ? withReadableFrameworks(updated) : updated;
+                } catch (error) {
+                    if (isUniqueViolation(error)) {
+                        throw new TRPCError({ code: "CONFLICT", message: "Template ID already exists" });
+                    }
+                    throw error;
+                }
             }),
 
         delete: publicProcedure

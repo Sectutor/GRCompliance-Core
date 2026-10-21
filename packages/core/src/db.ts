@@ -3,6 +3,7 @@ import { and, desc, eq, like, ilike, or, sql, ne, isNotNull, lt, lte, gt, gte, a
 import { drizzle } from "drizzle-orm/postgres-js";
 
 import postgres from "postgres";
+import { filterPolicyTemplatesByFramework, repairDoubleEncodedPolicyTemplateFrameworks, withReadableFrameworks } from "./lib/policy/templateFrameworks";
 import { encrypt } from "./lib/crypto";
 import { getSecret } from "./lib/secrets";
 import { policyCoverage, postureScore } from "./lib/postureScore";
@@ -1154,21 +1155,10 @@ export async function createPolicyTemplate(data: InsertPolicyTemplate) {
 
 
 export async function getPolicyTemplates(framework?: string) {
-
   const db = await getDb();
-
-
-
-  if (framework && framework !== 'all') {
-
-    return db.select().from(policyTemplates)
-      .where(sql`${policyTemplates.frameworks}::text ILIKE ${`%"${framework}"%`}`)
-      .orderBy(policyTemplates.templateId);
-
-  }
-
-  return db.select().from(policyTemplates).orderBy(policyTemplates.templateId);
-
+  const rows = await db.select().from(policyTemplates).orderBy(policyTemplates.templateId);
+  // A text search misses frameworks stored as escaped JSON strings.
+  return filterPolicyTemplatesByFramework(rows, framework).map(withReadableFrameworks);
 }
 
 
@@ -1649,6 +1639,10 @@ export async function ensureDefaultDataSeeded() {
     logger.info(`[Seed] Inserted ${defaultTemplates.length} default policy templates`);
 
   }
+
+  // Every boot, not only when the table is empty. The insert above is skipped
+  // once any template exists, which is when existing double-encoded rows need repair.
+  await repairDoubleEncodedPolicyTemplateFrameworks(db);
 
 }
 
