@@ -95,7 +95,7 @@ export default function ClientControlsPage() {
     const filteredClientControls = filterWorkspaceControls(clientControls || [], {
         framework: frameworkFilter,
         status: statusFilter,
-    });
+    }) as any[];
 
     const addControlMutation = trpc.clientControls.create.useMutation({
         onSuccess: () => {
@@ -504,7 +504,11 @@ export default function ClientControlsPage() {
                         <Skeleton className="h-16 w-full" />
                     </div>
                 ) : clientControls && clientControls.length > 0 ? (
-                    viewMode === 'card' ? (
+                    filteredClientControls.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground border rounded-xl bg-white">
+                            No controls match these filters.
+                        </div>
+                    ) : viewMode === 'card' ? (
                         <div className="space-y-6">
                             {Object.entries((filteredClientControls || [])
                                 .reduce((acc, item) => {
@@ -594,7 +598,7 @@ export default function ClientControlsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {clientControls.map((item) => (
+                                    {filteredClientControls.map((item) => (
                                         <TableRow key={item.clientControl.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
                                             <TableCell className="font-mono text-xs font-medium text-black py-4">
                                                 {item.clientControl.clientControlId}

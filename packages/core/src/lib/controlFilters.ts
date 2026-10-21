@@ -20,19 +20,23 @@ export function libraryStatusCondition(selected: string | string[] | undefined):
 
 type WorkspaceControlRow = {
     control?: { framework?: string | null } | null;
-    clientControl: { status?: string | null };
+    clientControl?: { status?: string | null } | null;
 };
 
-/** Framework and implementation-status filters for Governance → Controls. */
-export function filterWorkspaceControls<T extends WorkspaceControlRow>(
-    rows: T[],
+/**
+ * Framework and implementation-status filters for Governance → Controls.
+ * The row type is preserved so fields such as category stay on the result.
+ */
+export function filterWorkspaceControls<T>(
+    rows: readonly T[],
     filters: { framework?: string; status?: string }
 ): T[] {
     return rows.filter((row) => {
+        const item = row as WorkspaceControlRow;
         if (filters.framework && filters.framework !== "all") {
-            if ((row.control?.framework || "Uncategorized") !== filters.framework) return false;
+            if ((item.control?.framework || "Uncategorized") !== filters.framework) return false;
         }
-        if (filters.status && filters.status !== "all" && row.clientControl.status !== filters.status) return false;
+        if (filters.status && filters.status !== "all" && item.clientControl?.status !== filters.status) return false;
         return true;
     });
 }

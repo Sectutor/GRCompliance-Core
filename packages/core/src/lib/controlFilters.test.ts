@@ -12,14 +12,15 @@ describe("libraryStatusFilter", () => {
 
 describe("filterWorkspaceControls", () => {
     const rows = [
-        { control: { framework: "ISO 27001" }, clientControl: { status: "implemented" } },
-        { control: { framework: "ISO 27001" }, clientControl: { status: "not_applicable" } },
-        { control: { framework: "NIS2" }, clientControl: { status: "in_progress" } },
+        { control: { framework: "ISO 27001", category: "People" }, clientControl: { status: "implemented" } },
+        { control: { framework: "ISO 27001", category: "Governance" }, clientControl: { status: "not_applicable" } },
+        { control: { framework: "NIS2", category: "Incident" }, clientControl: { status: "in_progress" } },
     ];
 
     it("filters by implementation status and framework together", () => {
         expect(filterWorkspaceControls(rows, { status: "not_applicable" })).toHaveLength(1);
         expect(filterWorkspaceControls(rows, { framework: "ISO 27001", status: "implemented" })).toEqual([rows[0]]);
+        expect(filterWorkspaceControls(rows, { status: "implemented" })[0].control.category).toBe("People");
         expect(filterWorkspaceControls(rows, { framework: "all", status: "all" })).toHaveLength(3);
     });
 });
