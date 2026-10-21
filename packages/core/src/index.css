@@ -654,6 +654,24 @@
   box-shadow: inset 4px 0 0 #0ea5e9;
 }
 
+/* Paint a classic bar. Overlay scrollbars stay hidden until hover, so the
+   clipped register columns look unreachable. */
+.risk-register-scroll {
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+.risk-register-scroll::-webkit-scrollbar {
+  height: 14px;
+  width: 14px;
+}
+.risk-register-scroll::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 999px;
+  border: 3px solid #f1f5f9;
+}
+.risk-register-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
 /* Progress Bar Variants */
 .progress-teal [data-slot="progress-indicator"] {
   background: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 100%);

@@ -8,6 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@complianceos/ui/ui/badge';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { RiskDetailsDialog } from './RiskDetailsDialog';
+import { getRiskLevelColor } from '@/lib/riskCalculations';
+import {
+    compareRegisterScores,
+    displayedTreatmentOption,
+    hasTreatmentOption,
+    inherentLevel,
+    isHighOrCritical,
+    matchesInherentLevel,
+    residualLevel,
+} from './riskRegisterMetrics';
 import { Slot, SlotNames } from '@/registry';
 import { Wand2, Sparkles, Loader2, Save } from 'lucide-react';
 
@@ -181,10 +191,6 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
         }
     };
 
-    // Risk level order for sorting
-    const riskLevelOrder: Record<string, number> = {
-        'Very High': 5, 'High': 4, 'Medium': 3, 'Low': 2, 'Very Low': 1
-    };
     const priorityOrder: Record<string, number> = {
         'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1
     };
@@ -202,7 +208,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
 
             const matchesStatus = statusFilter === 'all' || risk.status === statusFilter;
             const matchesPriority = priorityFilter === 'all' || risk.priority === priorityFilter;
-            const matchesRiskLevel = riskLevelFilter === 'all' || risk.inherentRisk === riskLevelFilter || risk.residualRisk === riskLevelFilter;
+            const matchesRiskLevel = matchesInherentLevel(risk, riskLevelFilter);
 
             // Heatmap drill-down filter
             let matchesHeatmap = true;
@@ -237,8 +243,12 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
 
                 // Handle special sortable fields
                 if (sortField === 'inherentRisk' || sortField === 'residualRisk') {
-                    aVal = riskLevelOrder[aVal || ''] || 0;
-                    bVal = riskLevelOrder[bVal || ''] || 0;
+                    const cmp = compareRegisterScores(
+                        a,
+                        b,
+                        sortField === 'inherentRisk' ? 'inherent' : 'residual',
+                    );
+                    return sortDirection === 'asc' ? cmp : -cmp;
                 } else if (sortField === 'priority') {
                     aVal = priorityOrder[aVal || ''] || 0;
                     bVal = priorityOrder[bVal || ''] || 0;
@@ -293,9 +303,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                         `"${(() => { const aId = risk.contextSnapshot?.assetId || (risk as any).assetId; if (aId && assets) { const asset = assets.find((a: any) => a.id === Number(aId)); if (asset) return asset.name; } return parseAffectedAssets(risk.affectedAssets).join('; '); })()}"`,
                         risk.likelihood,
                         risk.impact,
-                        risk.inherentRisk,
+                        inherentLevel(risk),
                         risk.controlEffectiveness,
-                        risk.residualRisk,
+                        residualLevel(risk),
                         risk.treatmentOption,
                         risk.riskOwner,
                         risk.priority,
@@ -345,16 +355,16 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
 
     if (isLoading) {
         return (
-            <div className="bg-card rounded-xl border shadow-sm p-8 text-center">
+            <div className="bg-card rounded-xl border shadow-sm p-8 text-center min-w-0 w-full">
                 <div className="animate-pulse text-muted-foreground">Loading Risk Register...</div>
             </div>
         );
     }
 
     return (
-        <div className="bg-card rounded-xl border shadow-sm">
+        <div className="bg-card rounded-xl border shadow-sm flex h-full min-h-0 min-w-0 w-full max-w-full flex-1 flex-col">
             {/* Header */}
-            <div className="p-6 border-b">
+            <div className="shrink-0 p-6 border-b">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2 text-slate-950">
@@ -420,25 +430,29 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                         </SelectContent>
                     </Select> 
                     */}
-                    <Select value={riskLevelFilter} onValueChange={setRiskLevelFilter}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="Risk Level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Levels</SelectItem>
-                            <SelectItem value="Very High">Very High</SelectItem>
-                            <SelectItem value="High">High</SelectItem>
-                            <SelectItem value="Medium">Medium</SelectItem>
-                            <SelectItem value="Low">Low</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-700 whitespace-nowrap">Inherent level</span>
+                        <Select value={riskLevelFilter} onValueChange={setRiskLevelFilter}>
+                            <SelectTrigger className="w-[150px]" aria-label="Inherent level">
+                                <SelectValue placeholder="Inherent level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Levels</SelectItem>
+                                <SelectItem value="Critical">Critical</SelectItem>
+                                <SelectItem value="Very High">Very High</SelectItem>
+                                <SelectItem value="High">High</SelectItem>
+                                <SelectItem value="Medium">Medium</SelectItem>
+                                <SelectItem value="Low">Low</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="rounded-xl border border-slate-200 shadow-2xl overflow-hidden bg-white m-4">
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1200px] table-fancy">
+            {/* Scroll pane is height-bounded so the horizontal bar stays in view. */}
+            <div className="mx-4 mb-4 mt-4 flex min-h-[6.5rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+                <div className="risk-register-scroll min-h-[6.5rem] min-w-0 w-full flex-1 overflow-x-scroll overflow-y-auto overscroll-contain">
+                    <table className="w-full min-w-[1200px] border-separate border-spacing-0 table-fancy [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-20 [&_thead_th]:bg-[#003652]">
                         <thead>
                             <tr className="border-none">
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
@@ -546,21 +560,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                             </td>
                                             <td className="px-4 py-4 text-center">
                                                 {(() => {
-                                                    // Calculate Inherent Risk Level dynamically to match Heatmap
-                                                    const l = normalizeValue(risk.likelihood);
-                                                    const i = normalizeValue(risk.impact);
-                                                    const score = l * i;
-
-                                                    let level = 'Low';
-                                                    let color = 'bg-gray-100 text-gray-800';
-
-                                                    if (score >= 15) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; }
-                                                    else if (score >= 8) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; }
-                                                    else if (score >= 4) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-sm'; }
-                                                    else { level = 'Low'; color = 'bg-green-400 text-black shadow-sm'; } // score < 4
-
+                                                    const level = inherentLevel(risk);
+                                                    if (!level) return <span className="text-xs text-gray-400">-</span>;
                                                     return (
-                                                        <Badge className={`${color} border-0 font-semibold px-2.5 py-0.5`}>
+                                                        <Badge className={`${getRiskLevelColor(level)} border-0 font-semibold px-2.5 py-0.5`}>
                                                             {level}
                                                         </Badge>
                                                     );
@@ -568,45 +571,18 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                             </td>
                                             <td className="px-4 py-4 text-center">
                                                 {(() => {
-                                                    // Normalize Residual Risk Level dynamically to match Heatmap logic
-                                                    // For residual, we map the single value to a score/level directly
-                                                    const score = normalizeValue(risk.residualRisk);
-
-                                                    let level = 'Low';
-                                                    let color = 'bg-gray-100 text-gray-800';
-                                                    // Use same thresholds as Inherent, or direct Level mapping?
-                                                    // normalizeValue returns 1-5.
-                                                    // Inherent uses L*I (1-25).
-                                                    // Residual heatmap plots normalized score (1-5) on diagonal.
-                                                    // So we should map 1-5 to colors directly.
-
-                                                    if (score >= 5) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; }
-                                                    else if (score === 4) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; } // View=4 -> Score 16 (Red in HMap) -> No, mapped back to level
-                                                    // Wait, if I want to match Heatmap diagonal color:
-                                                    // 5*5=25(Red), 4*4=16(Red), 3*3=9(Orange), 2*2=4(Yellow). 
-                                                    // So:
-
-                                                    if (score >= 4) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; } // 4*4=16(Red)
-                                                    else if (score === 3) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; } // 3*3=9(Orange)
-                                                    else if (score === 2) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-sm'; } // 2*2=4(Yellow)
-                                                    else { level = 'Low'; color = 'bg-green-400 text-black shadow-sm'; }
-                                                    // Wait, score 2 is Low? In heatmap: 
-                                                    // 5=Critical(Red), 4=High(Orange), 3=Medium(Yellow), 2=Low(Green), 1=Low(Green).
-
-                                                    // Let's use the normalized text if available, or the level name
-                                                    // Actually `risk.residualRisk` IS text usually. 
-                                                    // But we want to enforce the color consistency.
-
+                                                    const level = residualLevel(risk);
+                                                    if (!level) return <span className="text-xs text-gray-400">-</span>;
                                                     return (
-                                                        <Badge className={`${color} border-0 font-semibold px-2.5 py-0.5`}>
-                                                            {risk.contextSnapshot?.residualRisk || risk.residualRisk || level}
+                                                        <Badge className={`${getRiskLevelColor(level)} border-0 font-semibold px-2.5 py-0.5`}>
+                                                            {level}
                                                         </Badge>
                                                     );
                                                 })()}
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm capitalize text-gray-700">{risk.contextSnapshot?.treatmentStrategy || risk.treatmentOption || '-'}</span>
+                                                    <span className="text-sm capitalize text-gray-700">{displayedTreatmentOption(risk) || '-'}</span>
                                                     {(risk as any).treatmentCount > 0 && (
                                                         <Badge variant="secondary" className="text-xs bg-green-50 text-green-700 border-green-200">
                                                             {(risk as any).treatmentCount}
@@ -781,7 +757,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             </div>
 
             {/* Summary Footer */}
-            < div className="px-6 py-4 border-t bg-muted/30" >
+            <div className="shrink-0 px-6 py-4 border-t bg-muted/30">
                 <div className="flex flex-wrap gap-6 text-sm">
                     <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Total Risks:</span>
@@ -791,14 +767,14 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                         <AlertTriangle className="w-4 h-4 text-red-500" />
                         <span className="text-muted-foreground">High/Critical:</span>
                         <span className="font-semibold text-red-600">
-                            {filteredRisks.filter(r => r.inherentRisk === 'High' || r.inherentRisk === 'Very High').length}
+                            {filteredRisks.filter(r => isHighOrCritical(r)).length}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-500" />
                         <span className="text-muted-foreground">With Treatments:</span>
                         <span className="font-semibold text-green-600">
-                            {filteredRisks.filter(r => (r as any).treatmentCount > 0).length}
+                            {filteredRisks.filter(r => hasTreatmentOption(r)).length}
                         </span>
                     </div>
                 </div>
