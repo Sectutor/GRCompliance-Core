@@ -49,6 +49,7 @@ import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroa
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
 import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
+import { separatePolicyReviewDates } from './packages/core/src/server/services/separatePolicyReviewDates';
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
@@ -352,15 +353,23 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     });
 });
 
+// Copy legacy next-review dates before serving. Safe to run on every boot:
+// it fills null next_review_date once, then a marker makes later boots a no-op.
+const policyReviewDateCorrection = separatePolicyReviewDates().catch((error) => {
+    console.error('[policy-review-dates] Startup correction failed:', error instanceof Error ? error.message : 'unknown');
+});
+
 // Only listen locally, Netlify calls the handler directly
 if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
-    const listenAddr = process.env.LISTEN_ADDR || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
-    const server = app.listen(Number(port), listenAddr, () => {
-        console.log(`\n🚀 Server listening specifically on http://${listenAddr}:${port}`);
-        console.log(`-> Health check: http://${listenAddr}:${port}/health`);
-        console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
+    void policyReviewDateCorrection.finally(() => {
+        const listenAddr = process.env.LISTEN_ADDR || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
+        const server = app.listen(Number(port), listenAddr, () => {
+            console.log(`\n🚀 Server listening specifically on http://${listenAddr}:${port}`);
+            console.log(`-> Health check: http://${listenAddr}:${port}/health`);
+            console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
+        });
+        server.timeout = 300000; // 5 minutes
     });
-    server.timeout = 300000; // 5 minutes 
 }
 
 

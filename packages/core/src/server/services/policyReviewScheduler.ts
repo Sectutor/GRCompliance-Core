@@ -16,6 +16,8 @@ export async function checkUpcomingPolicyReviews() {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
+        // Reminders stay on reviewDueDate until the owner decides whether they
+        // should also include the periodic next-review date.
         const upcomingReviews = await db.select()
             .from(clientPolicies)
             .where(
