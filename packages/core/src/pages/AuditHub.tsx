@@ -84,6 +84,7 @@ import { Suspense, lazy } from 'react';
 import { Slot, SlotNames } from "@/registry";
 
 import { PageGuide } from "@/components/PageGuide";
+import { EVIDENCE_STATUSES, evidenceStatusBadgeClass, evidenceStatusDotClass, evidenceStatusLabel } from "@/lib/evidenceStatus";
 
 const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'));
 
@@ -392,15 +393,17 @@ export default function AuditHub() {
         // Optimistically update
         setSelectedRequest({
             ...selectedRequest,
-            status: status === 'verified' ? 'Accepted' : 'Returned'
+            rawStatus: status,
+            status: evidenceStatusLabel(status),
         });
     };
 
     const auditRequests = evidenceData?.map((e: any) => ({
         id: e.evidenceId || `EV-${e.id}`, // Use reliable DB ID reference if possible
         title: e.title || 'Untitled Request',
-        control: e.control?.controlCode || 'General',
-        status: e.status === 'verified' ? 'Accepted' : e.status === 'collected' ? 'In Review' : 'Open',
+        control: e.controlCode || e.control?.controlCode || e.control?.controlId || 'General',
+        status: evidenceStatusLabel(e.status),
+        rawStatus: e.status || 'pending',
         comments: 0,
         evidence: e.fileCount || 0,
         dueDate: e.dueDate || null,
@@ -410,7 +413,7 @@ export default function AuditHub() {
 
     // Derived State
     const displayRequests = auditRequests.filter(req => {
-        const matchesStatus = filterStatus === 'all' || req.status.toLowerCase() === filterStatus.toLowerCase();
+        const matchesStatus = filterStatus === 'all' || req.status === filterStatus;
 
         // Robust framework matching
         const itemFramework = req.original.framework?.toString().trim().toLowerCase();
@@ -437,22 +440,14 @@ export default function AuditHub() {
 
     const stats = {
         total: auditRequests.length,
-        accepted: auditRequests.filter(r => r.status === 'Accepted').length,
-        review: auditRequests.filter(r => r.status === 'In Review').length,
-        open: auditRequests.filter(r => r.status === 'Open').length,
+        accepted: auditRequests.filter(r => r.rawStatus === 'verified').length,
+        review: auditRequests.filter(r => r.rawStatus === 'collected').length,
+        open: auditRequests.filter(r => r.rawStatus === 'pending').length,
     };
 
     const progress = stats.total > 0 ? Math.round((stats.accepted / stats.total) * 100) : 0;
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'Accepted': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-            case 'In Review': return 'bg-amber-100 text-amber-700 border-amber-200';
-            case 'Returned': return 'bg-rose-100 text-rose-700 border-rose-200';
-            case 'Open': return 'bg-slate-100 text-slate-700 border-slate-200';
-            default: return 'bg-slate-100 text-slate-700';
-        }
-    };
+    const getStatusColor = (rawStatus: string) => evidenceStatusBadgeClass(rawStatus);
 
     return (
         <Layout>
@@ -496,14 +491,13 @@ export default function AuditHub() {
                                 <span className="font-semibold text-sm text-slate-800">{activeFramework} Sync</span>
                                 <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal bg-slate-50 text-slate-600 border-slate-200">FY2025</Badge>
                             </div>
-                            <span className="text-xs text-slate-500">Client ID: #{clientId}</span>
                         </div>
                     </div>
 
                     {/* Readiness Header Progress */}
                     {(() => {
                         const total = displayRequests.length;
-                        const accepted = displayRequests.filter(r => r.status === 'Accepted').length;
+                        const accepted = displayRequests.filter(r => r.rawStatus === 'verified').length;
                         const score = total > 0 ? Math.round((accepted / total) * 100) : 0;
                         return (
                             <div className="flex items-center gap-6">
@@ -595,7 +589,7 @@ export default function AuditHub() {
                             {/* Sidebar Readiness Gauge */}
                             {(() => {
                                 const total = displayRequests.length;
-                                const accepted = displayRequests.filter(r => r.status === 'Accepted').length;
+                                const accepted = displayRequests.filter(r => r.rawStatus === 'verified').length;
                                 const score = total > 0 ? Math.round((accepted / total) * 100) : 0;
 
                                 const getPhase = (s: number) => {
@@ -721,17 +715,19 @@ export default function AuditHub() {
                                         />
                                     </div>
                                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                        <SelectTrigger className="w-[110px] h-9 text-xs bg-white border-slate-200">
+                                        <SelectTrigger className="w-[150px] h-9 text-xs bg-white border-slate-200">
                                             <div className="flex items-center gap-2">
                                                 <Filter className="h-3 w-3 text-slate-400" />
                                                 <SelectValue />
                                             </div>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">All Status</SelectItem>
-                                            <SelectItem value="Open">Open</SelectItem>
-                                            <SelectItem value="In Review">In Review</SelectItem>
-                                            <SelectItem value="Accepted">Accepted</SelectItem>
+                                            <SelectItem value="all">All statuses</SelectItem>
+                                            {EVIDENCE_STATUSES.map((status) => (
+                                                <SelectItem key={status} value={evidenceStatusLabel(status)}>
+                                                    {evidenceStatusLabel(status)}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -803,7 +799,7 @@ export default function AuditHub() {
                                                             )}>
                                                                 {req.id}
                                                             </span>
-                                                            {!req.status || req.status === 'pending' || req.status === 'Open' ? (
+                                                            {!req.rawStatus || req.rawStatus === 'pending' ? (
                                                                 <span className="h-2 w-2 rounded-full bg-indigo-600 shrink-0" title="Unread" />
                                                             ) : null}
                                                         </div>
@@ -842,17 +838,12 @@ export default function AuditHub() {
 
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-1.5">
-                                                            <div className={cn(
-                                                                "h-1.5 w-1.5 rounded-full",
-                                                                req.status === 'Accepted' ? 'bg-emerald-500' :
-                                                                    req.status === 'In Review' ? 'bg-amber-400' :
-                                                                        req.status === 'Returned' ? 'bg-rose-500' : 'bg-slate-300'
-                                                            )} />
+                                                            <div className={cn("h-1.5 w-1.5 rounded-full", evidenceStatusDotClass(req.rawStatus))} />
                                                             <span className={cn(
                                                                 "text-[10px] font-medium",
-                                                                req.status === 'Accepted' ? 'text-emerald-600' :
-                                                                    req.status === 'In Review' ? 'text-amber-600' :
-                                                                        req.status === 'Returned' ? 'text-rose-600' : 'text-slate-400'
+                                                                req.rawStatus === 'verified' ? 'text-emerald-600' :
+                                                                    req.rawStatus === 'collected' ? 'text-amber-600' :
+                                                                        req.rawStatus === 'rejected' || req.rawStatus === 'expired' ? 'text-rose-600' : 'text-slate-500'
                                                             )}>{req.status}</span>
                                                         </div>
                                                         <div className="flex items-center gap-3 text-[10px] text-slate-400">
@@ -907,12 +898,12 @@ export default function AuditHub() {
                                         </div>
                                         <div className="flex flex-col items-end gap-3">
                                             {/* Status Badge - Big */}
-                                            <Badge variant="outline" className={cn("px-3 py-1 text-xs font-semibold uppercase tracking-wider border", getStatusColor(selectedRequest.status))}>
+                                            <Badge variant="outline" className={cn("px-3 py-1 text-xs font-semibold uppercase tracking-wider border", getStatusColor(selectedRequest.rawStatus))}>
                                                 {selectedRequest.status}
                                             </Badge>
 
                                             {/* Primary Actions - Moved to Header */}
-                                            {selectedRequest.status !== 'Accepted' && (
+                                            {selectedRequest.rawStatus !== 'verified' && (
                                                 <div className="flex gap-2 mt-2">
                                                     <Button variant="outline" size="sm" className="h-8 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 hover:border-rose-300 gap-2 font-medium" onClick={() => handleStatusUpdate('rejected')} disabled={updateStatusMutation.isLoading}>
                                                         <AlertCircle className="h-3.5 w-3.5" /> Return
