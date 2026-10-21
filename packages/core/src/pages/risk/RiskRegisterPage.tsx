@@ -160,15 +160,15 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
     };
 
     const content = (
-        <div className="relative min-h-[calc(100vh-3.5rem)] -mx-4 -my-8 px-4 py-8 md:-mx-20 md:-mt-8 md:pl-20 md:pr-28 bg-slate-50/50 text-slate-900 overflow-hidden page-transition">
+        <div className="relative flex h-[calc(100vh-3.5rem)] min-h-0 min-w-0 flex-col overflow-hidden -mx-4 -my-8 px-4 py-8 md:-mx-20 md:-mt-8 md:pl-20 md:pr-28 bg-slate-50/50 text-slate-900 page-transition">
             {/* Ambient Light Mode Background Glows */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] rounded-full bg-blue-500/10 blur-[100px]" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/5 blur-[100px]" />
             </div>
-            <div className="relative z-10 space-y-6 max-w-7xl mx-auto">
+            <div className="relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto">
                 {!hideBreadcrumb && (
-                    <Breadcrumb>
+                    <Breadcrumb className="shrink-0">
                         <BreadcrumbList>
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
@@ -195,7 +195,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                     </Breadcrumb>
                 )}
 
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-premium mt-4">
+                <div className="flex shrink-0 flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-premium mt-4">
                     <div className="flex items-center gap-4">
                         <div className="mb-2 md:hidden">
                             <Link href={`/clients/${clientId}/risks`}>
@@ -260,7 +260,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                 </div>
 
                 {riskAssessments && riskAssessments.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4 mb-8 min-h-[300px]">
+                    <div className="grid shrink-0 grid-cols-2 gap-4 mb-8 min-h-[300px]">
                         <div id="risk-reg-heatmap">
                             <RiskHeatmap
                                 assessments={riskAssessments || []}
@@ -282,15 +282,19 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                     </div>
                 )}
 
-                <RiskRegister
-                    clientId={clientId}
-                    onEditRisk={handleEditRisk}
-                    heatmapFilter={heatmapFilter}
-                    framework={framework}
-                    selectedAssetId={selectedAssetId}
-                    onAssetChange={setSelectedAssetId}
-                />
+                <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
+                    <RiskRegister
+                        clientId={clientId}
+                        onEditRisk={handleEditRisk}
+                        heatmapFilter={heatmapFilter}
+                        framework={framework}
+                        selectedAssetId={selectedAssetId}
+                        onAssetChange={setSelectedAssetId}
+                    />
+                </div>
+            </div>
 
+            <div className="absolute h-0 w-0 overflow-visible">
                 <RiskAssessmentWizard
                     open={wizardOpen}
                     onOpenChange={setWizardOpen}
