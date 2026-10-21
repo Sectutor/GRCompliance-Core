@@ -60,7 +60,8 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 clientId: z.number().optional(),
                 limit: z.number().optional().default(50),
                 offset: z.number().optional().default(0),
-                search: z.string().optional()
+                search: z.string().optional(),
+                status: z.union([z.string(), z.array(z.string())]).optional(),
             }).optional())
             .query(async ({ input }: any) => {
                 console.log("[ControlsRouter] listPaginated called", input);
@@ -70,7 +71,8 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                         input?.clientId,
                         input?.limit,
                         input?.offset,
-                        input?.search
+                        input?.search,
+                        input?.status
                     );
                     console.log("[ControlsRouter] listPaginated count:", result.total);
                     return result;
