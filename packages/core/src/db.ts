@@ -170,6 +170,7 @@ import * as schema from "./schema";
 import { ENV } from './_core/env';
 
 import { logger } from './lib/logger';
+import { drizzlePolicyTemplateStore, ensurePolicyTemplatesSeeded } from './lib/policy/seededPolicyTemplates';
 
 
 
@@ -1543,111 +1544,16 @@ export async function ensureDefaultDataSeeded() {
   }
 
 
-
-  // Seed Policy Templates if empty
-
-  const [templateCount] = await db.select({ count: sql<number>`count(*)` }).from(policyTemplates);
-
-  if (!Number(templateCount?.count)) {
-
-    const defaultTemplates: InsertPolicyTemplate[] = [
-
-      {
-
-        templateId: "POL-001",
-
-        name: "Information Security Policy",
-
-        frameworks: ["ISO 27001"],
-
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "roles", title: "Roles & Responsibilities", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-
-        content: "[COMPANY NAME] establishes an Information Security Policy to protect information assets.",
-
-      },
-
-      {
-
-        templateId: "POL-002",
-
-        name: "Access Control Policy",
-
-        frameworks: ["ISO 27001"],
-
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-
-        content: "Access to systems and data is granted based on least privilege and business need.",
-
-      },
-
-      {
-        templateId: "POL-003",
-        name: "Incident Response Policy",
-        frameworks: ["SOC 2"],
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-        content: "Defines processes to respond to and recover from security incidents.",
-      },
-      {
-        templateId: "POL-004",
-        name: "Vendor Risk Management Policy",
-        frameworks: ["SOC 2"],
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-          { id: "procedures", title: "Procedures", content: "", optional: false, defaultEnabled: true },
-          { id: "approval", title: "Review & Approval", content: "", optional: false, defaultEnabled: true },
-        ],
-        content: "Establishes due diligence and monitoring of third-party service providers.",
-      },
-      {
-        templateId: "POL-005",
-        name: "Business Continuity Policy",
-        frameworks: ["ISO 27001", "NIS2"],
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-        ],
-        content: "[COMPANY NAME] maintains backups and recovery objectives for essential services.",
-      },
-      {
-        templateId: "POL-006",
-        name: "NIS2 Incident Notification Policy",
-        frameworks: ["NIS2"],
-        sections: [
-          { id: "purpose", title: "Purpose", content: "", optional: false, defaultEnabled: true },
-          { id: "scope", title: "Scope", content: "", optional: false, defaultEnabled: true },
-          { id: "statement", title: "Policy Statement", content: "", optional: false, defaultEnabled: true },
-        ],
-        content: "[COMPANY NAME] notifies the competent authority of significant incidents within the NIS2 time limits.",
-      },
-
-    ];
-
-    await db.insert(policyTemplates).values(defaultTemplates);
-
-    logger.info(`[Seed] Inserted ${defaultTemplates.length} default policy templates`);
-
+  // Seed the library when it is empty, then publish already-seeded system
+  // templates. Migrations are not applied on container start, so this boot
+  // path is what existing installs pick up. Only POL-001..POL-006 with no
+  // owner and no workspace have is_public set; nothing is deleted or rewritten.
+  const templateSeed = await ensurePolicyTemplatesSeeded(drizzlePolicyTemplateStore(db));
+  if (templateSeed.inserted > 0) {
+    logger.info(`[Seed] Inserted ${templateSeed.inserted} default policy templates`);
+  }
+  if (templateSeed.repaired.length > 0) {
+    logger.info(`[Seed] Published ${templateSeed.repaired.length} seeded system policy templates`);
   }
 
 }
