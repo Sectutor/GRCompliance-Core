@@ -30,6 +30,9 @@ import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, 
 import { logActivity } from "./lib/audit";
 import { postureScore } from "./lib/postureScore";
 import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { evidenceRequestAssigneeLabel } from "./lib/evidenceRequestAssignee";
+import { createEvidenceRequest, resolveEvidenceRequestListScope, updateEvidenceRequestStatus } from "./server/evidenceRequests";
 import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
 import {
@@ -2128,69 +2131,119 @@ ONLY return the JSON. No Markdown formatting.
 
 
   evidenceRequests: router({
-    create: adminProcedure
+    create: protectedProcedure
       .input(z.object({
-        clientId: z.number(),
+        clientId: z.number().optional(),
         clientControlId: z.number(),
-        assigneeId: z.number(),
+        assigneeId: z.number().optional(),
+        assigneeEmployeeId: z.number().optional(),
         dueDate: z.string().optional(),
         description: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Default requester to admin/owner if context user is weird, but ctx.user should be there
-        const requesterId = (ctx.user as any)?.id || 1;
-
         const dbConn = await getDb();
-
-        await dbConn.insert(evidenceRequests).values({
-          clientId: input.clientId,
-          clientControlId: input.clientControlId,
-          requesterId: requesterId,
-          assigneeId: input.assigneeId,
-          dueDate: input.dueDate ? new Date(input.dueDate) : null,
-          description: input.description,
-          status: 'open'
+        await createEvidenceRequest({
+          userId: ctx.user?.id,
+          input,
+          loadControl: async (id) => {
+            const [row] = await dbConn.select({
+              id: clientControls.id,
+              clientId: clientControls.clientId,
+            }).from(clientControls).where(eq(clientControls.id, id)).limit(1);
+            return row ?? null;
+          },
+          loadEmployee: async (id) => {
+            const [row] = await dbConn.select({ clientId: employees.clientId })
+              .from(employees).where(eq(employees.id, id)).limit(1);
+            return row ?? null;
+          },
+          userInWorkspace: (userId, clientId) => db.isUserAllowedForClient(userId, clientId),
+          canEdit: (userId, clientId) => db.isUserAllowedForClient(userId, clientId, "editor"),
+          insert: async (row) => {
+            await dbConn.insert(evidenceRequests).values(row);
+          },
         });
         return { success: true };
       }),
 
-    list: publicProcedure
+    list: protectedProcedure
       .input(z.object({
         clientId: z.number().optional(),
         clientControlId: z.number().optional()
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const dbConn = await getDb();
+        const scope = await resolveEvidenceRequestListScope({
+          userId: ctx.user?.id,
+          input,
+          loadControl: async (id) => {
+            const [row] = await dbConn.select({
+              id: clientControls.id,
+              clientId: clientControls.clientId,
+            }).from(clientControls).where(eq(clientControls.id, id)).limit(1);
+            return row ?? null;
+          },
+          canView: (userId, clientId) => db.isUserAllowedForClient(userId, clientId),
+        });
+
+        const assigneeUsers = alias(users, "evidence_request_assignee");
+        const filters = [eq(evidenceRequests.clientId, scope.clientId)];
+        if (scope.clientControlId !== undefined) {
+          filters.push(eq(evidenceRequests.clientControlId, scope.clientControlId));
+        }
 
         const results = await dbConn.select({
           request: evidenceRequests,
-          assignee: employees,
+          assigneeEmployee: employees,
+          assigneeUser: assigneeUsers,
           requester: users,
-          control: controls
+          control: controls,
+          clientControlCode: clientControls.clientControlId,
         })
           .from(evidenceRequests)
-          .leftJoin(employees, eq(evidenceRequests.assigneeId, employees.id))
+          .leftJoin(employees, eq(evidenceRequests.assigneeEmployeeId, employees.id))
+          .leftJoin(assigneeUsers, eq(evidenceRequests.assigneeId, assigneeUsers.id))
           .leftJoin(users, eq(evidenceRequests.requesterId, users.id))
           .leftJoin(clientControls, eq(evidenceRequests.clientControlId, clientControls.id))
           .leftJoin(controls, eq(clientControls.controlId, controls.id))
-          .where(
-            input.clientId ? eq(evidenceRequests.clientId, input.clientId) :
-              input.clientControlId ? eq(evidenceRequests.clientControlId, input.clientControlId) : undefined
-          );
+          .where(and(...filters));
 
-        return results;
+        return results.map((row) => ({
+          ...row,
+          controlCode: row.clientControlCode || row.control?.controlId || null,
+          assignee: evidenceRequestAssigneeLabel({
+            assigneeEmployeeId: row.request.assigneeEmployeeId,
+            assigneeId: row.request.assigneeId,
+            employeeFirst: row.assigneeEmployee?.firstName,
+            employeeLast: row.assigneeEmployee?.lastName,
+            userName: row.assigneeUser?.name,
+          }),
+        }));
       }),
 
-    updateStatus: publicProcedure
+    updateStatus: protectedProcedure
       .input(z.object({ id: z.number(), status: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const dbConn = await getDb();
-
-        await dbConn.update(evidenceRequests)
-          .set({ status: input.status })
-          .where(eq(evidenceRequests.id, input.id));
-
-        return { success: true };
+        const updated = await updateEvidenceRequestStatus({
+          userId: ctx.user?.id,
+          requestId: input.id,
+          status: input.status,
+          loadRequest: async (id) => {
+            const [row] = await dbConn.select({
+              id: evidenceRequests.id,
+              clientId: evidenceRequests.clientId,
+            }).from(evidenceRequests).where(eq(evidenceRequests.id, id)).limit(1);
+            return row ?? null;
+          },
+          canEdit: (userId, clientId) => db.isUserAllowedForClient(userId, clientId, "editor"),
+          save: async (id, status) => {
+            await dbConn.update(evidenceRequests)
+              .set({ status, updatedAt: new Date() })
+              .where(eq(evidenceRequests.id, id));
+          },
+        });
+        return { success: true, ...updated };
       })
   }),
 

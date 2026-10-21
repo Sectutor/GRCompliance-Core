@@ -2342,6 +2342,7 @@ export async function getEvidence(clientId: number, systemId?: string) {
     framework: evidence.framework,
     status: evidence.status,
     lastVerified: evidence.lastVerified,
+    dueDate: evidence.dueDate,
     // Include full objects for joined tables if needed, or specific fields
     clientControl: clientControls,
     control: controls,

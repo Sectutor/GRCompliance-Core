@@ -84,6 +84,7 @@ import { Suspense, lazy } from 'react';
 import { Slot, SlotNames } from "@/registry";
 
 import { PageGuide } from "@/components/PageGuide";
+import { OpenEvidenceRequests } from "@/components/OpenEvidenceRequests";
 
 const EvidenceFileUpload = lazy(() => import('@/components/EvidenceFileUpload'));
 
@@ -337,7 +338,7 @@ export default function AuditHub() {
             evidenceId: newRequestData.evidenceId || `MANUAL-${Date.now().toString().slice(-4)}`,
             description: newRequestData.description,
             owner: newRequestData.owner,
-            // dueDate: newRequestData.dueDate // Not supported by backend yet, but UI is there
+            dueDate: newRequestData.dueDate || undefined,
         });
     };
 
@@ -736,6 +737,7 @@ export default function AuditHub() {
                                     </Select>
                                 </div>
                             </div>
+                            <OpenEvidenceRequests clientId={clientId} />
                             <div className="flex-1 bg-slate-50/30 overflow-y-auto min-h-0">
 
 
