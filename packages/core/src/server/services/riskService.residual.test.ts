@@ -53,6 +53,8 @@ describe("recalculateRiskScore", () => {
                 description: "keep",
                 residualScore: 6,
                 residualRisk: "Medium",
+                residualLikelihood: "2",
+                residualImpact: "3",
             },
         });
         expect(written).not.toHaveProperty("inherentScore");

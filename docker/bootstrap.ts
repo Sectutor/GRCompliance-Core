@@ -7,6 +7,7 @@ import { hashPassword } from '../packages/core/src/server/localAuth';
 import { ensureDefaultDataSeeded, getDb, getUserByEmail, seedSampleData } from '../packages/core/src/db';
 import { ensureRiskAssessmentIdUniqueIndex } from '../packages/core/src/server/services/riskAssessmentIdIndex';
 import { correctStoredRiskLevelWords } from '../packages/core/src/server/services/correctStoredRiskLevelWords';
+import { backfillResidualHeatmapAxes } from '../packages/core/src/server/services/backfillResidualHeatmapAxes';
 import { users } from '../packages/core/src/schema';
 
 function sslOption(databaseUrl: string) {
@@ -108,6 +109,7 @@ async function main() {
     const db = await getDb();
     await ensureRiskAssessmentIdUniqueIndex(db);
     await correctStoredRiskLevelWords(db);
+    await backfillResidualHeatmapAxes(db);
     await ensureLocalCredentialsTable();
     if (process.env.AUTH_MODE === 'local') {
         const user = await ensureAdmin();

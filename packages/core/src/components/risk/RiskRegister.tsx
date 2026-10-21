@@ -16,6 +16,8 @@ import {
     inherentLevel,
     isHighOrCritical,
     matchesInherentLevel,
+    matchesResidualHeatmapCell,
+    normalizeAxisValue,
     residualLevel,
 } from './riskRegisterMetrics';
 import { Slot, SlotNames } from '@/registry';
@@ -44,23 +46,7 @@ const riskColors: Record<string, string> = {
     'Insignificant': 'bg-green-200 text-black', // Added for consistency
 };
 
-const normalizeValue = (val: any): number => {
-    if (!val) return 0;
-    const strVal = val.toString().toLowerCase().trim();
-    let num = parseInt(strVal.charAt(0));
-
-    // Map text descriptions if numeric parse fails
-    if (isNaN(num)) {
-        if (strVal.includes('critical') || strVal.includes('extreme') || strVal.includes('catastrophic')) num = 5;
-        else if (strVal.includes('very high') || strVal.includes('almost certain')) num = 4;
-        else if (strVal.includes('high') || strVal.includes('likely') || strVal.includes('major')) num = 3;
-        else if (strVal.includes('medium') || strVal.includes('moderate') || strVal.includes('possible')) num = 2;
-        else if (strVal.includes('low') || strVal.includes('unlikely') || strVal.includes('minor') || strVal.includes('rare') || strVal.includes('insignificant')) num = 1;
-    }
-
-    if (num >= 1 && num <= 5) return num;
-    return 0;
-};
+const normalizeValue = normalizeAxisValue;
 
 // Priority color mapping  
 const priorityColors: Record<string, string> = {
@@ -219,11 +205,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
 
 
                 if (heatmapFilter.type === 'residual') {
-                    // For residual heatmap, we map score to diagonal (l=score, i=score)
-                    // So just match residualRisk against likelihood (or impact)
-                    const riskResidual = normalizeValue(risk.residualRisk);
-                    // Filter match if the residual score matches the clicked cell's axis value
-                    matchesHeatmap = riskResidual === filterL;
+                    matchesHeatmap = matchesResidualHeatmapCell(risk, filterL, filterI);
                 } else {
                     // Default to Inherent logic (Likelihood x Impact)
                     const riskL = normalizeValue(risk.likelihood);
