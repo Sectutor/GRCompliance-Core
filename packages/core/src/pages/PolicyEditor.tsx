@@ -35,6 +35,7 @@ import { PageGuide } from "@/components/PageGuide";
 
 import PolicyLinter from "@/components/policy/PolicyLinter";
 import { AiRewriteDialog } from "@/components/policy/AiRewriteDialog";
+import { policyDetailsDateUpdate, reviewRequestDateInput, toDateInputValue } from "@/lib/policy/reviewDates";
 
 // Helper logic for Policy Analysis
 
@@ -160,8 +161,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                 id: policyId,
                 clientId,
                 reviewers: selectedReviewers,
-                dueDate: reviewDueDate,
-                message: reviewMessage
+                message: reviewMessage,
+                ...reviewRequestDateInput(requestDueDate),
             });
             toast.success("Review requested successfully");
             setShowReviewDialog(false);
@@ -218,7 +219,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
     // Review Process States
     const [showReviewDialog, setShowReviewDialog] = useState(false);
     const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
-    const [reviewDueDate, setReviewDueDate] = useState<string>("");
+    const [nextReviewDate, setNextReviewDate] = useState<string>("");
+    const [requestDueDate, setRequestDueDate] = useState<string>("");
     const [reviewMessage, setReviewMessage] = useState("");
 
     const [draftComment, setDraftComment] = useState<{ quote: string; index: number; length: number } | null>(null);
@@ -420,11 +422,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
             setName(policy.name || "");
             setStatus(policy.status || "draft");
             setOwner(policy.owner || "");
-            if (policy.reviewDueDate) {
-                setReviewDueDate(new Date(policy.reviewDueDate).toISOString().split('T')[0]);
-            } else {
-                setReviewDueDate("");
-            }
+            setNextReviewDate(toDateInputValue(policy.nextReviewDate));
+            setRequestDueDate(toDateInputValue(policy.reviewDueDate));
 
             // Always parse content as Markdown and convert to HTML for the RichTextEditor
             // This ensures consistent behavior regardless of stored format
@@ -492,7 +491,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                 content: contentToSave,
                 status,
                 owner,
-                reviewDueDate: reviewDueDate || null
+                ...policyDetailsDateUpdate(nextReviewDate),
             });
 
             toast.success("Policy updated successfully");
@@ -1116,7 +1115,10 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 <Button
                                                     variant="outline"
                                                     className="border-amber-300 text-amber-800 hover:bg-amber-100"
-                                                    onClick={() => setShowReviewDialog(true)}
+                                                    onClick={() => {
+                                                        setRequestDueDate(toDateInputValue((policy as any).reviewDueDate));
+                                                        setShowReviewDialog(true);
+                                                    }}
                                                 >
                                                     <RotateCcw className="mr-2 h-4 w-4" />
                                                     Resubmit for Review
@@ -2406,8 +2408,8 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     <Input
                                         id="policy-review-date"
                                         type="date"
-                                        value={reviewDueDate}
-                                        onChange={(e) => setReviewDueDate(e.target.value)}
+                                        value={nextReviewDate}
+                                        onChange={(e) => setNextReviewDate(e.target.value)}
                                         className="mt-1"
                                     />
                                     <p className="text-xs text-muted-foreground mt-1">
@@ -2469,9 +2471,12 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                                 <Input
                                                     id="review-due-date"
                                                     type="date"
-                                                    value={reviewDueDate}
-                                                    onChange={(e) => setReviewDueDate(e.target.value)}
+                                                    value={requestDueDate}
+                                                    onChange={(e) => setRequestDueDate(e.target.value)}
                                                 />
+                                                <p className="text-xs text-muted-foreground">
+                                                    Due date for this review request. It does not change the policy's next scheduled review.
+                                                </p>
                                             </div>
                                             <div className="grid gap-2">
                                                 <Label htmlFor="review-message">Message (Optional)</Label>
@@ -2494,7 +2499,10 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </Dialog>
                                 <Button
                                     className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold mb-2"
-                                    onClick={() => setShowReviewDialog(true)}
+                                    onClick={() => {
+                                        setRequestDueDate(toDateInputValue((policy as any).reviewDueDate));
+                                        setShowReviewDialog(true);
+                                    }}
                                     disabled={(policy as any).approvalStatus === 'requested' || (policy as any).approvalStatus === 'approved'}
                                 >
                                     <Users className="mr-2 h-4 w-4" />

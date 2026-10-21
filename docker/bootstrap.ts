@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { hashPassword } from '../packages/core/src/server/localAuth';
 import { ensureDefaultDataSeeded, getDb, getUserByEmail, seedSampleData } from '../packages/core/src/db';
+import { separatePolicyReviewDates } from '../packages/core/src/server/services/separatePolicyReviewDates';
 import { users } from '../packages/core/src/schema';
 
 function sslOption(databaseUrl: string) {
@@ -99,6 +100,7 @@ async function main() {
     }
     await applySchema(databaseUrl);
     await ensureDefaultDataSeeded();
+    await separatePolicyReviewDates();
     await ensureLocalCredentialsTable();
     if (process.env.AUTH_MODE === 'local') {
         const user = await ensureAdmin();

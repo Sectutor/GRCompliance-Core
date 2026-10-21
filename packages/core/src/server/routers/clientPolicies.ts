@@ -9,6 +9,13 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
+import { buildReviewRequestUpdate, parsePolicyDate } from "../../lib/policy/reviewDates";
+import {
+  countPublishedVersions,
+  isPolicyApprovedForPublish,
+  nextPublishedVersion,
+  PUBLISH_REQUIRES_APPROVAL_MESSAGE,
+} from "../../lib/policy/policyVersions";
 
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
@@ -222,11 +229,12 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         owner: z.string().optional(),
         version: z.number().optional(),
         reviewers: z.array(z.string()).optional(),
-        reviewDueDate: z.string().nullable().optional(), // ISO date string, null to clear
+        reviewDueDate: z.string().nullable().optional(), // request due date; null to clear
+        nextReviewDate: z.string().nullable().optional(), // periodic next review; null to clear
         approvalStatus: z.enum(["pending", "requested", "changes_requested", "approved"]).optional(),
       }))
       .mutation(async ({ input, ctx }: any) => {
-        const { id, clientId, reviewDueDate, ...data } = input;
+        const { id, clientId, reviewDueDate, nextReviewDate, ...data } = input;
 
         // Safeguard: verify policy belongs to this client
         const existing = await db.getClientPolicyById(id);
@@ -236,7 +244,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         }
 
         const updateData: any = { ...data };
-        if (reviewDueDate !== undefined) updateData.reviewDueDate = reviewDueDate ? new Date(reviewDueDate) : null;
+        if (reviewDueDate !== undefined) updateData.reviewDueDate = parsePolicyDate(reviewDueDate);
+        if (nextReviewDate !== undefined) updateData.nextReviewDate = parsePolicyDate(nextReviewDate);
 
         await db.updateClientPolicy(id, updateData);
 
@@ -301,13 +310,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         console.log(`[PolicyReview] Request review for policy ${id}, client ${clientId}`);
 
-        await db.updateClientPolicy(id, {
-          approvalStatus: 'requested',
-          reviewers: reviewers,
-          reviewDueDate: dueDate ? new Date(dueDate) : null,
-          status: 'review',
-          updatedAt: new Date()
-        });
+        await db.updateClientPolicy(id, buildReviewRequestUpdate({ reviewers, dueDate }));
 
         await logActivity({
           userId: ctx.user.id,
@@ -571,12 +574,31 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         });
         if (!policy) throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found or access denied" });
 
-        // Calculate consistent version numbers
-        const currentVersionNum = Number(policy.version) || 0;
-        const newVersionNum = currentVersionNum + 1;
-        const newVersionStr = input.version || `v${newVersionNum}.0`;
+        if (!isPolicyApprovedForPublish(policy)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: PUBLISH_REQUIRES_APPROVAL_MESSAGE,
+          });
+        }
 
-        console.log(`[PolicyPublish] Publishing policy ${input.id}: v${currentVersionNum} -> ${newVersionStr} (num: ${newVersionNum})`);
+        const versionRows = await dbConn
+          .select({
+            id: policyVersions.id,
+            status: policyVersions.status,
+          })
+          .from(policyVersions)
+          .where(eq(policyVersions.clientPolicyId, policy.id));
+        const publishedCount = countPublishedVersions(
+          (versionRows ?? []).map((row: { status: string | null }) => ({
+            clientPolicyId: policy.id,
+            status: row.status,
+          })),
+          policy.id,
+        );
+        const { versionNum: newVersionNum, versionLabel } = nextPublishedVersion(policy.version, publishedCount);
+        const newVersionStr = input.version || versionLabel;
+
+        console.log(`[PolicyPublish] Publishing policy ${input.id}: working v${policy.version} -> ${newVersionStr} (num: ${newVersionNum}, published: ${publishedCount})`);
 
         // Create Version Snapshot
         await dbConn.insert(policyVersions).values({
