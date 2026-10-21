@@ -9,6 +9,9 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
+import { bindRecordWorkspace } from "../workspaceAccess";
+import { recordProcedure } from "../trpc";
+import { assertTemplateReadable } from "../templateAccess";
 
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
@@ -48,15 +51,19 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           template: r.template
         }));
       }),
-    get: clientProcedure
+    get: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.id);
+        if (!Number.isInteger(id) || id <= 0) return null;
+        const row = await db.getClientPolicyById(id);
+        return row?.clientPolicy?.clientId ?? null;
+      }))
       .input(z.object({ id: z.number(), clientId: z.number().optional() }))
-      .query(async ({ input }: any) => {
+      .query(async ({ input, ctx }: any) => {
         const result = await db.getClientPolicyById(input.id);
         if (!result) throw new TRPCError({ code: "NOT_FOUND" });
-        // Extra check: ensure policy actually belongs to input.clientId
-        // Note: getClientPolicyById returns { clientPolicy, template }
         const policy = result.clientPolicy || result;
-        if (input.clientId && policy.clientId !== input.clientId) {
+        if (policy.clientId !== ctx.clientId) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to the specified client context" });
         }
         return result;
@@ -68,6 +75,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       }))
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
+        const policy = await db.getClientPolicyById(input.policyId);
+        if (!policy || policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found or does not belong to this client" });
+        }
 
         return await dbConn.select({
           log: schema.auditLogs,
@@ -122,6 +133,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
               message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxPolicies} policies. Please upgrade to Pro.`
             });
           }
+        }
+
+        if (data.templateId) {
+          await assertTemplateReadable(ctx, data.templateId);
         }
 
         // Auto-fill content from template if not provided
@@ -528,8 +543,25 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
     getRACI: clientProcedure
       .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {
-        // Optional: verify policy belongs to clientId
-        return await db.getPolicyRACIAssignments(input.policyId);
+        const policy = await db.getClientPolicyById(input.policyId);
+        if (!policy || policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this workspace" });
+        }
+        const dbConn = await db.getDb();
+        return await dbConn.select({
+          assignment: schema.employeeTaskAssignments,
+          employee: schema.employees,
+        })
+          .from(schema.employeeTaskAssignments)
+          .leftJoin(schema.employees, and(
+            eq(schema.employeeTaskAssignments.employeeId, schema.employees.id),
+            eq(schema.employees.clientId, input.clientId),
+          ))
+          .where(and(
+            eq(schema.employeeTaskAssignments.taskType, "policy"),
+            eq(schema.employeeTaskAssignments.taskId, input.policyId),
+            eq(schema.employeeTaskAssignments.clientId, input.clientId),
+          ));
       }),
     updateRACI: clientEditorProcedure
       .input(z.object({
@@ -541,6 +573,23 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         }))
       }))
       .mutation(async ({ input }: any) => {
+        const policy = await db.getClientPolicyById(input.policyId);
+        if (!policy || policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this workspace" });
+        }
+        if (input.assignments.length > 0) {
+          const dbConn = await db.getDb();
+          const employeeIds = input.assignments.map((assignment: { employeeId: number }) => assignment.employeeId);
+          const rows = await dbConn.select({ id: schema.employees.id })
+            .from(schema.employees)
+            .where(and(
+              eq(schema.employees.clientId, input.clientId),
+              inArray(schema.employees.id, employeeIds),
+            ));
+          if (rows.length !== new Set(employeeIds).size) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "One or more employees are not in this workspace" });
+          }
+        }
         await db.updatePolicyRACIAssignments(input.clientId, input.policyId, input.assignments);
 
         // Re-index assignments
@@ -796,7 +845,13 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return await db.getPolicyGapAnalysis(input.clientId);
       }),
 
-    linkRisk: clientEditorProcedure
+    linkRisk: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.policyId);
+        if (!Number.isInteger(id) || id <= 0) return null;
+        const row = await db.getClientPolicyById(id);
+        return row?.clientPolicy?.clientId ?? null;
+      }, { minRole: "editor" }))
       .input(z.object({
         policyId: z.number(),
         riskId: z.number(),
@@ -804,6 +859,14 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       }))
       .mutation(async ({ input, ctx }: any) => {
         const dbConn = await db.getDb();
+
+        const [risk] = await dbConn.select({ clientId: riskAssessments.clientId })
+          .from(riskAssessments)
+          .where(eq(riskAssessments.id, input.riskId))
+          .limit(1);
+        if (!risk || risk.clientId !== ctx.clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Risk does not belong to this workspace" });
+        }
 
         // Check if exists
         const existing = await dbConn.select().from(riskPolicyMappings)
@@ -814,12 +877,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         if (existing.length > 0) return { success: true, message: "Already linked" };
 
-        // Get Client ID from policy
-        const policy = await db.getClientPolicyById(input.policyId);
-        if (!policy) throw new TRPCError({ code: "NOT_FOUND" });
-
         await dbConn.insert(riskPolicyMappings).values({
-          clientId: policy.clientPolicy.clientId,
+          clientId: ctx.clientId,
           clientPolicyId: input.policyId,
           riskAssessmentId: input.riskId,
           notes: input.notes
@@ -827,17 +886,24 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true };
       }),
 
-    unlinkRisk: clientEditorProcedure
+    unlinkRisk: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.policyId);
+        if (!Number.isInteger(id) || id <= 0) return null;
+        const row = await db.getClientPolicyById(id);
+        return row?.clientPolicy?.clientId ?? null;
+      }, { minRole: "editor" }))
       .input(z.object({
         policyId: z.number(),
         riskId: z.number()
       }))
-      .mutation(async ({ input }: any) => {
+      .mutation(async ({ input, ctx }: any) => {
         const dbConn = await db.getDb();
 
         await dbConn.delete(riskPolicyMappings)
           .where(and(
             eq(riskPolicyMappings.clientPolicyId, input.policyId),
+            eq(riskPolicyMappings.clientId, ctx.clientId),
             eq(riskPolicyMappings.riskAssessmentId, input.riskId)
           ));
         return { success: true };
@@ -847,6 +913,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
+        const policy = await db.getClientPolicyById(input.policyId);
+        if (!policy || policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this workspace" });
+        }
 
         const links = await dbConn.select({
           mapping: riskPolicyMappings,
@@ -854,7 +924,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         })
           .from(riskPolicyMappings)
           .innerJoin(riskAssessments, eq(riskPolicyMappings.riskAssessmentId, riskAssessments.id))
-          .where(eq(riskPolicyMappings.clientPolicyId, input.policyId));
+          .where(and(
+            eq(riskPolicyMappings.clientPolicyId, input.policyId),
+            eq(riskAssessments.clientId, input.clientId),
+          ));
 
         return links;
       }),
@@ -863,6 +936,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
       .input(z.object({ policyId: z.number(), clientId: z.number() }))
       .query(async ({ input }: any) => {
         const dbConn = await db.getDb();
+        const policy = await db.getClientPolicyById(input.policyId);
+        if (!policy || policy.clientPolicy.clientId !== input.clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this workspace" });
+        }
         return await dbConn.select({
           mapping: controlPolicyMappings,
           clientControl: clientControls,
@@ -871,7 +948,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           .from(controlPolicyMappings)
           .innerJoin(clientControls, eq(controlPolicyMappings.clientControlId, clientControls.id))
           .leftJoin(controls, eq(clientControls.controlId, controls.id))
-          .where(eq(controlPolicyMappings.clientPolicyId, input.policyId));
+          .where(and(
+            eq(controlPolicyMappings.clientPolicyId, input.policyId),
+            eq(clientControls.clientId, input.clientId),
+          ));
       }),
 
     linkControl: clientEditorProcedure

@@ -7,6 +7,8 @@ import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
+import { bindRecordWorkspace } from "../workspaceAccess";
+import { recordProcedure } from "../trpc";
 
 export const createClientControlsRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
   return t.router({
@@ -64,18 +66,19 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         console.log("DEBUG: clientControls.list called for clientId:", input.clientId, "framework:", input.framework);
         return await db.getClientControls(input.clientId, input.framework);
       }),
-    get: clientProcedure
+    get: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.id);
+        if (!Number.isInteger(id) || id === 0) return null;
+        const cc = await db.getClientControlById(id);
+        return cc?.clientControl?.clientId ?? null;
+      }))
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }: any) => {
         const cc = await db.getClientControlById(input.id);
-        if (!cc) throw new TRPCError({ code: "NOT_FOUND" });
-
-        // Manual Security Check since input lacks clientId
-        if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
-          const allowed = await db.isUserAllowedForClient(ctx.user.id, cc.clientId);
-          if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+        if (!cc || cc.clientControl?.clientId !== ctx.clientId) {
+          throw new TRPCError({ code: "NOT_FOUND" });
         }
-
         return cc;
       }),
 
@@ -89,9 +92,15 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         return mappings;
       }),
 
-    getLinkedPolicies: clientProcedure
+    getLinkedPolicies: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.controlId);
+        if (!Number.isInteger(id) || id === 0) return null;
+        const cc = await db.getClientControlById(id);
+        return cc?.clientControl?.clientId ?? null;
+      }))
       .input(z.object({ controlId: z.number() }))
-      .query(async ({ input }: any) => {
+      .query(async ({ input, ctx }: any) => {
         const dbConn = await db.getDb();
         const results = await dbConn.select({
           mapping: schema.controlPolicyMappings,
@@ -99,7 +108,10 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         })
           .from(schema.controlPolicyMappings)
           .innerJoin(schema.clientPolicies, eq(schema.controlPolicyMappings.clientPolicyId, schema.clientPolicies.id))
-          .where(eq(schema.controlPolicyMappings.clientControlId, input.controlId));
+          .where(and(
+            eq(schema.controlPolicyMappings.clientControlId, input.controlId),
+            eq(schema.clientPolicies.clientId, ctx.clientId),
+          ));
 
         return results.map((r: any) => ({
           ...r.policy,
@@ -209,7 +221,7 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         evidenceLocation: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }: any) => {
-        const { id, ...data } = input;
+        const { id, clientId, ...data } = input;
 
         // Validation: Require justification for N/A
         if (data.applicability === 'not_applicable' && !data.justification) {
@@ -219,8 +231,11 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
           });
         }
 
-        // Fetch previous state for logging
+        // Fetch previous state for logging and prove the row belongs to this workspace.
         const previousState = await db.getClientControlById(id);
+        if (!previousState?.clientControl || previousState.clientControl.clientId !== clientId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Control does not belong to this workspace" });
+        }
 
         await db.updateClientControl(id, data);
 

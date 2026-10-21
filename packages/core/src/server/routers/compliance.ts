@@ -8,6 +8,10 @@ import { llmService } from "../../lib/llm/service";
 import { cosineSimilarity } from "../../lib/utils";
 import { EmailService } from "../../lib/email/service";
 import { postureScoreFromStatuses } from "../../lib/postureScore";
+import { createInviteToken } from "../../lib/security/inviteToken";
+import { gapInviteHtml } from "../../lib/security/gapInviteEmail";
+import { authorizeWorkspace, bindRecordWorkspace } from "../workspaceAccess";
+import { recordProcedure } from "../trpc";
 
 function cosineSimilarity(vecA: number[], vecB: number[]) {
   let dotProduct = 0;
@@ -156,11 +160,19 @@ export const createComplianceRouter = (
 
           return rawControls;
         }),
-      get: publicProcedure // GET by ID needs manual check or clientId in input. Leaving public for now (soft read).
+      get: recordProcedure
+        .use(bindRecordWorkspace(async (raw) => {
+          const id = Number(raw?.id);
+          if (!Number.isInteger(id) || id === 0) return null;
+          const cc = await db.getClientControlById(id);
+          return cc?.clientControl?.clientId ?? null;
+        }))
         .input(z.object({ id: z.number() }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
           const cc = await db.getClientControlById(input.id);
-          if (!cc) throw new TRPCError({ code: "NOT_FOUND" });
+          if (!cc || cc.clientControl?.clientId !== ctx.clientId) {
+            throw new TRPCError({ code: "NOT_FOUND" });
+          }
           return cc;
         }),
       createCustom: clientEditorProcedure
@@ -255,10 +267,13 @@ export const createComplianceRouter = (
           evidenceLocation: z.string().optional(),
         }))
         .mutation(async ({ input, ctx }: any) => {
-          const { id, ...data } = input;
+          const { id, clientId, ...data } = input;
 
-          // Fetch previous state for logging
+          // Fetch previous state for logging and prove the row belongs to this workspace.
           const previousState = await db.getClientControlById(id);
+          if (!previousState?.clientControl || previousState.clientControl.clientId !== clientId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Control does not belong to this workspace" });
+          }
 
           await db.updateClientControl(id, data);
 
@@ -673,6 +688,12 @@ export const createComplianceRouter = (
         }))
         .mutation(async ({ input, ctx }: any) => {
           const dbConn = await getDb();
+          if (input.clientControlId) {
+            const control = await db.getClientControlById(input.clientControlId);
+            if (!control?.clientControl || control.clientControl.clientId !== input.clientId) {
+              throw new TRPCError({ code: "FORBIDDEN", message: "Control does not belong to this workspace" });
+            }
+          }
           const [task] = await dbConn.insert(schema.remediationTasks).values({
             ...input,
             dueDate: input.dueDate ? new Date(input.dueDate) : null,
@@ -681,17 +702,32 @@ export const createComplianceRouter = (
           }).returning();
           return task;
         }),
-      update: clientEditorProcedure
+      update: recordProcedure
+        .use(bindRecordWorkspace(async (raw) => {
+          const id = Number(raw?.id);
+          if (!Number.isInteger(id) || id <= 0) return null;
+          const dbConn = await db.getDb();
+          const [task] = await dbConn.select({ clientId: schema.remediationTasks.clientId })
+            .from(schema.remediationTasks)
+            .where(eq(schema.remediationTasks.id, id))
+            .limit(1);
+          return task?.clientId ?? null;
+        }, { minRole: "editor" }))
         .input(z.object({
           id: z.number(),
           status: z.enum(["open", "in_progress", "resolved", "closed"]).optional(),
           priority: z.enum(["low", "medium", "high", "critical"]).optional(),
           assigneeId: z.number().optional(),
         }))
-        .mutation(async ({ input }: any) => {
+        .mutation(async ({ input, ctx }: any) => {
           const dbConn = await db.getDb();
           const { id, ...updates } = input;
-          await dbConn.update(schema.remediationTasks).set({ ...updates, updatedAt: new Date() }).where(eq(schema.remediationTasks.id, id));
+          await dbConn.update(schema.remediationTasks)
+            .set({ ...updates, updatedAt: new Date() })
+            .where(and(
+              eq(schema.remediationTasks.id, id),
+              eq(schema.remediationTasks.clientId, ctx.clientId),
+            ));
           return { success: true };
         }),
       delete: adminProcedure
@@ -701,17 +737,28 @@ export const createComplianceRouter = (
           await dbConn.delete(schema.remediationTasks).where(eq(schema.remediationTasks.id, input.id));
           return { success: true };
         }),
-      list: clientProcedure
+      list: recordProcedure
         .input(z.object({ clientId: z.number().optional(), clientControlId: z.number().optional() }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
+          if (!input.clientId && !input.clientControlId) return [];
           const dbConn = await db.getDb();
+          let ownerId = input.clientId as number | undefined;
           if (input.clientControlId) {
-            return dbConn.select().from(schema.remediationTasks).where(eq(schema.remediationTasks.clientControlId, input.clientControlId));
+            const control = await db.getClientControlById(input.clientControlId);
+            if (!control?.clientControl) throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
+            if (input.clientId != null && input.clientId !== control.clientControl.clientId) {
+              throw new TRPCError({ code: "FORBIDDEN", message: "Control does not belong to this workspace" });
+            }
+            ownerId = control.clientControl.clientId;
           }
-          if (input.clientId) {
-            return dbConn.select().from(schema.remediationTasks).where(eq(schema.remediationTasks.clientId, input.clientId));
+          await authorizeWorkspace(ctx, ownerId as number);
+          if (input.clientControlId) {
+            return dbConn.select().from(schema.remediationTasks).where(and(
+              eq(schema.remediationTasks.clientControlId, input.clientControlId),
+              eq(schema.remediationTasks.clientId, ownerId as number),
+            ));
           }
-          return [];
+          return dbConn.select().from(schema.remediationTasks).where(eq(schema.remediationTasks.clientId, ownerId as number));
         }),
     }),
 
@@ -727,7 +774,11 @@ export const createComplianceRouter = (
         }))
         .mutation(async ({ input, ctx }: any) => {
           const dbConn = await getDb();
-          const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          const control = await db.getClientControlById(input.clientControlId);
+          if (!control?.clientControl || control.clientControl.clientId !== input.clientId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Control does not belong to this workspace" });
+          }
+          const token = createInviteToken();
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + input.expiresInDays);
 
@@ -749,25 +800,15 @@ export const createComplianceRouter = (
           await EmailService.send({
             to: input.recipientEmail,
             subject: "Compliance Information Request",
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-                <h2 style="color: #1a1a1a;">Information Request</h2>
-                <p>You have been requested to provide compliance information for a security assessment.</p>
-                
-                ${input.notes ? `<div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #ddd; margin: 20px 0;">${input.notes}</div>` : ''}
-
-                <div style="margin: 32px 0; text-align: center;">
-                  <a href="${inviteUrl}" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Complete Questionnaire</a>
-                </div>
-                
-                <p style="color: #666; font-size: 14px;"><strong>Expires:</strong> ${expiresAt.toLocaleDateString()}</p>
-                <p style="color: #999; font-size: 12px;">Link: ${inviteUrl}</p>
-              </div>
-            `,
+            html: gapInviteHtml({
+              notes: input.notes,
+              inviteUrl,
+              expiresOn: expiresAt.toLocaleDateString(),
+            }),
             clientId: input.clientId
           });
 
-          console.log(`[GapQuestionnaire] Invite sent to ${input.recipientEmail} with token ${token}`);
+          console.log(`[GapQuestionnaire] Invite sent to ${input.recipientEmail}`);
 
           return request;
         }),
