@@ -32,16 +32,17 @@ async function testPolicyGen() {
         console.log('Calling policyGenerator.generate()...');
         const startTime = Date.now();
         
-        const content = await policyGenerator.generate(client.id, template.id, {
+        const generated = await policyGenerator.generate(client.id, template.id, {
             tailorToIndustry: true,
             customInstruction: "Make it professional and brief for testing purposes."
         });
 
         const duration = Date.now() - startTime;
         console.log(`--- Generation Complete in ${duration}ms ---`);
-        console.log(`Content Length: ${content.length}`);
+        console.log(`Content Length: ${generated.content.length}`);
+        console.log(`AI generated: ${generated.aiGenerated}`);
         console.log('Preview (first 200 chars):');
-        console.log(content.substring(0, 200));
+        console.log(generated.content.substring(0, 200));
         console.log('--- End of Test ---');
 
     } catch (error: any) {

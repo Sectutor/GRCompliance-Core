@@ -41,6 +41,15 @@ import { marked } from "marked";
 import TurndownService from "turndown";
 
 import { TailoringQuestionsEditor } from "@/components/policy/TailoringQuestionsEditor";
+import { ADVERTISED_POLICY_PLACEHOLDERS } from "@/lib/policy/placeholders";
+
+function PlaceholderHelp() {
+  return (
+    <p className="text-xs text-muted-foreground mt-1">
+      Available placeholders: {ADVERTISED_POLICY_PLACEHOLDERS.join(", ")}
+    </p>
+  );
+}
 
 const DEFAULT_SECTIONS = [
   "Purpose",
@@ -466,9 +475,7 @@ export default function PolicyTemplates() {
                       onChange={setCreateContent}
                       className="min-h-[300px]"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Available placeholders: {"{{company_name}}"}, {"{{system_scope}}"}, {"{{policy_name}}"}, {"{{effective_date}}"}, {"{{review_date}}"}
-                    </p>
+                    <PlaceholderHelp />
                   </div>
                 </div>
               </form>
@@ -512,8 +519,9 @@ export default function PolicyTemplates() {
                   <div className="space-y-1">
                     <p className="text-xs text-blue-700/80">Use placeholders to convert generic text into <strong>client-specific legal records</strong>:</p>
                     <div className="flex flex-wrap gap-1">
-                      <code className="text-[10px] bg-blue-100/50 px-1 rounded text-blue-700 font-mono">{"{{company_name}}"}</code>
-                      <code className="text-[10px] bg-blue-100/50 px-1 rounded text-blue-700 font-mono">{"{{system_scope}}"}</code>
+                      {ADVERTISED_POLICY_PLACEHOLDERS.map((token) => (
+                        <code key={token} className="text-[10px] bg-blue-100/50 px-1 rounded text-blue-700 font-mono">{token}</code>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1433,6 +1441,7 @@ function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, upd
               onChange={setContent}
               className="min-h-[400px]"
             />
+            <PlaceholderHelp />
           </div>
         </div>
       </form>

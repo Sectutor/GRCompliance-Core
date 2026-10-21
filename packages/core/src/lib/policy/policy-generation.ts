@@ -1,7 +1,16 @@
 import { getDb } from '../../db';
-import { clients, policyTemplates, Client } from '../../schema';
+import { clients, policyTemplates, riskSettings, Client } from '../../schema';
 import { eq } from 'drizzle-orm';
 import { LLMService } from '../llm/service';
+import { plainText, substitutePolicyVariables } from './placeholders';
+
+export { createdPolicyIsAiGenerated } from './placeholders';
+
+export interface PolicyGenerationResult {
+    content: string;
+    /** True only when the language model returned the draft text. */
+    aiGenerated: boolean;
+}
 
 // Language names for prompts
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -19,6 +28,13 @@ interface GenerationOptions {
     providerOverride?: string;
     language?: string; // Language code (e.g., 'en', 'de', 'fr')
     answers?: Record<string, any>;
+    /** Policy title for {{policy_name}}. Falls back to the template name. */
+    policyName?: string;
+    /**
+     * Workspace scope for {{system_scope}} when no tailoring answer is set.
+     * Pass null to skip the risk-settings lookup. Leave undefined to look it up.
+     */
+    workspaceScope?: string | null;
 }
 
 export class PolicyGenerator {
@@ -78,7 +94,7 @@ export class PolicyGenerator {
     /**
      * Generates a policy content string by substituting variables and optionally tailoring via LLM.
      */
-    async generate(clientId: number, templateId: number, options: GenerationOptions = {}): Promise<string> {
+    async generate(clientId: number, templateId: number, options: GenerationOptions = {}): Promise<PolicyGenerationResult> {
         const startTime = Date.now();
         const perfMetrics: Record<string, number> = {};
 
@@ -169,113 +185,58 @@ export class PolicyGenerator {
 
         // 3. Smart Variable Substitution
         const varSubStart = Date.now();
-        content = this.substituteVariables(content, client, answers);
+        const policyName = options.policyName || template.name;
+        const workspaceScope = options.workspaceScope !== undefined
+            ? options.workspaceScope
+            : await this.lookupWorkspaceScope(clientId);
+        content = substitutePolicyVariables(content, client, answers, {
+            policyName,
+            workspaceScope,
+        });
         perfMetrics.variableSubstitution = Date.now() - varSubStart;
 
         // 4. Industry Tailoring (LLM) with language support
-        if ((options.tailorToIndustry || options.customInstruction)) {
+        let aiGenerated = false;
+        if (options.tailorToIndustry || options.customInstruction) {
             const llmStart = Date.now();
-            console.log(`[PolicyGen] Starting LLM tailoring for policy: ${template.name}, language: ${language}`);
-            content = await this.tailorContentWithLLM(content, client, template.name, options.customInstruction, language, answers);
+            console.log(`[PolicyGen] Starting LLM tailoring for policy: ${policyName}, language: ${language}`);
+            const tailored = await this.tailorContentWithLLM(content, client, policyName, options.customInstruction, language, answers);
+            content = tailored.content;
+            aiGenerated = tailored.aiGenerated;
             perfMetrics.llmTailoring = Date.now() - llmStart;
-            console.log(`[PolicyGen] LLM tailoring finished in ${perfMetrics.llmTailoring}ms`);
+            console.log(`[PolicyGen] LLM tailoring finished in ${perfMetrics.llmTailoring}ms (aiGenerated=${aiGenerated})`);
         }
 
         perfMetrics.total = Date.now() - startTime;
         console.log('[PolicyGen] Performance metrics (ms):', perfMetrics);
 
-        return content;
+        return { content, aiGenerated };
     }
 
-    private substituteVariables(content: string, client: Client, answers: Record<string, any> = {}): string {
-        let replaced = content;
-
-        // Calculate dates
-        const today = new Date();
-        const effectiveDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        const reviewDate = new Date(today);
-        reviewDate.setFullYear(reviewDate.getFullYear() + 1);
-        const reviewDateStr = reviewDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-        const replacements: Record<string, string | null | undefined> = {
-            // Company/Client Name variations
-            '{{CLIENT_NAME}}': client.name,
-            '{{COMPANY_NAME}}': client.name,
-            '\\[COMPANY NAME\\]': client.name,
-            '\\[CLIENT NAME\\]': client.name,
-            "Company's Name": client.name,
-            "\\[Company Name\\]": client.name,
-            "\\[Organization Name\\]": client.name,
-
-            // Industry
-            '{{INDUSTRY}}': client.industry || '[Industry]',
-            '\\[INDUSTRY\\]': client.industry || '[Industry]',
-            '\\[Industry\\]': client.industry || '[Industry]',
-
-            // CISO / Approved By
-            '{{CISO_NAME}}': client.cisoName || '[CISO Name]',
-            '\\[CISO NAME\\]': client.cisoName || '[CISO Name]',
-            '\\[CISO Name\\]': client.cisoName || '[CISO Name]',
-            'Approved By: \\[CISO Name\\]': `Approved By: ${client.cisoName || '[CISO Name]'}`,
-
-            // DPO
-            '{{DPO_NAME}}': client.dpoName || '[DPO Name]',
-            '\\[DPO NAME\\]': client.dpoName || '[DPO Name]',
-            '\\[DPO Name\\]': client.dpoName || '[DPO Name]',
-
-            // Location
-            '{{HEADQUARTERS}}': client.headquarters || '[Headquarters Location]',
-            '\\[HEADQUARTERS\\]': client.headquarters || '[Headquarters Location]',
-            '\\[Headquarters\\]': client.headquarters || '[Headquarters Location]',
-            '\\[Location\\]': client.headquarters || '[Location]',
-
-            // Region
-            '{{REGION}}': client.mainServiceRegion || client.region || '[Region]',
-            '\\[REGION\\]': client.mainServiceRegion || client.region || '[Region]',
-            '\\[Region\\]': client.mainServiceRegion || client.region || '[Region]',
-
-            // Contact
-            '{{CONTACT_EMAIL}}': client.primaryContactEmail || '[Contact Email]',
-            '\\[CONTACT EMAIL\\]': client.primaryContactEmail || '[Contact Email]',
-            '\\[Contact Email\\]': client.primaryContactEmail || '[Contact Email]',
-
-            // Legal Entity
-            '{{LEGAL_ENTITY_NAME}}': client.legalEntityName || client.name,
-            '\\[Legal Entity Name\\]': client.legalEntityName || client.name,
-
-            // Dates
-            '{{EFFECTIVE_DATE}}': effectiveDate,
-            '\\[Date\\]': effectiveDate,
-            '\\[Effective Date\\]': effectiveDate,
-            'Effective Date: \\[Date\\]': `Effective Date: ${effectiveDate}`,
-
-            // Review Date (1 year from now)
-            '{{REVIEW_DATE}}': reviewDateStr,
-            '\\[Date \\+ 1 Year\\]': reviewDateStr,
-            '\\[Review Date\\]': reviewDateStr,
-            'Review Date: \\[Date \\+ 1 Year\\]': `Review Date: ${reviewDateStr}`,
-
-            // Version
-            '{{VERSION}}': '1.0',
-            '\\[Version\\]': '1.0',
-        };
-
-        // Add tailoring answers to replacements
-        for (const [key, value] of Object.entries(answers)) {
-            replacements[`{{${key}}}`] = String(value);
-            replacements[`\\[${key}\\]`] = String(value);
+    /**
+     * The workspace's stated scope, if one has been saved.
+     * Today that is the risk-management scope (`risk_settings.scope`).
+     * There is no clients.system_scope column. A lookup failure leaves the
+     * placeholder fallback in place and does not fail policy creation.
+     */
+    private async lookupWorkspaceScope(clientId: number): Promise<string | null> {
+        try {
+            const db = await getDb();
+            if (!db || typeof db.select !== "function") return null;
+            const rows = await db
+                .select({ scope: riskSettings.scope })
+                .from(riskSettings)
+                .where(eq(riskSettings.clientId, clientId))
+                .limit(1);
+            const text = plainText(rows?.[0]?.scope);
+            return text || null;
+        } catch (error) {
+            console.warn("[PolicyGen] Workspace scope lookup skipped:", error instanceof Error ? error.message : error);
+            return null;
         }
-
-        for (const [key, value] of Object.entries(replacements)) {
-            // Global replace
-            const regex = new RegExp(key, 'gi');
-            replaced = replaced.replace(regex, value || `[Missing ${key.replace(/\\/g, '')}]`);
-        }
-
-        return replaced;
     }
 
-    async generateFromSections(clientId: number, policyName: string, sections: string[], options: GenerationOptions = {}): Promise<string> {
+    async generateFromSections(clientId: number, policyName: string, sections: string[], options: GenerationOptions = {}): Promise<PolicyGenerationResult> {
         const db = await getDb();
         if (!db) throw new Error("Database connection failed");
 
@@ -291,15 +252,29 @@ export class PolicyGenerator {
         let content = sections.map(s => `## ${s}\n\n[Content to be generated]`).join("\n\n");
         content = `# ${policyName}\n\n${content}`;
 
-        // Smart Variable Substitution
-        content = this.substituteVariables(content, client, options.answers || {});
+        const workspaceScope = options.workspaceScope !== undefined
+            ? options.workspaceScope
+            : await this.lookupWorkspaceScope(clientId);
+        content = substitutePolicyVariables(content, client, options.answers || {}, {
+            policyName: options.policyName || policyName,
+            workspaceScope,
+        });
 
-        // AI Generation from Skeleton
+        let aiGenerated = false;
         if (options.tailorToIndustry || options.customInstruction) {
-            content = await this.tailorContentWithLLM(content, client, policyName, "Generate detailed content for each section based on the header.", language, options.answers || {});
+            const tailored = await this.tailorContentWithLLM(
+                content,
+                client,
+                options.policyName || policyName,
+                "Generate detailed content for each section based on the header.",
+                language,
+                options.answers || {},
+            );
+            content = tailored.content;
+            aiGenerated = tailored.aiGenerated;
         }
 
-        return content;
+        return { content, aiGenerated };
     }
 
     async suggestSections(policyName: string, industry?: string): Promise<string[]> {
@@ -407,7 +382,13 @@ export class PolicyGenerator {
             baseContent = sections.map(s => `## ${s}\n\n[Content for ${s}]`).join("\n\n");
         }
 
-        const content = this.substituteVariables(baseContent, client);
+        const workspaceScope = options.workspaceScope !== undefined
+            ? options.workspaceScope
+            : await this.lookupWorkspaceScope(clientId);
+        const content = substitutePolicyVariables(baseContent, client, options.answers || {}, {
+            policyName: options.policyName || policyName,
+            workspaceScope,
+        });
 
         const userPrompt = `
 You are an expert CISO and Compliance Officer specializing in the ${client.industry || 'general'} industry.
@@ -504,7 +485,7 @@ Directives:
         }
     }
 
-    private async tailorContentWithLLM(content: string, client: Client, policyName: string, customInstruction?: string, language: string = 'en', answers: Record<string, any> = {}): Promise<string> {
+    private async tailorContentWithLLM(content: string, client: Client, policyName: string, customInstruction?: string, language: string = 'en', answers: Record<string, any> = {}): Promise<PolicyGenerationResult> {
         const languageName = LANGUAGE_NAMES[language] || 'English';
 
         // Format answers for prompt
@@ -584,11 +565,16 @@ ${content}
                 maxTokens: 4000  // Reduced from 8000 to prevent timeouts
             }, { clientId: client.id, endpoint: 'tailor_policy_comprehensive' });
 
-            return response.text;
+            const text = typeof response?.text === "string" ? response.text : "";
+            if (!text.trim()) {
+                console.warn("[PolicyGen] LLM returned empty policy text; keeping the substituted template.");
+                return { content, aiGenerated: false };
+            }
+            return { content: response.text, aiGenerated: true };
         } catch (error) {
             console.error("LLM Comprehensive Generation failed:", error);
-            // Fallback to original content if AI fails
-            return content;
+            // Fallback to the substituted template when the model does not produce a draft.
+            return { content, aiGenerated: false };
         }
     }
 }

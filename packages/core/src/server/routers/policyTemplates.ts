@@ -209,8 +209,9 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                             try {
                                 // Generate tailored content
                                 const genStart = Date.now();
-                                const tailoredContent = await policyGenerator.generate(clientId, template.id, {
-                                    answers: input.answers
+                                const generated = await policyGenerator.generate(clientId, template.id, {
+                                    answers: input.answers,
+                                    policyName: template.name,
                                 });
                                 console.log(`[BulkDeploy] Generated policy for client ${clientId} in ${Date.now() - genStart}ms`);
 
@@ -219,7 +220,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                                     clientId,
                                     templateId: template.id,
                                     name: template.name,
-                                    content: tailoredContent,
+                                    content: generated.content,
                                     status: 'draft',
                                     version: 1,
                                     owner: ctx.user.name,
@@ -281,10 +282,11 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                         batch.map(async (template) => {
                             try {
                                 const genStart = Date.now();
-                                const tailoredContent = await policyGenerator.generate(input.clientId, template.id, {
+                                const generated = await policyGenerator.generate(input.clientId, template.id, {
                                     answers: input.answers,
                                     tailorToIndustry: input.tailor,
-                                    customInstruction: input.instruction
+                                    customInstruction: input.instruction,
+                                    policyName: template.name,
                                 });
                                 console.log(`[BulkDeploy] Generated policy for template ${template.id} in ${Date.now() - genStart}ms`);
 
@@ -292,12 +294,12 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                                     clientId: input.clientId,
                                     templateId: template.id,
                                     name: template.name,
-                                    content: tailoredContent,
+                                    content: generated.content,
                                     status: 'draft',
                                     version: 1,
                                     owner: ctx.user.name,
                                     tailoringAnswers: input.answers,
-                                    isAiGenerated: !!input.tailor
+                                    isAiGenerated: generated.aiGenerated
                                 }).returning();
 
                                 return { templateId: template.id, policyId: policy.id, success: true };
@@ -330,17 +332,17 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
 
                 let content = "";
                 if (input.templateId) {
-                    content = await policyGenerator.generate(input.clientId, input.templateId, {
+                    content = (await policyGenerator.generate(input.clientId, input.templateId, {
                         tailorToIndustry: input.tailor,
                         customInstruction: input.instruction,
                         answers: input.answers
-                    });
+                    })).content;
                 } else if (input.sections && input.sections.length > 0) {
-                    content = await policyGenerator.generateFromSections(input.clientId, "New Policy", input.sections, {
+                    content = (await policyGenerator.generateFromSections(input.clientId, "New Policy", input.sections, {
                         tailorToIndustry: input.tailor,
                         customInstruction: input.instruction,
                         answers: input.answers
-                    });
+                    })).content;
                 }
 
                 return { content };

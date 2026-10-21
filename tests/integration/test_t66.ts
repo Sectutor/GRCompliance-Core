@@ -19,7 +19,7 @@ async function run() {
          tailorToIndustry: true,
          customInstruction: "Make it extremely detailed according to SOC 2 and ISO 27001 requirements",
      });
-     console.log(`Success in ${Date.now() - start}ms! Content length:`, result.length);
+     console.log(`Success in ${Date.now() - start}ms! Content length:`, result.content.length, "aiGenerated:", result.aiGenerated);
   } catch (err) {
       console.error("Error generating template:", err);
   }
