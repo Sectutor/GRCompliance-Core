@@ -1,9 +1,10 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { getDb } from "../../db";
-import { taskAssignments, users } from "../../schema";
+import { clientControls, employees, taskAssignments, users } from "../../schema";
+import { employeeInWorkspace, raciAssignmentTarget } from "../raciAssignment";
 
 export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -21,18 +22,20 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
                 const assignments = await db.select({
                     id: taskAssignments.id,
                     userId: taskAssignments.userId,
+                    employeeId: taskAssignments.employeeId,
                     role: taskAssignments.raciRole,
-                    firstName: users.name, // We'll parse name or just return name
-                    lastName: sql<string>`''`, // users table only has 'name', so we'll mock lastName or split it
-                    email: users.email
+                    userName: users.name,
+                    userEmail: users.email,
+                    employeeFirst: employees.firstName,
+                    employeeLast: employees.lastName,
+                    employeeEmail: employees.email,
                 })
                     .from(taskAssignments)
-                    .innerJoin(users, eq(taskAssignments.userId, users.id))
+                    .leftJoin(users, eq(taskAssignments.userId, users.id))
+                    .leftJoin(employees, eq(taskAssignments.employeeId, employees.id))
                     .where(and(
                         eq(taskAssignments.taskType, input.taskType),
                         eq(taskAssignments.taskId, input.taskId),
-                        // Optional: filter by clientId if tasks are global but assignments are client specific?
-                        // taskAssignments has clientId, so yes.
                         clientId ? eq(taskAssignments.clientId, clientId) : undefined
                     ));
 
@@ -45,18 +48,26 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
                 };
 
                 for (const assign of assignments) {
-                    // Split name for frontend compatibility if needed, or just use name
-                    const names = (assign.firstName || "").split(' ');
-                    const firstName = names[0] || "";
-                    const lastName = names.length > 1 ? names.slice(1).join(' ') : "";
-
-                    const userObj = {
-                        id: assign.userId,
-                        firstName: firstName,
-                        lastName: lastName,
-                        email: assign.email,
-                        assignmentId: assign.id
-                    };
+                    const userObj = assign.employeeId != null
+                        ? {
+                            id: assign.employeeId,
+                            kind: "employee" as const,
+                            firstName: assign.employeeFirst || "",
+                            lastName: assign.employeeLast || "",
+                            email: assign.employeeEmail,
+                            assignmentId: assign.id,
+                        }
+                        : (() => {
+                            const names = (assign.userName || "").split(" ");
+                            return {
+                                id: assign.userId,
+                                kind: "user" as const,
+                                firstName: names[0] || "",
+                                lastName: names.length > 1 ? names.slice(1).join(" ") : "",
+                                email: assign.userEmail,
+                                assignmentId: assign.id,
+                            };
+                        })();
 
                     if (assign.role === 'responsible') result.responsible.push(userObj);
                     else if (assign.role === 'accountable') result.accountable.push(userObj);
@@ -73,24 +84,45 @@ export const createTaskAssignmentsRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
                 taskType: z.string(),
                 taskId: z.number(),
-                userId: z.number(), // Changed from employeeId to userId
+                userId: z.number().optional(),
+                employeeId: z.number().optional(),
                 raciRole: z.enum(['responsible', 'accountable', 'consulted', 'informed']),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
+                const target = raciAssignmentTarget(input);
 
-                // Upsert? Or just insert (unique index handles duplicates)
-                // If unique index exists, we can ignore conflict or do nothing
+                if (input.taskType === "control") {
+                    const [control] = await db.select({ clientId: clientControls.clientId })
+                        .from(clientControls)
+                        .where(eq(clientControls.id, input.taskId))
+                        .limit(1);
+                    if (!control || control.clientId !== input.clientId) {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "Control is not in this workspace" });
+                    }
+                }
+
+                if (target.employeeId != null) {
+                    const [employee] = await db.select({ clientId: employees.clientId })
+                        .from(employees)
+                        .where(eq(employees.id, target.employeeId))
+                        .limit(1);
+                    if (!employeeInWorkspace(employee, input.clientId)) {
+                        throw new TRPCError({ code: "BAD_REQUEST", message: "That person is not in this workspace" });
+                    }
+                }
+
                 await db.insert(taskAssignments)
                     .values({
                         clientId: input.clientId,
                         taskType: input.taskType,
                         taskId: input.taskId,
-                        userId: input.userId,
+                        userId: target.userId,
+                        employeeId: target.employeeId,
                         raciRole: input.raciRole,
                         assignedBy: ctx.user?.id
                     })
-                    .onConflictDoNothing(); // Prevent duplicate errors
+                    .onConflictDoNothing();
 
                 return { success: true };
             }),

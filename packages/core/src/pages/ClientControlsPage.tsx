@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, Shield, Plus, Trash2, Edit, Download, ClipboardList, LayoutGrid, List, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@complianceos/ui/ui/tooltip";
 import ControlDetailsDialog from "@/components/ControlDetailsDialog";
+import { ControlOwnerSelect } from "@/components/controls/ControlOwnerSelect";
 import { EvidenceSuggestionsPopover } from "@/components/controls/EvidenceSuggestionsPopover";
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
@@ -49,6 +50,8 @@ export default function ClientControlsPage() {
         { enabled: clientId > 0 }
     );
     const { data: rawMasterControls } = trpc.controls.list.useQuery();
+    const { data: employees } = trpc.employees.list.useQuery({ clientId }, { enabled: clientId > 0 });
+    const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId }, { enabled: clientId > 0 });
 
     if (controlsError) {
         console.error("Error loading client controls:", controlsError);
@@ -109,6 +112,14 @@ export default function ClientControlsPage() {
             toast.success("Control removed");
             refetchControls();
             setDeleteControlId(null);
+        },
+        onError: (error) => toast.error(error.message),
+    });
+
+    const setOwnerMutation = trpc.clientControls.setOwner.useMutation({
+        onSuccess: () => {
+            toast.success("Owner updated");
+            refetchControls();
         },
         onError: (error) => toast.error(error.message),
     });
@@ -572,6 +583,7 @@ export default function ClientControlsPage() {
                                         <TableHead className="w-[180px] py-4">Applicability</TableHead>
                                         <TableHead className="w-[120px] py-4">Monitoring</TableHead>
                                         <TableHead className="py-4">Justification</TableHead>
+                                        <TableHead className="w-[180px] py-4">Owner</TableHead>
                                         <TableHead className="w-[120px] py-4 text-center">Status</TableHead>
                                         <TableHead className="w-[50px] py-4"></TableHead>
                                     </TableRow>
@@ -649,6 +661,16 @@ export default function ClientControlsPage() {
                                                             });
                                                         }
                                                     }}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                                                <ControlOwnerSelect
+                                                    value={item.clientControl.owner}
+                                                    employees={employees}
+                                                    users={workspaceMembers}
+                                                    className="h-8 w-[160px] text-xs"
+                                                    disabled={setOwnerMutation.isPending}
+                                                    onChange={(owner) => setOwnerMutation.mutate({ id: item.clientControl.id, owner })}
                                                 />
                                             </TableCell>
                                             <TableCell className="py-4 text-center">

@@ -1,6 +1,8 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { protectedProcedure } from "../trpc";
+import { setControlOwner } from "../controlOwner";
 import { clientControls, controlMappings, controls, regulationMappings, notificationLog, controlBaselines } from "../../schema";
 import { logActivity } from "../../lib/audit";
 import * as db from "../../db";
@@ -465,6 +467,37 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         }
 
         return { success: true, appliedCount, totalControls: validControls.length };
+      }),
+
+    // protectedProcedure, not clientProcedure: clientProcedure treats input.id as a workspace id.
+    setOwner: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        owner: z.string().max(255).nullable(),
+      }))
+      .mutation(async ({ input, ctx }: any) => {
+        if (!ctx.user?.id) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
+        }
+        const dbConn = await db.getDb();
+        return setControlOwner({
+          controlId: input.id,
+          owner: input.owner,
+          userId: ctx.user.id,
+          loadControl: async (id) => {
+            const [row] = await dbConn.select({
+              id: clientControls.id,
+              clientId: clientControls.clientId,
+            }).from(clientControls).where(eq(clientControls.id, id)).limit(1);
+            return row ?? null;
+          },
+          canEdit: (userId, clientId) => db.isUserAllowedForClient(userId, clientId, "editor"),
+          save: async (id, owner) => {
+            await dbConn.update(clientControls)
+              .set({ owner, updatedAt: new Date() })
+              .where(eq(clientControls.id, id));
+          },
+        });
       }),
 
   });

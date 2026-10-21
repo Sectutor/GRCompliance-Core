@@ -9627,7 +9627,8 @@ CREATE TABLE public.task_assignments (
     client_id integer NOT NULL,
     task_type character varying(50) NOT NULL,
     task_id integer NOT NULL,
-    user_id integer NOT NULL,
+    user_id integer,
+    employee_id integer,
     raci_role public.raci_role NOT NULL,
     assigned_at timestamp without time zone DEFAULT now(),
     assigned_by integer
@@ -16856,6 +16857,20 @@ CREATE INDEX idx_ta_task ON public.task_assignments USING btree (task_type, task
 --
 
 CREATE UNIQUE INDEX idx_ta_unique ON public.task_assignments USING btree (task_type, task_id, user_id, raci_role);
+
+
+--
+-- Name: idx_ta_employee_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_ta_employee_unique ON public.task_assignments USING btree (task_type, task_id, employee_id, raci_role);
+
+
+--
+-- Name: idx_ta_employee; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ta_employee ON public.task_assignments USING btree (employee_id);
 
 
 --

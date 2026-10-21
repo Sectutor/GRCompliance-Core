@@ -13817,7 +13817,9 @@ export const taskAssignments = pgTable("task_assignments", {
 
   // Assignment
 
-  userId: integer("user_id").notNull(), // Link to users table
+  userId: integer("user_id"), // Platform user. Null when the assignee is an employee.
+
+  employeeId: integer("employee_id"), // People & Org employee. Null for platform-user assignments.
 
   raciRole: raciRoleEnum("raci_role").notNull(), // responsible, accountable, consulted, informed
 
@@ -13839,7 +13841,11 @@ export const taskAssignments = pgTable("task_assignments", {
 
     userIdx: index("idx_ta_user").on(table.userId),
 
+    employeeIdx: index("idx_ta_employee").on(table.employeeId),
+
     uniqueAssignment: uniqueIndex("idx_ta_unique").on(table.taskType, table.taskId, table.userId, table.raciRole),
+
+    uniqueEmployeeAssignment: uniqueIndex("idx_ta_employee_unique").on(table.taskType, table.taskId, table.employeeId, table.raciRole),
 
   };
 

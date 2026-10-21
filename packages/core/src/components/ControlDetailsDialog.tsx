@@ -15,7 +15,8 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { ControlOwnerSelect } from "@/components/controls/ControlOwnerSelect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 
 import { trpc } from "@/lib/trpc";
@@ -72,13 +73,15 @@ export default function ControlDetailsDialog({
   }, [clientControl]);
 
   const [evidenceLocation, setEvidenceLocation] = useState(clientControl.evidenceLocation || "");
+  const [owner, setOwner] = useState(clientControl.owner || "");
   const [deleteEvidenceId, setDeleteEvidenceId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<'responsible' | 'accountable' | 'consulted' | 'informed' | null>(null);
 
   const utils = trpc.useUtils();
 
-  // Get workspace members
+  // Get workspace members and People & Org employees
   const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId });
+  const { data: employees } = trpc.employees.list.useQuery({ clientId }, { enabled: clientId > 0 });
 
   // Get evidence for this control
   const { data: allEvidence, refetch: refetchEvidence } = trpc.evidence.list.useQuery({
@@ -91,6 +94,14 @@ export default function ControlDetailsDialog({
   const { data: raciSummary, refetch: refetchRaci } = trpc.taskAssignments.summary.useQuery({
     taskType: 'control',
     taskId: clientControl.id,
+  });
+
+  const setOwnerMutation = trpc.clientControls.setOwner.useMutation({
+    onSuccess: () => {
+      toast.success("Owner updated");
+      onUpdate();
+    },
+    onError: (error) => toast.error(error.message),
   });
 
   const assignMutation = trpc.taskAssignments.assignUser.useMutation({
@@ -197,7 +208,46 @@ export default function ControlDetailsDialog({
     );
     setStatus(clientControl.status);
     setEvidenceLocation(clientControl.evidenceLocation || "");
+    setOwner(clientControl.owner || "");
   }, [clientControl]);
+
+  const assignRaci = (value: string, raciRole: "responsible" | "accountable" | "consulted" | "informed") => {
+    const [kind, idStr] = value.split(":");
+    const id = Number.parseInt(idStr, 10);
+    if (!Number.isFinite(id)) return;
+    assignMutation.mutate({
+      clientId,
+      taskType: "control",
+      taskId: clientControl.id,
+      raciRole,
+      ...(kind === "employee" ? { employeeId: id } : { userId: id }),
+    });
+  };
+
+  const raciChoices = (role: "responsible" | "accountable" | "consulted" | "informed") => {
+    const assigned = raciSummary?.[role] || [];
+    const taken = (kind: string, id: number) => assigned.some((person) => (person.kind || "user") === kind && person.id === id);
+    return (
+      <>
+        <SelectGroup>
+          <SelectLabel>People</SelectLabel>
+          {employees?.filter((person) => !taken("employee", person.id)).map((person) => (
+            <SelectItem key={`employee-${person.id}`} value={`employee:${person.id}`}>
+              {person.firstName} {person.lastName} · Person
+            </SelectItem>
+          ))}
+        </SelectGroup>
+        <SelectGroup>
+          <SelectLabel>Users</SelectLabel>
+          {workspaceMembers?.filter((user) => !taken("user", user.id)).map((user) => (
+            <SelectItem key={`user-${user.id}`} value={`user:${user.id}`}>
+              {user.name} · User
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </>
+    );
+  };
 
   const handleSave = () => {
     let finalNotes = implementationNotes.trim();
@@ -316,6 +366,21 @@ export default function ControlDetailsDialog({
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>Owner</Label>
+              <ControlOwnerSelect
+                value={owner}
+                employees={employees}
+                users={workspaceMembers}
+                disabled={setOwnerMutation.isPending}
+                onChange={(next) => {
+                  setOwner(next || "");
+                  setOwnerMutation.mutate({ id: clientControl.id, owner: next });
+                }}
+              />
+              <p className="text-xs text-muted-foreground">Shown on Evidence Collection. People are workspace employees; Users are platform accounts.</p>
+            </div>
+
             {/* RACI Assignments Section */}
             <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
               <div className="flex items-center justify-between">
@@ -330,30 +395,18 @@ export default function ControlDetailsDialog({
                   </div>
                   <Select
                     value=""
-                    onValueChange={(empId) => {
-                      assignMutation.mutate({
-                        clientId,
-                        userId: parseInt(empId),
-                        taskType: 'control',
-                        taskId: clientControl.id,
-                        raciRole: 'responsible',
-                      });
-                    }}
+                    onValueChange={(value) => assignRaci(value, "responsible")}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.responsible.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
+                      {raciChoices("responsible")}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
                     {raciSummary?.responsible.map((emp) => (
-                      <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
+                      <span key={emp.assignmentId || `${emp.kind}-${emp.id}`} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
                           if (emp.assignmentId) {
@@ -373,30 +426,18 @@ export default function ControlDetailsDialog({
                   </div>
                   <Select
                     value=""
-                    onValueChange={(empId) => {
-                      assignMutation.mutate({
-                        clientId,
-                        userId: parseInt(empId),
-                        taskType: 'control',
-                        taskId: clientControl.id,
-                        raciRole: 'accountable',
-                      });
-                    }}
+                    onValueChange={(value) => assignRaci(value, "accountable")}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.accountable.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
+                      {raciChoices("accountable")}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
                     {raciSummary?.accountable.map((emp) => (
-                      <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                      <span key={emp.assignmentId || `${emp.kind}-${emp.id}`} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
                           if (emp.assignmentId) removeAssignmentMutation.mutate({ assignmentId: emp.assignmentId });
@@ -414,30 +455,18 @@ export default function ControlDetailsDialog({
                   </div>
                   <Select
                     value=""
-                    onValueChange={(empId) => {
-                      assignMutation.mutate({
-                        clientId,
-                        userId: parseInt(empId),
-                        taskType: 'control',
-                        taskId: clientControl.id,
-                        raciRole: 'consulted',
-                      });
-                    }}
+                    onValueChange={(value) => assignRaci(value, "consulted")}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.consulted.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
+                      {raciChoices("consulted")}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
                     {raciSummary?.consulted.map((emp) => (
-                      <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                      <span key={emp.assignmentId || `${emp.kind}-${emp.id}`} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
                           if (emp.assignmentId) removeAssignmentMutation.mutate({ assignmentId: emp.assignmentId });
@@ -455,30 +484,18 @@ export default function ControlDetailsDialog({
                   </div>
                   <Select
                     value=""
-                    onValueChange={(empId) => {
-                      assignMutation.mutate({
-                        clientId,
-                        userId: parseInt(empId),
-                        taskType: 'control',
-                        taskId: clientControl.id,
-                        raciRole: 'informed',
-                      });
-                    }}
+                    onValueChange={(value) => assignRaci(value, "informed")}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Add employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {workspaceMembers?.filter(user => !raciSummary?.informed.some(r => r.id === user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
+                      {raciChoices("informed")}
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-1">
                     {raciSummary?.informed.map((emp) => (
-                      <span key={emp.id} className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                      <span key={emp.assignmentId || `${emp.kind}-${emp.id}`} className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
                         {emp.firstName} {emp.lastName}
                         <button type="button" onClick={() => {
                           if (emp.assignmentId) removeAssignmentMutation.mutate({ assignmentId: emp.assignmentId });

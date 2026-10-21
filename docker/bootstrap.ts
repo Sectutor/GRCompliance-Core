@@ -32,6 +32,19 @@ async function applySchema(databaseUrl: string) {
     }
 }
 
+async function ensureTaskAssignmentEmployees() {
+    const db = await getDb();
+    // Drizzle migrations do not run at boot. Fresh installs get the column from
+    // schema.sql; databases created before it need this idempotent alter.
+    await db.execute(sql`ALTER TABLE task_assignments ADD COLUMN IF NOT EXISTS employee_id integer`);
+    await db.execute(sql`ALTER TABLE task_assignments ALTER COLUMN user_id DROP NOT NULL`);
+    await db.execute(sql`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_ta_employee_unique
+        ON task_assignments (task_type, task_id, employee_id, raci_role)
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ta_employee ON task_assignments (employee_id)`);
+}
+
 async function ensureLocalCredentialsTable() {
     const db = await getDb();
     await db.execute(sql`
@@ -98,6 +111,7 @@ async function main() {
         throw new Error('DATABASE_URL is required');
     }
     await applySchema(databaseUrl);
+    await ensureTaskAssignmentEmployees();
     await ensureDefaultDataSeeded();
     await ensureLocalCredentialsTable();
     if (process.env.AUTH_MODE === 'local') {
