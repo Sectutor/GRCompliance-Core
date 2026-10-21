@@ -45,3 +45,5 @@ npx tsx scripts/truth-file/validate.ts truth-files/latore-ltd.yaml --client-name
 Framework names are normalised (`ISO 27001` and `ISO27001:2022` are the same id). A control id, roadmap title, business-process name, or risk label that is in the workspace but not approved in the truth file is reported. Risk labels are compared with the bands declared in the truth file (1–3 Low, 4–7 Medium, 8–14 High, 15–19 Very High, 20–25 Critical), not with whatever text the seed stored.
 
 `npm test -w @complianceos/core -- src/lib/truthFile/validate.test.ts` covers the Latore file and these rules.
+
+The monthly readiness PDF quotes a valid truth file when one is configured for the workspace, or when `truth-files/<workspace-name>.yaml` exists. A file that fails validation is not quoted. The report lists workspace differences in an annex and does not email the PDF. See the root README for the scheduler, which is off unless `ENABLE_MONTHLY_READINESS_SCHEDULER=true` and the workspace opts in.

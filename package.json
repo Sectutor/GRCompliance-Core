@@ -34,6 +34,7 @@
     "seed:risk": "tsx scripts/seed/seedRiskData.ts",
     "test": "vitest run",
     "truth:validate": "tsx scripts/truth-file/validate.ts --all",
+    "readiness:latore": "tsx scripts/readiness/render-latore-report.ts",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "infrastructure:init": "tsx scripts/infrastructure/init.ts",

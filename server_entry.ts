@@ -49,6 +49,7 @@ import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroa
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
 import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
 import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
+import * as monthlyReadinessScheduler from './packages/core/src/server/services/monthlyReadinessScheduler';
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
@@ -315,6 +316,12 @@ if (process.env.ENABLE_LICENSE_RENEWAL_SCHEDULER === 'true') {
 if (process.env.ENABLE_POLICY_REVIEW_SCHEDULER !== 'false') {
     policyReviewScheduler.start();
     console.log('[Server] Policy review scheduler started');
+}
+
+// Monthly readiness drafts. Off unless explicitly enabled, and still opt-in per workspace.
+if (process.env.ENABLE_MONTHLY_READINESS_SCHEDULER === 'true') {
+    monthlyReadinessScheduler.start();
+    console.log('[Server] Monthly readiness scheduler started');
 }
 
 // Global error handler to ensure all errors return JSON - MUST BE LAST

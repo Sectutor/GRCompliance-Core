@@ -161,6 +161,27 @@ npm run truth:validate
 
 The command checks files under `truth-files/`. It does not connect to a database. To compare a file with a workspace's frameworks, scope, gap control ids, roadmap title, business processes, and risk labels, pass `--client-name` or `--client-id` as documented in that README. The comparison only reads.
 
+## Monthly readiness report
+
+Each workspace can store a monthly readiness PDF. The layout covers the reporting period, what is on record this month, what changed, overdue items, the next three actions, risks, incident readiness, and a sign-off box for Emmanuel. Figures come from the workspace. When `truth-files/<workspace-name>.yaml` exists, or a path inside `truth-files/` is saved on the workspace, approved wording is taken from that file. Differences between the file and the workspace are listed in the annex. They are not treated as approved facts.
+
+The PDF is produced with PDFKit, which is already installed in the server image and uses the standard Helvetica fonts. The image has no Chromium, so a browser renderer is not used. The file is stored in Postgres (`monthly_readiness_reports.pdf`) and shown for download on the workspace Reports page, Monthly readiness tab. It is not emailed.
+
+The schedule is off unless both of these are true:
+
+- `ENABLE_MONTHLY_READINESS_SCHEDULER=true` on the server (`docker-compose.yml` sets it to `false`)
+- the workspace opts in (the settings row defaults to off; the day of the month is 1–28)
+
+A manual "Generate draft now" stores a draft even when the schedule is off. It still does not send email. A scheduled run does not replace a draft that already exists for that period.
+
+`docker/schema.sql` creates the two tables on a fresh database. `docker/bootstrap.ts` runs the same `CREATE TABLE IF NOT EXISTS` statements on every boot, because the SQL dump is applied only when `public.users` is missing. Startup does not drop or delete rows.
+
+```bash
+npm run readiness:latore
+```
+
+That writes `tmp/MRR-demo-2026-10.pdf` from the Latore demo seed rows and `truth-files/latore-ltd.yaml`. It does not need a database.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
