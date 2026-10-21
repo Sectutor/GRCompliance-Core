@@ -1,0 +1,416 @@
+# Latore LTD demo truth file.
+# Values come from the demo seed (packages/core/src/db.ts) or the CaaS truth-file template.
+# Company number, VAT, and registered address are not in the seed.
+# Risk rows record likelihood and impact only. Band labels are the template scale in risk_register.bands.
+
+truth_file_version: "1.0.0"
+client_id: "LATORE-DEMO"
+client_legal_name: "Latore LTD"
+workspace_id: "to be added"
+owner_signer: "Emmanuel"
+last_reviewed: "2026-10-21"
+last_reviewed_by: "Emmanuel"
+nis2_class: "pending"
+nis2_sector: "pending"
+frameworks:
+  - "ISO27001:2022"
+  - "NIS2"
+  - "SOC2"
+reporting_day_of_month: 1
+engagement_status: "active"
+monthly_fee: "PRICE TBD (owner)"
+
+identity:
+  legal_name: "Latore LTD"
+  trading_names: "to be added"
+  company_id: "to be added"
+  registered_address: "to be added"
+  country: "to be added"
+  industry: "Professional services"
+  headcount: "15"
+  turnover_eur: "to be added"
+  balance_sheet_eur: "to be added"
+  size_class: "to_be_added"
+  primary_contact: "to be added"
+  management_body: "to be added"
+  languages: "to be added"
+  source: "Demo seed createClient name Latore LTD and industry Professional services. seedPeopleModule inserts 15 employees. Company id, VAT, address, country, turnover, and size class are not in the seed."
+
+nis2:
+  classification: "pending"
+  sector: "pending"
+  sub_sector: "to be added"
+  annex: "pending"
+  legal_basis: "to be added"
+  rationale: "The demo seed records the industry as Professional services and does not record a NIS2 sector, annex, size test, or class. Classification stays pending until Emmanuel signs a decision."
+  competent_authority: "to be added"
+  registration_status: "to be added"
+  supervision_type: "to be added"
+  decided_by: "to be added"
+  decided_on: "to be added"
+  next_recheck: "to be added"
+
+framework_obligations:
+  - id: "ISO27001:2022"
+    applies: true
+    basis: "Demo seed bulkAssignControls assigns the framework named ISO 27001."
+    target: "to be added"
+    target_date: "to be added"
+  - id: "NIS2"
+    applies: true
+    basis: "Demo seed bulkAssignControls assigns the framework named NIS2."
+    target: "to be added"
+    target_date: "to be added"
+  - id: "SOC2"
+    applies: true
+    basis: "Demo seed bulkAssignControls assigns the framework named SOC 2."
+    target: "to be added"
+    target_date: "to be added"
+  - id: "GDPR"
+    applies: false
+    basis: "Not assigned as a control framework in the demo seed."
+    target: "to be added"
+    target_date: "to be added"
+  - id: "DORA"
+    applies: false
+    basis: "Not assigned in the demo seed."
+    target: "to be added"
+    target_date: "to be added"
+  - id: "CRA"
+    applies: false
+    basis: "Not assigned in the demo seed."
+    target: "to be added"
+    target_date: "to be added"
+
+scope:
+  statement: "Latore LTD demo workspace. Industry recorded in the seed: Professional services. In-scope examples from the seed: asset Core Cloud Infrastructure (cloud service, C/I/A 5/5/5); cloud assets prod-db-master (EC2) and bucket-customer-data (S3); supplier CloudBase Solutions. Locations and exclusions are to be added."
+  locations: "to be added"
+  exclusions: "to be added"
+  in_scope_frameworks:
+    - "ISO27001:2022"
+    - "NIS2"
+    - "SOC2"
+  soa: "to be added"
+
+entities:
+  - id: "ENT-LATORE"
+    legal_name: "Latore LTD"
+    role: "primary"
+    company_id: "to be added"
+    address: "to be added"
+
+assets:
+  - id: "A-001"
+    name: "Core Cloud Infrastructure"
+    type: "Cloud Service"
+    owner: "to be added"
+    cia: "5/5/5"
+    in_scope: true
+    location: "GRCompliance workspace asset register"
+    entity_id: "ENT-LATORE"
+  - id: "A-002"
+    name: "prod-db-master"
+    type: "ec2"
+    owner: "to be added"
+    cia: "to be added"
+    in_scope: true
+    location: "GRCompliance workspace cloud assets, connection Production-AWS"
+    entity_id: "ENT-LATORE"
+  - id: "A-003"
+    name: "bucket-customer-data"
+    type: "s3"
+    owner: "to be added"
+    cia: "to be added"
+    in_scope: true
+    location: "GRCompliance workspace cloud assets, connection Production-AWS"
+    entity_id: "ENT-LATORE"
+
+suppliers:
+  - name: "CloudBase Solutions"
+    service: "Primary hosting and managed services provider"
+    criticality: "High"
+    last_assessment: "Annual Security Review, status Completed, score 88. The seed sets completedDate to the seed run, so no fixed calendar date is recorded here."
+    contract_end: "to be added"
+    entity_id: "ENT-LATORE"
+    contact_name: "John Doe"
+    contact_role: "Account Manager"
+    contact_email: "j.doe@cloudbase.example"
+
+control_owners:
+  - domain: "Governance and policies"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+  - domain: "Asset and access management"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+  - domain: "Supplier security"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+  - domain: "Incident management"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+  - domain: "Business continuity and backup"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+  - domain: "People and training"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+  - domain: "Technology and vulnerability management"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+  - domain: "Effectiveness and internal audit"
+    owner: "to be added"
+    deputy: "to be added"
+    cadence: "to be added"
+
+evidence: []
+evidence_note: "The demo seed creates evidence LTD-EV-001 through LTD-EV-008, owner Alex Morgan. Collected dates and refresh dates are not stored on those rows, so no evidence row is entered until those dates exist."
+evidence_freshness_days: 90
+
+risk_register:
+  system_of_record: "GRCompliance workspace risk register"
+  methodology: "L (1-5) x I (1-5)"
+  bands:
+    - { min: 1, max: 3, label: "Low" }
+    - { min: 4, max: 7, label: "Medium" }
+    - { min: 8, max: 14, label: "High" }
+    - { min: 15, max: 19, label: "Very High" }
+    - { min: 20, max: 25, label: "Critical" }
+  appetite: "to be added"
+  last_full_review: "to be added"
+  risks:
+    - id: "RA-2026-001"
+      title: "Unauthorized access to the client file store"
+      inherent_likelihood: 4
+      inherent_impact: 5
+      residual_likelihood: 2
+      residual_impact: 3
+      owner: "Priya Shah"
+      treatment: "Mitigate"
+      status: "approved"
+    - id: "RA-2026-002"
+      title: "Ransomware on the document system"
+      inherent_likelihood: 3
+      inherent_impact: 5
+      residual_likelihood: 2
+      residual_impact: 4
+      owner: "Jordan Hale"
+      treatment: "Mitigate"
+      status: "reviewed"
+    - id: "RA-2026-003"
+      title: "Late NIS2 incident notification"
+      inherent_likelihood: 2
+      inherent_impact: 4
+      residual_likelihood: 1
+      residual_impact: 3
+      owner: "Alex Morgan"
+      treatment: "Mitigate"
+      status: "approved"
+    - id: "RA-2026-004"
+      title: "Hosted email provider outage"
+      inherent_likelihood: 3
+      inherent_impact: 4
+      residual_likelihood: 2
+      residual_impact: 3
+      owner: "Sam Okonkwo"
+      treatment: "Transfer"
+      status: "reviewed"
+    - id: "RA-2026-005"
+      title: "Lost laptop with customer proposals"
+      inherent_likelihood: 3
+      inherent_impact: 3
+      residual_likelihood: 2
+      residual_impact: 2
+      owner: "Riley Chen"
+      treatment: "Mitigate"
+      status: "approved"
+    - id: "RA-2026-006"
+      title: "Unpatched public website"
+      inherent_likelihood: 4
+      inherent_impact: 4
+      residual_likelihood: 2
+      residual_impact: 2
+      owner: "Jordan Hale"
+      treatment: "Mitigate"
+      status: "reviewed"
+    - id: "RA-2026-007"
+      title: "Excessive contractor access"
+      inherent_likelihood: 3
+      inherent_impact: 4
+      residual_likelihood: 2
+      residual_impact: 3
+      owner: "Priya Shah"
+      treatment: "Mitigate"
+      status: "approved"
+    - id: "RA-2026-008"
+      title: "Untested backup restore"
+      inherent_likelihood: 2
+      inherent_impact: 5
+      residual_likelihood: 2
+      residual_impact: 4
+      owner: "Sam Okonkwo"
+      treatment: "Mitigate"
+      status: "draft"
+    - id: "RA-2026-009"
+      title: "Phishing of the finance team"
+      inherent_likelihood: 4
+      inherent_impact: 3
+      residual_likelihood: 2
+      residual_impact: 2
+      owner: "Riley Chen"
+      treatment: "Mitigate"
+      status: "reviewed"
+    - id: "RA-2026-010"
+      title: "Incomplete processing record"
+      inherent_likelihood: 2
+      inherent_impact: 3
+      residual_likelihood: 1
+      residual_impact: 2
+      owner: "Alex Morgan"
+      treatment: "Accept"
+      status: "draft"
+
+roadmap:
+  title: "to be added"
+  items:
+    - title: "Implement MFA for all users"
+      status: "done"
+    - title: "Conduct full internal audit"
+      status: "pending"
+    - title: "Final certification audit"
+      status: "pending"
+
+business_continuity:
+  plan_title: "Global Business Continuity Plan"
+  plan_version: "1.0"
+  plan_status: "draft"
+  processes: []
+  process_note: "to be added"
+
+incident_contacts:
+  - role: "Incident lead"
+    name: "to be added"
+    contact: "to be added"
+    always_on: "to be added"
+    deputy: "to be added"
+  - role: "Management-body contact"
+    name: "to be added"
+    contact: "to be added"
+    always_on: "to be added"
+    deputy: "to be added"
+  - role: "DPO (GDPR)"
+    name: "to be added"
+    contact: "to be added"
+    always_on: "to be added"
+    deputy: "to be added"
+  - role: "GRCompliance CaaS contact"
+    name: "Emmanuel"
+    contact: "to be added"
+    always_on: "to be added"
+    deputy: "to be added"
+
+channels: []
+
+findings:
+  - id: "F-001"
+    source: "gap assessment"
+    control: "A.5.1"
+    severity: "medium"
+    owner: "to be added"
+    due: "to be added"
+    status: "open"
+    summary: "Policy exists but hasn't been reviewed in 2 years. Demo seed gap note for control A.5.1."
+  - id: "F-002"
+    source: "gap assessment"
+    control: "A.5.15"
+    severity: "high"
+    owner: "to be added"
+    due: "to be added"
+    status: "open"
+    summary: "Access control policy is missing. Recorded here as ISO/IEC 27001:2022 A.5.15 Access control."
+
+decisions:
+  - date: "2026-10-21"
+    decision: "NIS2 class remains pending."
+    made_by: "Emmanuel"
+    rationale: "The demo seed does not record a NIS2 class, sector, or size test."
+    evidence: "Demo seed sets industry to Professional services and does not set a NIS2 class."
+
+approved_facts:
+  - wording: "The demo workspace legal name is Latore LTD."
+    approved_by: "Emmanuel"
+    date: "2026-10-21"
+    allowed_where: "report"
+  - wording: "The industry recorded in the workspace is Professional services."
+    approved_by: "Emmanuel"
+    date: "2026-10-21"
+    allowed_where: "report"
+  - wording: "The demo seed assigns ISO 27001, SOC 2, and NIS2 controls."
+    approved_by: "Emmanuel"
+    date: "2026-10-21"
+    allowed_where: "report"
+  - wording: "Core Cloud Infrastructure is recorded as a cloud service with confidentiality, integrity, and availability ratings of 5, 5, and 5."
+    approved_by: "Emmanuel"
+    date: "2026-10-21"
+    allowed_where: "report"
+  - wording: "CloudBase Solutions is recorded as a hosting and managed-services supplier with criticality High."
+    approved_by: "Emmanuel"
+    date: "2026-10-21"
+    allowed_where: "report"
+  - wording: "The CaaS monthly fee is PRICE TBD (owner)."
+    approved_by: "Emmanuel"
+    date: "2026-10-21"
+    allowed_where: "report"
+
+engagement:
+  offer: "to be added"
+  monthly_fee: "PRICE TBD (owner)"
+  contract_start: "to be added"
+  minimum_term: "to be added"
+  notice: "to be added"
+  payment_terms: "50% upfront, 50% on client approval of the stamped PDFs"
+  software_licence: "Paid before delivery. Licence type, invoice number, and paid-on date are to be added."
+  invoices: "to be added"
+  deliverables_awaiting_approval: "to be added"
+  billing_contact: "to be added"
+
+regulatory_watch:
+  - item: "BG minimum-measures ordinances (ЗКС Art. 3(2)/(3)), due 17 Oct 2026"
+    why: "Defines the minimum measures to map"
+    status: "to be added"
+    last_checked: "to be added"
+    next_check: "to be added"
+  - item: "BG entity identification by competent authorities (~Jan 2027)"
+    why: "Confirms the class"
+    status: "to be added"
+    last_checked: "to be added"
+    next_check: "to be added"
+  - item: "BG national cybersecurity strategy (due 17 Nov 2026)"
+    why: "Context"
+    status: "to be added"
+    last_checked: "to be added"
+    next_check: "to be added"
+  - item: "EU Digital Omnibus (incident reporting / GDPR changes)"
+    why: "May change notification deadlines"
+    status: "to be added"
+    last_checked: "to be added"
+    next_check: "to be added"
+
+change_history:
+  - version: "1.0.0"
+    date: "2026-10-21"
+    changed_by: "demo truth file"
+    sections: "all"
+    summary: "Initial truth file for the Latore LTD demo workspace. Values are limited to the demo seed and the truth-file template."
+    approved_by: "Emmanuel"
+
+shared_facts:
+  approved_prices:
+    - "PRICE TBD (owner)"

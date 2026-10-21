@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { ReportsDashboard } from "@/components/reports/ReportsDashboard";
 import { ExecutiveDashboard } from "@/components/reports/ExecutiveDashboard";
+import { MonthlyReadinessPanel } from "@/components/reports/MonthlyReadinessPanel";
 import { PremiumSlot } from "@/components/PremiumSlot";
 import { useClientContext } from "@/contexts/ClientContext";
 import { useParams } from 'wouter';
@@ -82,6 +83,13 @@ export default function Reports() {
               <History className="w-4 h-4 mr-2" />
               Report Workshop
             </TabsTrigger>
+            <TabsTrigger
+              value="monthly"
+              className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-8 py-2.5 rounded-lg flex items-center h-full"
+            >
+              <FileBarChart className="w-4 h-4 mr-2" />
+              Monthly readiness
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-0 focus-visible:outline-none">
@@ -104,6 +112,10 @@ export default function Reports() {
             >
               <ReportsDashboard clientId={clientId} />
             </PremiumSlot>
+          </TabsContent>
+
+          <TabsContent value="monthly" className="mt-0 focus-visible:outline-none">
+            <MonthlyReadinessPanel clientId={clientId} />
           </TabsContent>
         </Tabs>
       </div>

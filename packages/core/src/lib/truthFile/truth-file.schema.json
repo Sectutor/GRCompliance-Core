@@ -1,0 +1,529 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grcompliance.com/schemas/truth-file-1.json",
+  "title": "GRCompliance client truth file",
+  "description": "Machine-readable header and sections from the CaaS client truth-file template. Do not store secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "truth_file_version",
+    "client_id",
+    "client_legal_name",
+    "workspace_id",
+    "owner_signer",
+    "last_reviewed",
+    "last_reviewed_by",
+    "nis2_class",
+    "nis2_sector",
+    "frameworks",
+    "reporting_day_of_month",
+    "engagement_status",
+    "monthly_fee",
+    "identity",
+    "nis2",
+    "framework_obligations",
+    "scope",
+    "entities",
+    "assets",
+    "suppliers",
+    "control_owners",
+    "evidence",
+    "evidence_note",
+    "evidence_freshness_days",
+    "risk_register",
+    "roadmap",
+    "business_continuity",
+    "incident_contacts",
+    "channels",
+    "findings",
+    "decisions",
+    "approved_facts",
+    "engagement",
+    "regulatory_watch",
+    "change_history",
+    "shared_facts"
+  ],
+  "properties": {
+    "truth_file_version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+    "client_id": { "$ref": "#/$defs/filled" },
+    "client_legal_name": { "$ref": "#/$defs/filled" },
+    "workspace_id": { "$ref": "#/$defs/filled" },
+    "owner_signer": { "$ref": "#/$defs/filled" },
+    "last_reviewed": { "type": "string", "format": "date" },
+    "last_reviewed_by": { "$ref": "#/$defs/filled" },
+    "nis2_class": { "$ref": "#/$defs/nis2Class" },
+    "nis2_sector": { "$ref": "#/$defs/nis2Sector" },
+    "frameworks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/frameworkId" }
+    },
+    "reporting_day_of_month": { "type": "integer", "minimum": 1, "maximum": 28 },
+    "engagement_status": {
+      "type": "string",
+      "enum": ["prospect", "onboarding", "active", "paused", "ended"]
+    },
+    "monthly_fee": { "$ref": "#/$defs/filled" },
+    "identity": { "$ref": "#/$defs/identity" },
+    "nis2": { "$ref": "#/$defs/nis2" },
+    "framework_obligations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/obligation" }
+    },
+    "scope": { "$ref": "#/$defs/scope" },
+    "entities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/entity" } },
+    "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" } },
+    "suppliers": { "type": "array", "items": { "$ref": "#/$defs/supplier" } },
+    "control_owners": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/controlOwner" } },
+    "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+    "evidence_note": { "$ref": "#/$defs/filled" },
+    "evidence_freshness_days": { "type": "integer", "minimum": 1, "maximum": 3650 },
+    "risk_register": { "$ref": "#/$defs/riskRegister" },
+    "roadmap": { "$ref": "#/$defs/roadmap" },
+    "business_continuity": { "$ref": "#/$defs/continuity" },
+    "incident_contacts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/contact" } },
+    "channels": { "type": "array", "items": { "$ref": "#/$defs/channel" } },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "decisions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/decision" } },
+    "approved_facts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/approvedFact" } },
+    "engagement": { "$ref": "#/$defs/engagement" },
+    "regulatory_watch": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/watch" } },
+    "change_history": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/change" } },
+    "shared_facts": { "$ref": "#/$defs/sharedFacts" }
+  },
+  "$defs": {
+    "filled": { "type": "string", "minLength": 1 },
+    "dateOrPending": {
+      "anyOf": [
+        { "type": "string", "format": "date" },
+        { "const": "to be added" }
+      ]
+    },
+    "frameworkId": {
+      "type": "string",
+      "enum": ["ISO27001:2022", "NIS2", "NIS2/ЗКС", "SOC2", "GDPR", "DORA", "CRA"]
+    },
+    "nis2Class": {
+      "type": "string",
+      "enum": ["essential", "important", "out_of_scope", "pending"]
+    },
+    "nis2Sector": {
+      "type": "string",
+      "enum": [
+        "energy",
+        "transport",
+        "banking",
+        "financial_market_infrastructure",
+        "health",
+        "drinking_water",
+        "waste_water",
+        "digital_infrastructure",
+        "ict_service_management",
+        "public_administration",
+        "space",
+        "postal_and_courier",
+        "waste_management",
+        "chemicals",
+        "food",
+        "manufacturing",
+        "digital_providers",
+        "research",
+        "pending",
+        "out_of_scope"
+      ]
+    },
+    "nis2Annex": {
+      "type": "string",
+      "enum": ["annex_i", "annex_ii", "zks_annex_1", "zks_annex_2", "pending", "out_of_scope"]
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "legal_name",
+        "trading_names",
+        "company_id",
+        "registered_address",
+        "country",
+        "industry",
+        "headcount",
+        "turnover_eur",
+        "balance_sheet_eur",
+        "size_class",
+        "primary_contact",
+        "management_body",
+        "languages",
+        "source"
+      ],
+      "properties": {
+        "legal_name": { "$ref": "#/$defs/filled" },
+        "trading_names": { "$ref": "#/$defs/filled" },
+        "company_id": { "$ref": "#/$defs/filled" },
+        "registered_address": { "$ref": "#/$defs/filled" },
+        "country": { "$ref": "#/$defs/filled" },
+        "industry": { "$ref": "#/$defs/filled" },
+        "headcount": { "$ref": "#/$defs/filled" },
+        "turnover_eur": { "$ref": "#/$defs/filled" },
+        "balance_sheet_eur": { "$ref": "#/$defs/filled" },
+        "size_class": {
+          "type": "string",
+          "enum": ["micro", "small", "medium", "large", "to_be_added"]
+        },
+        "primary_contact": { "$ref": "#/$defs/filled" },
+        "management_body": { "$ref": "#/$defs/filled" },
+        "languages": { "$ref": "#/$defs/filled" },
+        "source": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "nis2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "sector",
+        "sub_sector",
+        "annex",
+        "legal_basis",
+        "rationale",
+        "competent_authority",
+        "registration_status",
+        "supervision_type",
+        "decided_by",
+        "decided_on",
+        "next_recheck"
+      ],
+      "properties": {
+        "classification": { "$ref": "#/$defs/nis2Class" },
+        "sector": { "$ref": "#/$defs/nis2Sector" },
+        "sub_sector": { "$ref": "#/$defs/filled" },
+        "annex": { "$ref": "#/$defs/nis2Annex" },
+        "legal_basis": { "$ref": "#/$defs/filled" },
+        "rationale": { "$ref": "#/$defs/filled" },
+        "competent_authority": { "$ref": "#/$defs/filled" },
+        "registration_status": { "$ref": "#/$defs/filled" },
+        "supervision_type": { "$ref": "#/$defs/filled" },
+        "decided_by": { "$ref": "#/$defs/filled" },
+        "decided_on": { "$ref": "#/$defs/dateOrPending" },
+        "next_recheck": { "$ref": "#/$defs/dateOrPending" }
+      }
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "applies", "basis", "target", "target_date"],
+      "properties": {
+        "id": { "$ref": "#/$defs/frameworkId" },
+        "applies": { "type": "boolean" },
+        "basis": { "$ref": "#/$defs/filled" },
+        "target": { "$ref": "#/$defs/filled" },
+        "target_date": { "$ref": "#/$defs/dateOrPending" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement", "locations", "exclusions", "in_scope_frameworks", "soa"],
+      "properties": {
+        "statement": { "$ref": "#/$defs/filled" },
+        "locations": { "$ref": "#/$defs/filled" },
+        "exclusions": { "$ref": "#/$defs/filled" },
+        "in_scope_frameworks": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/frameworkId" }
+        },
+        "soa": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "legal_name", "role", "company_id", "address"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^ENT-[A-Z0-9-]+$" },
+        "legal_name": { "$ref": "#/$defs/filled" },
+        "role": { "$ref": "#/$defs/filled" },
+        "company_id": { "$ref": "#/$defs/filled" },
+        "address": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "type", "owner", "cia", "in_scope", "location", "entity_id"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^A-[0-9]{3,}$" },
+        "name": { "$ref": "#/$defs/filled" },
+        "type": { "$ref": "#/$defs/filled" },
+        "owner": { "$ref": "#/$defs/filled" },
+        "cia": { "$ref": "#/$defs/filled" },
+        "in_scope": { "type": "boolean" },
+        "location": { "$ref": "#/$defs/filled" },
+        "entity_id": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "supplier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "service",
+        "criticality",
+        "last_assessment",
+        "contract_end",
+        "entity_id",
+        "contact_name",
+        "contact_role",
+        "contact_email"
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/filled" },
+        "service": { "$ref": "#/$defs/filled" },
+        "criticality": { "$ref": "#/$defs/filled" },
+        "last_assessment": { "$ref": "#/$defs/filled" },
+        "contract_end": { "$ref": "#/$defs/dateOrPending" },
+        "entity_id": { "$ref": "#/$defs/filled" },
+        "contact_name": { "$ref": "#/$defs/filled" },
+        "contact_role": { "$ref": "#/$defs/filled" },
+        "contact_email": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "controlOwner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "owner", "deputy", "cadence"],
+      "properties": {
+        "domain": { "$ref": "#/$defs/filled" },
+        "owner": { "$ref": "#/$defs/filled" },
+        "deputy": { "$ref": "#/$defs/filled" },
+        "cadence": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "controls", "description", "location", "collected", "valid_until", "status", "verified_by"],
+      "properties": {
+        "id": { "$ref": "#/$defs/filled" },
+        "controls": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/filled" } },
+        "description": { "$ref": "#/$defs/filled" },
+        "location": { "$ref": "#/$defs/filled" },
+        "collected": { "$ref": "#/$defs/dateOrPending" },
+        "valid_until": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["collected", "verified", "stale"] },
+        "verified_by": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "riskBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max", "label"],
+      "properties": {
+        "min": { "type": "integer", "minimum": 1, "maximum": 25 },
+        "max": { "type": "integer", "minimum": 1, "maximum": 25 },
+        "label": { "type": "string", "enum": ["Low", "Medium", "High", "Very High", "Critical"] }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "inherent_likelihood",
+        "inherent_impact",
+        "residual_likelihood",
+        "residual_impact",
+        "owner",
+        "treatment",
+        "status"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^RA-[0-9]{4}-[0-9]{3}$" },
+        "title": { "$ref": "#/$defs/filled" },
+        "inherent_likelihood": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "inherent_impact": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "residual_likelihood": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "residual_impact": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "owner": { "$ref": "#/$defs/filled" },
+        "treatment": { "type": "string", "enum": ["Mitigate", "Transfer", "Accept", "Avoid"] },
+        "status": { "type": "string", "enum": ["draft", "reviewed", "approved", "closed"] }
+      }
+    },
+    "riskRegister": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system_of_record", "methodology", "bands", "appetite", "last_full_review", "risks"],
+      "properties": {
+        "system_of_record": { "$ref": "#/$defs/filled" },
+        "methodology": { "$ref": "#/$defs/filled" },
+        "bands": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/riskBand" } },
+        "appetite": { "$ref": "#/$defs/filled" },
+        "last_full_review": { "$ref": "#/$defs/dateOrPending" },
+        "risks": { "type": "array", "items": { "$ref": "#/$defs/risk" } }
+      }
+    },
+    "roadmap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "items"],
+      "properties": {
+        "title": { "$ref": "#/$defs/filled" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "status"],
+            "properties": {
+              "title": { "$ref": "#/$defs/filled" },
+              "status": { "type": "string", "enum": ["pending", "in_progress", "done"] }
+            }
+          }
+        }
+      }
+    },
+    "continuity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_title", "plan_version", "plan_status", "processes", "process_note"],
+      "properties": {
+        "plan_title": { "$ref": "#/$defs/filled" },
+        "plan_version": { "$ref": "#/$defs/filled" },
+        "plan_status": { "type": "string", "enum": ["draft", "approved", "retired"] },
+        "processes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": { "name": { "$ref": "#/$defs/filled" } }
+          }
+        },
+        "process_note": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "name", "contact", "always_on", "deputy"],
+      "properties": {
+        "role": { "$ref": "#/$defs/filled" },
+        "name": { "$ref": "#/$defs/filled" },
+        "contact": { "$ref": "#/$defs/filled" },
+        "always_on": { "$ref": "#/$defs/filled" },
+        "deputy": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value", "verified_on"],
+      "properties": {
+        "name": { "$ref": "#/$defs/filled" },
+        "value": { "$ref": "#/$defs/filled" },
+        "verified_on": { "$ref": "#/$defs/dateOrPending" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "control", "severity", "owner", "due", "status", "summary"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^F-[0-9]{3,}$" },
+        "source": { "$ref": "#/$defs/filled" },
+        "control": { "$ref": "#/$defs/filled" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "owner": { "$ref": "#/$defs/filled" },
+        "due": { "$ref": "#/$defs/dateOrPending" },
+        "status": { "type": "string", "enum": ["open", "in_progress", "closed"] },
+        "summary": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "decision", "made_by", "rationale", "evidence"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "decision": { "$ref": "#/$defs/filled" },
+        "made_by": { "$ref": "#/$defs/filled" },
+        "rationale": { "$ref": "#/$defs/filled" },
+        "evidence": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "approvedFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wording", "approved_by", "date", "allowed_where"],
+      "properties": {
+        "wording": { "$ref": "#/$defs/filled" },
+        "approved_by": { "$ref": "#/$defs/filled" },
+        "date": { "type": "string", "format": "date" },
+        "allowed_where": { "type": "string", "enum": ["report", "website", "case_study", "internal"] }
+      }
+    },
+    "engagement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offer",
+        "monthly_fee",
+        "contract_start",
+        "minimum_term",
+        "notice",
+        "payment_terms",
+        "software_licence",
+        "invoices",
+        "deliverables_awaiting_approval",
+        "billing_contact"
+      ],
+      "properties": {
+        "offer": { "$ref": "#/$defs/filled" },
+        "monthly_fee": { "$ref": "#/$defs/filled" },
+        "contract_start": { "$ref": "#/$defs/dateOrPending" },
+        "minimum_term": { "$ref": "#/$defs/filled" },
+        "notice": { "$ref": "#/$defs/filled" },
+        "payment_terms": { "$ref": "#/$defs/filled" },
+        "software_licence": { "$ref": "#/$defs/filled" },
+        "invoices": { "$ref": "#/$defs/filled" },
+        "deliverables_awaiting_approval": { "$ref": "#/$defs/filled" },
+        "billing_contact": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "watch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item", "why", "status", "last_checked", "next_check"],
+      "properties": {
+        "item": { "$ref": "#/$defs/filled" },
+        "why": { "$ref": "#/$defs/filled" },
+        "status": { "$ref": "#/$defs/filled" },
+        "last_checked": { "$ref": "#/$defs/dateOrPending" },
+        "next_check": { "$ref": "#/$defs/dateOrPending" }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "date", "changed_by", "sections", "summary", "approved_by"],
+      "properties": {
+        "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+        "date": { "type": "string", "format": "date" },
+        "changed_by": { "$ref": "#/$defs/filled" },
+        "sections": { "$ref": "#/$defs/filled" },
+        "summary": { "$ref": "#/$defs/filled" },
+        "approved_by": { "$ref": "#/$defs/filled" }
+      }
+    },
+    "sharedFacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approved_prices"],
+      "properties": {
+        "approved_prices": { "type": "array", "items": { "$ref": "#/$defs/filled" } }
+      }
+    }
+  }
+}
