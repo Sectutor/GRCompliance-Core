@@ -193,6 +193,7 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                 residualScore: savedResidual,
                 residualRisk: savedLevel,
                 threatDescription: formData.description,
+                vulnerabilityDescription: formData.vulnerability,
                 contextSnapshot: {
                     ...previousSnapshot,
                     assessmentType: formData.assessmentType,

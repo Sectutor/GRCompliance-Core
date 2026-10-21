@@ -105,7 +105,7 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
                     </div>
                     <div>
                         <h4 className="font-semibold mb-2">Vulnerability</h4>
-                        <p className="text-muted-foreground">{risk.vulnerabilityDescription || 'Not specified'}</p>
+                        <p className="text-muted-foreground">{risk.vulnerabilityDescription || risk.contextSnapshot?.vulnerability || 'Not specified'}</p>
                     </div>
                     <div>
                         <h4 className="font-semibold mb-2">Affected Assets</h4>
@@ -170,6 +170,13 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
                                         </span>
                                     </div>
                                     <p className="text-sm">{treatment.strategy}</p>
+                                    {Array.isArray(treatment.controls) && treatment.controls.length > 0 && (
+                                        <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                                            {treatment.controls.map((control: { id: number; name: string }) => (
+                                                <li key={control.id}>{control.name}</li>
+                                            ))}
+                                        </ul>
+                                    )}
                                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                         {treatment.owner && <span>Owner: {treatment.owner}</span>}
                                         {treatment.dueDate && <span>Due: {new Date(treatment.dueDate).toLocaleDateString()}</span>}
