@@ -51,3 +51,9 @@ jobs:
 
     - name: Truth-file unit tests
       run: npm test -w @complianceos/core -- src/lib/truthFile/validate.test.ts
+
+    - name: Monthly readiness report test
+      run: npm test -w @complianceos/core -- src/lib/readiness/model.test.ts
+
+    - name: Render the Latore monthly readiness sample
+      run: npm run readiness:latore

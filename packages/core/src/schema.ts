@@ -14848,3 +14848,5 @@ export const learningSections = pgTable("learning_sections", {
     uniqueSection: uniqueIndex("idx_learning_sections_unique").on(table.frameworkId, table.sectionId),
   };
 });
+
+export { monthlyReadinessSettings, monthlyReadinessReports } from "./schema/monthlyReadiness";
