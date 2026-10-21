@@ -6,6 +6,14 @@ import postgres from "postgres";
 import { encrypt } from "./lib/crypto";
 import { getSecret } from "./lib/secrets";
 import { policyCoverage, postureScore } from "./lib/postureScore";
+import {
+  demoApplicabilityRepair,
+  demoControlPatch,
+  DEMO_WORKSPACE_NAME,
+  FIREWALL_EVIDENCE_CONTROL_CODE,
+  FIREWALL_EVIDENCE_REQUEST,
+  shouldRetargetFirewallRequest,
+} from "./lib/demoSeedRepair";
 
 import {
 
@@ -1650,9 +1658,76 @@ export async function ensureDefaultDataSeeded() {
 
   }
 
+  await repairDemoSeedRows(db);
+
 }
 
 
+
+/**
+ * Idempotent corrections for the Latore LTD demo. Matches seed identifiers only.
+ * Does not insert, delete, or reseed, and does not touch other workspaces.
+ */
+async function repairDemoSeedRows(db: Awaited<ReturnType<typeof getDb>>) {
+  const [client] = await db.select({ id: clients.id })
+    .from(clients)
+    .where(eq(clients.name, DEMO_WORKSPACE_NAME))
+    .limit(1);
+  if (!client) return;
+
+  const controlRows = await db.select({
+    id: clientControls.id,
+    clientControlId: clientControls.clientControlId,
+    status: clientControls.status,
+    applicability: clientControls.applicability,
+  }).from(clientControls).where(eq(clientControls.clientId, client.id));
+
+  let applicabilityUpdates = 0;
+  for (const row of controlRows) {
+    if (demoApplicabilityRepair(row) !== "not_applicable") continue;
+    await db.update(clientControls)
+      .set({ applicability: "not_applicable" })
+      .where(and(eq(clientControls.id, row.id), eq(clientControls.clientId, client.id)));
+    applicabilityUpdates++;
+  }
+
+  const [target] = await db.select({ id: clientControls.id })
+    .from(clientControls)
+    .innerJoin(controls, eq(clientControls.controlId, controls.id))
+    .where(and(
+      eq(clientControls.clientId, client.id),
+      eq(controls.controlId, FIREWALL_EVIDENCE_CONTROL_CODE),
+    ))
+    .limit(1);
+
+  let requestUpdates = 0;
+  if (target) {
+    const requests = await db.select({
+      id: evidenceRequests.id,
+      description: evidenceRequests.description,
+      clientControlCode: clientControls.clientControlId,
+      masterControlId: controls.controlId,
+    }).from(evidenceRequests)
+      .innerJoin(clientControls, eq(evidenceRequests.clientControlId, clientControls.id))
+      .innerJoin(controls, eq(clientControls.controlId, controls.id))
+      .where(and(
+        eq(evidenceRequests.clientId, client.id),
+        eq(evidenceRequests.description, FIREWALL_EVIDENCE_REQUEST),
+      ));
+
+    for (const request of requests) {
+      if (!shouldRetargetFirewallRequest(request)) continue;
+      await db.update(evidenceRequests)
+        .set({ clientControlId: target.id })
+        .where(and(eq(evidenceRequests.id, request.id), eq(evidenceRequests.clientId, client.id)));
+      requestUpdates++;
+    }
+  }
+
+  if (applicabilityUpdates || requestUpdates) {
+    logger.info(`[Seed] Corrected Latore demo rows: applicability ${applicabilityUpdates}, firewall evidence requests ${requestUpdates}`);
+  }
+}
 
 export async function updatePolicyTemplate(id: number, data: Partial<InsertPolicyTemplate>) {
 
@@ -3040,15 +3115,25 @@ async function seedGapModule(clientId: number) {
 async function seedAuditModule(clientId: number) {
   const db = await getDb();
   try {
-    // 1. Evidence Requests
-    await db.insert(schema.evidenceRequests).values({
-      clientId,
-      clientControlId: 1, // Mock
-      requesterId: 1,
-      assigneeId: 1,
-      status: "open",
-      description: "Please provide the latest firewall configuration backup."
-    } as any);
+    // 1. Evidence Requests — network monitoring (A.8.16), not a hardcoded row id.
+    const [networkControl] = await db.select({ id: clientControls.id })
+      .from(clientControls)
+      .innerJoin(controls, eq(clientControls.controlId, controls.id))
+      .where(and(
+        eq(clientControls.clientId, clientId),
+        eq(controls.controlId, FIREWALL_EVIDENCE_CONTROL_CODE),
+      ))
+      .limit(1);
+    if (networkControl) {
+      await db.insert(schema.evidenceRequests).values({
+        clientId,
+        clientControlId: networkControl.id,
+        requesterId: 1,
+        assigneeId: 1,
+        status: "open",
+        description: FIREWALL_EVIDENCE_REQUEST,
+      } as any);
+    }
 
     // 2. Audit Logs
     await db.insert(schema.auditLogs).values([
@@ -3090,14 +3175,14 @@ async function applyDemoControlMix(clientId: number) {
     .where(eq(clientControls.clientId, clientId))
     .orderBy(clientControls.id);
 
-  const cycle = ["implemented", "implemented", "in_progress", "not_implemented", "implemented", "in_progress", "not_applicable"] as const;
   for (let index = 0; index < rows.length; index++) {
+    const patch = demoControlPatch(index);
     await db.update(clientControls)
-      .set({ status: cycle[index % cycle.length] })
+      .set(patch)
       .where(eq(clientControls.id, rows[index].id));
   }
 
-  const evidenced = rows.filter((_, index) => cycle[index % cycle.length] === "implemented").slice(0, 8);
+  const evidenced = rows.filter((_, index) => demoControlPatch(index).status === "implemented").slice(0, 8);
   if (evidenced.length > 0) {
   await db.insert(evidence).values(evidenced.map((row, index) => ({
     clientId,
