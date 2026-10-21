@@ -151,6 +151,16 @@ The first page does not show a cookie or advertising consent dialog. GRComplianc
 
 `AUTH_MODE=local` does not call Supabase. The process log says user administration uses the local database. Invited people who set a password, and an administrator password reset, are stored in `local_credentials`. Reset shows the new password once to the administrator and does not email a Supabase link. Impersonation starts a local session. Local authentication has no MFA enrollment, so privileged API routes are not blocked for lack of a second factor. Hosted Supabase magic links are unused in this mode. The generated administrator is created with role `admin`.
 
+## Client truth files
+
+Each CaaS client has one truth file: the facts a report is allowed to quote. The Latore LTD demo file is [`truth-files/latore-ltd.yaml`](truth-files/latore-ltd.yaml). The JSON Schema and the checker are described in [`truth-files/README.md`](truth-files/README.md).
+
+```bash
+npm run truth:validate
+```
+
+The command checks files under `truth-files/`. It does not connect to a database. To compare a file with a workspace's frameworks, scope, gap control ids, roadmap title, business processes, and risk labels, pass `--client-name` or `--client-id` as documented in that README. The comparison only reads.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
