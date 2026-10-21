@@ -7,6 +7,7 @@ import { Badge } from '@complianceos/ui/ui/badge';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Slot, SlotNames } from '@/registry';
 import { Wand2, Sparkles } from 'lucide-react';
+import { inherentLevel, residualLevel } from './riskRegisterMetrics';
 
 interface RiskDetailsDialogProps {
     open: boolean;
@@ -49,6 +50,9 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
 
     if (!risk) return null;
 
+    const inherent = inherentLevel(risk);
+    const residual = residualLevel(risk);
+
     return (
         <EnhancedDialog
             open={open}
@@ -71,14 +75,14 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-muted/50 p-4 rounded-lg">
                         <p className="text-xs text-muted-foreground uppercase">Inherent Risk</p>
-                        <p className={`text-lg font-bold mt-1 px-2 py-1 rounded inline-block ${riskColors[risk.inherentRisk || ''] || 'bg-gray-100'}`}>
-                            {risk.inherentRisk || '-'}
+                        <p className={`text-lg font-bold mt-1 px-2 py-1 rounded inline-block ${riskColors[inherent] || 'bg-gray-100'}`}>
+                            {inherent || '-'}
                         </p>
                     </div>
                     <div className="bg-muted/50 p-4 rounded-lg">
                         <p className="text-xs text-muted-foreground uppercase">Residual Risk</p>
-                        <p className={`text-lg font-bold mt-1 px-2 py-1 rounded inline-block ${riskColors[risk.residualRisk || ''] || 'bg-gray-100'}`}>
-                            {risk.residualRisk || '-'}
+                        <p className={`text-lg font-bold mt-1 px-2 py-1 rounded inline-block ${riskColors[residual] || 'bg-gray-100'}`}>
+                            {residual || '-'}
                         </p>
                     </div>
                     {/* 
