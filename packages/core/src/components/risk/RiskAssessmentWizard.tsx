@@ -13,7 +13,7 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { Slot, SlotNames } from "@/registry";
 import { Check, Link as LinkIcon, AlertTriangle, Shield, Building, Layers, ArrowRight, Wand2, Sparkles, Loader2, Info } from 'lucide-react';
-import { getRiskLevelColor, getMatrixScoreLevel, getRiskLevelTextColor, MATRIX_SCORE_BANDS, calculateMultiControlResidualScore } from '@/lib/riskCalculations';
+import { getRiskLevelColor, getMatrixScoreLevel, getRiskLevelTextColor, MATRIX_SCORE_BANDS, calculateMultiControlResidualScore, residualHeatmapAxes } from '@/lib/riskCalculations';
 
 type ControlEffectivenessValue = 'effective' | 'partially_effective' | 'ineffective';
 import { RiskAppetiteCheck } from '@/components/risk/RiskAppetiteCheck';
@@ -211,6 +211,7 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     priority: formData.priority,
                     residualScore: savedResidual,
                     residualRisk: savedLevel,
+                    ...residualHeatmapAxes(savedResidual),
                 },
             };
             if (!initialData?.id) payload.status = 'draft';

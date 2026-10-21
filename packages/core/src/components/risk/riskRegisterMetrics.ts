@@ -87,3 +87,42 @@ export function displayedTreatmentOption(risk: {
 export function hasTreatmentOption(risk: Parameters<typeof displayedTreatmentOption>[0]): boolean {
     return displayedTreatmentOption(risk).length > 0;
 }
+
+/** Same 1-5 reading the register uses for heat-map drill-down. */
+export function normalizeAxisValue(val: unknown): number {
+    if (!val) return 0;
+    const strVal = val.toString().toLowerCase().trim();
+    let num = parseInt(strVal.charAt(0), 10);
+
+    if (isNaN(num)) {
+        if (strVal.includes("critical") || strVal.includes("extreme") || strVal.includes("catastrophic")) num = 5;
+        else if (strVal.includes("very high") || strVal.includes("almost certain")) num = 4;
+        else if (strVal.includes("high") || strVal.includes("likely") || strVal.includes("major")) num = 3;
+        else if (strVal.includes("medium") || strVal.includes("moderate") || strVal.includes("possible")) num = 2;
+        else if (strVal.includes("low") || strVal.includes("unlikely") || strVal.includes("minor") || strVal.includes("rare") || strVal.includes("insignificant")) num = 1;
+    }
+
+    if (num >= 1 && num <= 5) return num;
+    return 0;
+}
+
+/**
+ * Residual drill-down matches both stored axes.
+ * A likelihood-only match is not enough. Missing axes do not match a cell.
+ */
+export function matchesResidualHeatmapCell(
+    risk: {
+        residualLikelihood?: unknown;
+        residualImpact?: unknown;
+        contextSnapshot?: { residualLikelihood?: unknown; residualImpact?: unknown } | null;
+    } | null | undefined,
+    likelihood: number,
+    impact: number,
+): boolean {
+    const snapshot = risk?.contextSnapshot && typeof risk.contextSnapshot === "object"
+        ? risk.contextSnapshot
+        : {};
+    const storedLikelihood = normalizeAxisValue(risk?.residualLikelihood ?? snapshot.residualLikelihood);
+    const storedImpact = normalizeAxisValue(risk?.residualImpact ?? snapshot.residualImpact);
+    return storedLikelihood === likelihood && storedImpact === impact;
+}

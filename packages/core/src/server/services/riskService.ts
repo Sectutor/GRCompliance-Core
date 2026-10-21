@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import * as schema from "../../schema";
-import { calculateMultiControlResidualScore, getMatrixScoreLevel, parseLikelihoodImpact } from "../../lib/riskCalculations";
+import { calculateMultiControlResidualScore, getMatrixScoreLevel, parseLikelihoodImpact, residualHeatmapAxes } from "../../lib/riskCalculations";
 
 export const recalculateRiskScore = async (db: any, riskAssessmentId: number) => {
     try {
@@ -29,11 +29,17 @@ export const recalculateRiskScore = async (db: any, riskAssessmentId: number) =>
         console.log(`[RiskCalc] Risk ${riskAssessmentId}: Inherent ${inherentScore} -> Residual ${residualScore} (${residualRisk})`);
 
         const snapshot = snapshotObject(risk.contextSnapshot);
+        const axes = residualHeatmapAxes(residualScore);
+        const contextSnapshot = snapshot
+            ? { ...snapshot, residualScore, residualRisk, ...axes }
+            : risk.contextSnapshot == null
+                ? { residualScore, residualRisk, ...axes }
+                : null;
         await db.update(schema.riskAssessments)
             .set({
                 residualScore,
                 residualRisk,
-                ...(snapshot ? { contextSnapshot: { ...snapshot, residualScore, residualRisk } } : {}),
+                ...(contextSnapshot ? { contextSnapshot } : {}),
                 updatedAt: new Date()
             })
             .where(eq(schema.riskAssessments.id, riskAssessmentId));

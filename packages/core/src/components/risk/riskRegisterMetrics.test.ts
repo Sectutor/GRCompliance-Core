@@ -6,6 +6,7 @@ import {
     inherentLevel,
     isHighOrCritical,
     matchesInherentLevel,
+    matchesResidualHeatmapCell,
     residualLevel,
 } from "./riskRegisterMetrics";
 
@@ -60,5 +61,17 @@ describe("risk register score metrics", () => {
         expect(displayedTreatmentOption({ contextSnapshot: { treatmentStrategy: " transfer " } })).toBe("transfer");
         expect(hasTreatmentOption({ treatmentOption: "  " })).toBe(false);
         expect(hasTreatmentOption({ treatmentCount: 3 })).toBe(false);
+    });
+
+    it("matches a residual heat-map cell only when both axes agree", () => {
+        const risk = { contextSnapshot: { residualLikelihood: "2", residualImpact: "3" } };
+        expect(matchesResidualHeatmapCell(risk, 2, 3)).toBe(true);
+        expect(matchesResidualHeatmapCell(risk, 2, 2)).toBe(false);
+        expect(matchesResidualHeatmapCell(risk, 3, 3)).toBe(false);
+        expect(matchesResidualHeatmapCell({ residualRisk: "High" }, 2, 3)).toBe(false);
+        expect(matchesResidualHeatmapCell({
+            residualLikelihood: "4",
+            contextSnapshot: { residualLikelihood: "1", residualImpact: "1" },
+        }, 4, 5)).toBe(false);
     });
 });

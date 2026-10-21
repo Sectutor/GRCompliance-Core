@@ -171,6 +171,40 @@ export function calculateInherentScore(likelihood: number, impact: number): numb
 }
 
 /**
+ * Split a residual score into likelihood and impact, both on the 1-5 heat-map axes.
+ * Every 1-5 pair is considered. The pair whose product is closest to the score wins.
+ * Ties go to the smaller |likelihood − impact|, then to the smaller likelihood.
+ * 6 → 2×3, 7 → 2×3 (product 6), 8 → 2×4, 11 → 3×4, 13 → 3×4,
+ * 16 → 4×4, 20 → 4×5, 22 → 4×5, 23 → 5×5, 25 → 5×5.
+ * The wizard and recalculateRiskScore store these as strings on contextSnapshot.
+ * Startup backfill uses the same split and does not replace a pair that is already stored.
+ */
+export function splitResidualScore(score: number): { likelihood: number; impact: number } {
+    const target = Number.isFinite(score) ? score : 1;
+    let best = { likelihood: 1, impact: 1, distance: Number.POSITIVE_INFINITY, spread: Number.POSITIVE_INFINITY };
+    for (let likelihood = 1; likelihood <= 5; likelihood++) {
+        for (let impact = 1; impact <= 5; impact++) {
+            const distance = Math.abs(likelihood * impact - target);
+            const spread = Math.abs(likelihood - impact);
+            const closer = distance < best.distance
+                || (distance === best.distance && spread < best.spread)
+                || (distance === best.distance && spread === best.spread && likelihood < best.likelihood);
+            if (closer) best = { likelihood, impact, distance, spread };
+        }
+    }
+    return { likelihood: best.likelihood, impact: best.impact };
+}
+
+/** String axes for contextSnapshot.residualLikelihood and residualImpact. */
+export function residualHeatmapAxes(score: number): { residualLikelihood: string; residualImpact: string } {
+    const axes = splitResidualScore(score);
+    return {
+        residualLikelihood: String(axes.likelihood),
+        residualImpact: String(axes.impact),
+    };
+}
+
+/**
  * Get risk level color for UI display
  */
 export function getRiskLevelColor(riskLevel: RiskLevel | ''): string {
