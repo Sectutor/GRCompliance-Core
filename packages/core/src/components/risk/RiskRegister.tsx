@@ -345,16 +345,16 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
 
     if (isLoading) {
         return (
-            <div className="bg-card rounded-xl border shadow-sm p-8 text-center">
+            <div className="bg-card rounded-xl border shadow-sm p-8 text-center min-w-0 w-full">
                 <div className="animate-pulse text-muted-foreground">Loading Risk Register...</div>
             </div>
         );
     }
 
     return (
-        <div className="bg-card rounded-xl border shadow-sm">
+        <div className="bg-card rounded-xl border shadow-sm flex h-full min-h-0 min-w-0 w-full max-w-full flex-1 flex-col">
             {/* Header */}
-            <div className="p-6 border-b">
+            <div className="shrink-0 p-6 border-b">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2 text-slate-950">
@@ -435,10 +435,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="rounded-xl border border-slate-200 shadow-2xl overflow-hidden bg-white m-4">
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1200px] table-fancy">
+            {/* Scroll pane is height-bounded so the horizontal bar stays in view. */}
+            <div className="mx-4 mb-4 mt-4 flex min-h-[6.5rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+                <div className="risk-register-scroll min-h-[6.5rem] min-w-0 w-full flex-1 overflow-x-scroll overflow-y-auto overscroll-contain">
+                    <table className="w-full min-w-[1200px] border-separate border-spacing-0 table-fancy [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-20 [&_thead_th]:bg-[#003652]">
                         <thead>
                             <tr className="border-none">
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
@@ -781,7 +781,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             </div>
 
             {/* Summary Footer */}
-            < div className="px-6 py-4 border-t bg-muted/30" >
+            <div className="shrink-0 px-6 py-4 border-t bg-muted/30">
                 <div className="flex flex-wrap gap-6 text-sm">
                     <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Total Risks:</span>
