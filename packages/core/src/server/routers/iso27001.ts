@@ -4,6 +4,7 @@ import { clientControls, controls } from "../../schema";
 import * as db from "../../db";
 import { eq, and, inArray, or } from "drizzle-orm";
 import { iso27001Controls } from "../../data/frameworks/iso27001";
+import { reconcileControlApplicability } from "../../lib/controlApplicability";
 
 export const createIso27001Router = (t: any, clientProcedure: any, clientEditorProcedure: any) => {
     return t.router({
@@ -159,11 +160,16 @@ export const createIso27001Router = (t: any, clientProcedure: any, clientEditorP
                         throw new TRPCError({ code: "FORBIDDEN", message: "Control not found or access denied" });
                     }
 
+                    const reconciled = reconcileControlApplicability(
+                        { status: input.status, applicability: input.applicability },
+                        { status: existing.status, applicability: existing.applicability }
+                    );
+
                     await dbConn.update(clientControls)
                         .set({
-                            applicability: input.applicability,
+                            applicability: reconciled.applicability ?? input.applicability,
                             justification: input.justification,
-                            status: input.status,
+                            status: reconciled.status ?? input.status,
                             implementationNotes: input.implementationNotes,
                             updatedAt: new Date()
                         })

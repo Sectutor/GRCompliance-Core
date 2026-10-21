@@ -41,10 +41,9 @@ import {
     SelectValue
 } from "@complianceos/ui/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
-import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
-import { Separator } from "@complianceos/ui/ui/separator";
 import { Shield, Upload, FileText } from "lucide-react";
 import { ISOLayout } from "./ISOLayout";
+import { isSoaExcluded, soaStats } from "@/lib/soaStats";
 
 export default function StatementOfApplicability() {
     const { id } = useParams<{ id: string }>();
@@ -56,6 +55,24 @@ export default function StatementOfApplicability() {
     // TRPC Queries & Mutations
     const { data: soaData, isLoading, refetch } = trpc.iso27001.getSoA.useQuery({ clientId }, {
         enabled: clientId > 0
+    });
+
+    const { data: linkedEvidence, refetch: refetchLinkedEvidence } = trpc.evidence.getByControl.useQuery(
+        { clientControlId: selectedControl?.clientControl?.id || 0 },
+        { enabled: !!selectedControl?.clientControl?.id }
+    );
+    const { data: workspaceEvidence } = trpc.evidence.list.useQuery(
+        { clientId },
+        { enabled: clientId > 0 && !!selectedControl }
+    );
+    const [linkEvidenceId, setLinkEvidenceId] = useState("");
+    const linkEvidenceMutation = trpc.evidence.update.useMutation({
+        onSuccess: () => {
+            toast.success("Evidence linked");
+            setLinkEvidenceId("");
+            refetchLinkedEvidence();
+        },
+        onError: (err) => toast.error(err.message),
     });
 
     const updateMutation = trpc.iso27001.updateSoA.useMutation({
@@ -115,18 +132,13 @@ export default function StatementOfApplicability() {
         );
     }, [soaData, searchQuery]);
 
-    const stats = useMemo(() => {
-        if (!soaData) return { total: 0, applicable: 0, implemented: 0, excluded: 0 };
-        return {
-            total: soaData.length,
-            applicable: soaData.filter((item: any) => item.clientControl.applicability !== 'not_applicable').length,
-            implemented: soaData.filter((item: any) => item.clientControl.status === 'implemented').length,
-            excluded: soaData.filter((item: any) => item.clientControl.applicability === 'not_applicable').length
-        };
-    }, [soaData]);
+    const stats = useMemo(() => soaStats((soaData || []).map((item: any) => ({
+        status: item.clientControl.status,
+        applicability: item.clientControl.applicability,
+    }))), [soaData]);
 
     const getStatusUI = (status: string, applicability: string) => {
-        if (applicability === 'not_applicable') {
+        if (isSoaExcluded({ status, applicability })) {
             return {
                 label: "Excluded",
                 icon: <XCircle className="h-4 w-4 text-slate-400" />,
@@ -293,8 +305,8 @@ export default function StatementOfApplicability() {
 
                         <Tabs defaultValue="details" className="flex-1 mt-6">
                             <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1">
-                                <TabsTrigger value="details" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">details</TabsTrigger>
-                                <TabsTrigger value="evidence" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Evidence</TabsTrigger>
+                                <TabsTrigger value="details" className="text-slate-600 data-[state=active]:bg-white data-[state=active]:!text-slate-900 data-[state=active]:shadow-sm">Details</TabsTrigger>
+                                <TabsTrigger value="evidence" className="text-slate-600 data-[state=active]:bg-white data-[state=active]:!text-slate-900 data-[state=active]:shadow-sm">Evidence</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="details" className="py-4 space-y-6">
@@ -319,7 +331,11 @@ export default function StatementOfApplicability() {
                                                 "h-12 border-slate-200",
                                                 editForm.applicability === 'applicable' && "bg-indigo-600 hover:bg-indigo-700"
                                             )}
-                                            onClick={() => setEditForm(prev => ({ ...prev, applicability: 'applicable' }))}
+                                            onClick={() => setEditForm(prev => ({
+                                                ...prev,
+                                                applicability: 'applicable',
+                                                status: prev.status === 'not_applicable' ? 'not_implemented' : prev.status,
+                                            }))}
                                         >
                                             Applicable
                                         </Button>
@@ -330,7 +346,11 @@ export default function StatementOfApplicability() {
                                                 "h-12 border-slate-200",
                                                 editForm.applicability === 'not_applicable' && "bg-slate-700 hover:bg-slate-800"
                                             )}
-                                            onClick={() => setEditForm(prev => ({ ...prev, applicability: 'not_applicable' }))}
+                                            onClick={() => setEditForm(prev => ({
+                                                ...prev,
+                                                applicability: 'not_applicable',
+                                                status: 'not_applicable',
+                                            }))}
                                         >
                                             Excluded
                                         </Button>
@@ -338,24 +358,29 @@ export default function StatementOfApplicability() {
                                 </div>
 
                                 {/* Implementation Status */}
-                                {editForm.applicability === 'applicable' && (
-                                    <div className="space-y-3">
-                                        <Label className="text-sm font-bold text-slate-700">Implementation Maturity</Label>
-                                        <Select
-                                            value={editForm.status}
-                                            onValueChange={(val) => setEditForm(prev => ({ ...prev, status: val }))}
-                                        >
-                                            <SelectTrigger className="h-12 border-slate-200">
-                                                <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="not_implemented">Not Started</SelectItem>
-                                                <SelectItem value="in_progress">Partial / In Progress</SelectItem>
-                                                <SelectItem value="implemented">Fully Implemented</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-bold text-slate-700">Implementation Maturity</Label>
+                                    <Select
+                                        value={editForm.status}
+                                        onValueChange={(val) => setEditForm(prev => ({
+                                            ...prev,
+                                            status: val,
+                                            applicability: val === 'not_applicable'
+                                                ? 'not_applicable'
+                                                : (prev.applicability === 'not_applicable' ? 'applicable' : prev.applicability),
+                                        }))}
+                                    >
+                                        <SelectTrigger className="h-12 border-slate-200">
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="not_implemented">Not Started</SelectItem>
+                                            <SelectItem value="in_progress">Partial / In Progress</SelectItem>
+                                            <SelectItem value="implemented">Fully Implemented</SelectItem>
+                                            <SelectItem value="not_applicable">N/A</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
                                 {/* Justification / Notes */}
                                 <div className="space-y-3">
@@ -389,39 +414,64 @@ export default function StatementOfApplicability() {
                             </TabsContent>
 
                             <TabsContent value="evidence" className="py-4 space-y-6">
-                                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                                    <Shield className="h-12 w-12 text-slate-300 mb-3" />
-                                    <h3 className="text-sm font-semibold text-slate-700">No Evidence Linked</h3>
-                                    <p className="text-xs text-slate-500 text-center max-w-[250px] mb-4">
-                                        Link verified evidence from the Audit Hub to demonstrate this control is operating effectively.
-                                    </p>
-                                    <Button size="sm" variant="outline" className="gap-2">
-                                        <Upload className="h-3.5 w-3.5" /> Link Evidence
-                                    </Button>
-                                </div>
-
-                                <Separator />
-
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-900">Recommended Evidence</h4>
-                                    <ScrollArea className="h-[200px]">
-                                        <div className="space-y-3">
-                                            {[1, 2, 3].map((_, i) => (
-                                                <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 bg-white hover:border-indigo-100 cursor-pointer">
-                                                    <div className="p-2 bg-slate-50 rounded text-slate-400">
-                                                        <FileText className="h-4 w-4" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-medium text-slate-700">Access Control Policy (v1.2).pdf</p>
-                                                        <p className="text-[10px] text-slate-400">Uploaded on May 12, 2025</p>
-                                                    </div>
-                                                    <Button size="sm" variant="ghost" className="ml-auto h-6 w-6 p-0">
-                                                        <Upload className="h-3 w-3 text-slate-400" />
-                                                    </Button>
+                                {(!linkedEvidence || linkedEvidence.length === 0) ? (
+                                    <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                                        <Shield className="h-12 w-12 text-slate-300 mb-3" />
+                                        <h3 className="text-sm font-semibold text-slate-700">No Evidence Linked</h3>
+                                        <p className="text-xs text-slate-500 text-center max-w-[250px] mb-4">
+                                            Link evidence already collected for this workspace to show how the control is operating.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {linkedEvidence.map((item: any) => (
+                                            <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                                                <div className="p-2 bg-slate-50 rounded text-slate-400">
+                                                    <FileText className="h-4 w-4" />
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
+                                                <div>
+                                                    <p className="text-xs font-medium text-slate-700">{item.description || item.evidenceId}</p>
+                                                    <p className="text-[10px] text-slate-400">{item.evidenceId} · {item.status || "pending"}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-bold text-slate-700">Link Evidence</Label>
+                                    <div className="flex gap-2">
+                                        <Select value={linkEvidenceId} onValueChange={setLinkEvidenceId}>
+                                            <SelectTrigger className="h-10 border-slate-200">
+                                                <SelectValue placeholder="Choose workspace evidence" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(workspaceEvidence || []).filter((item: any) => !(linkedEvidence || []).some((linked: any) => linked.id === item.id)).length === 0 ? (
+                                                    <SelectItem value="none" disabled>No other evidence in this workspace</SelectItem>
+                                                ) : (workspaceEvidence || []).filter((item: any) => !(linkedEvidence || []).some((linked: any) => linked.id === item.id)).map((item: any) => (
+                                                    <SelectItem key={item.id} value={String(item.id)}>
+                                                        {item.evidenceId} — {item.description || item.title || "Untitled"}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="gap-2 shrink-0"
+                                            disabled={!linkEvidenceId || linkEvidenceId === "none" || linkEvidenceMutation.isPending || !selectedControl}
+                                            onClick={() => {
+                                                if (!selectedControl || !linkEvidenceId) return;
+                                                linkEvidenceMutation.mutate({
+                                                    id: Number(linkEvidenceId),
+                                                    clientControlId: selectedControl.clientControl.id,
+                                                });
+                                            }}
+                                        >
+                                            <Upload className="h-3.5 w-3.5" /> Link Evidence
+                                        </Button>
+                                    </div>
                                 </div>
                             </TabsContent>
                         </Tabs>

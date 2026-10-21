@@ -7,6 +7,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
+import { canLinkEvidenceToControl } from "../../lib/linkEvidence";
 import { recalculateRiskScore } from "../services/riskService";
 
 // Shared Framework Seed Data
@@ -219,10 +220,28 @@ export const createEvidenceRouter = (
                 status: z.string().optional(),
                 owner: z.string().nullable().optional(),
                 location: z.string().optional(),
+                clientControlId: z.number().optional(),
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
                 const { id, ...data } = input;
+
+                if (data.clientControlId !== undefined) {
+                    const [evidenceRow] = await dbConn.select({ clientId: schema.evidence.clientId })
+                        .from(schema.evidence)
+                        .where(eq(schema.evidence.id, id))
+                        .limit(1);
+                    const [controlRow] = await dbConn.select({ clientId: schema.clientControls.clientId })
+                        .from(schema.clientControls)
+                        .where(eq(schema.clientControls.id, data.clientControlId))
+                        .limit(1);
+                    if (!canLinkEvidenceToControl(evidenceRow?.clientId, controlRow?.clientId)) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "Evidence can only be linked to a control in the same workspace",
+                        });
+                    }
+                }
 
                 // Construct update object removing undefined
                 const updateData: any = { updatedAt: new Date() };
