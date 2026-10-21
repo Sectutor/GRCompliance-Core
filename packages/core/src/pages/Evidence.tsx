@@ -9,6 +9,8 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { trpc } from "@/lib/trpc";
+import { nextEvidenceId } from "@/lib/evidenceId";
+import { evidenceLinkedToControl } from "@/lib/evidenceLink";
 import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, ChevronRight, Filter, Info, AlertCircle, Clock, Shield, User, BarChart3, Download, BookOpen, LayoutGrid } from "lucide-react";
 import EvidenceFileUpload from "@/components/EvidenceFileUpload";
 import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
@@ -114,53 +116,12 @@ export default function Evidence() {
     }
 
     try {
-      // Build mapping graph for faster lookups
-      const mappingGraph = new Map<number, Set<number>>();
-      if (frameworkMappings) {
-        console.log("[DEBUG] Building mapping graph from", frameworkMappings.length, "mappings");
-        frameworkMappings.forEach(mapping => {
-          const s = mapping.sourceControlId;
-          const t = mapping.targetControlId;
-          if (!mappingGraph.has(s)) mappingGraph.set(s, new Set());
-          if (!mappingGraph.has(t)) mappingGraph.set(t, new Set());
-          mappingGraph.get(s)!.add(t);
-          mappingGraph.get(t)!.add(s);
-        });
-      }
-
-      const findEquivalentControlIds = (controlId: number) => {
-        const equivalents = new Set<number>([controlId]);
-        const queue = [controlId];
-        const visited = new Set<number>([controlId]);
-
-        while (queue.length > 0) {
-          const current = queue.shift()!;
-          const neighbors = mappingGraph.get(current);
-          if (neighbors) {
-            for (const neighbor of neighbors) {
-              if (!visited.has(neighbor)) {
-                visited.add(neighbor);
-                equivalents.add(neighbor);
-                queue.push(neighbor);
-              }
-            }
-          }
-        }
-        return equivalents;
-      };
-
       let filtered = clientControls.map(cc => {
         const masterControlId = cc.control?.id;
         if (!masterControlId) return { ...cc, evidence: [] };
 
-        // Find all equivalent master control IDs
-        const equivalentIds = findEquivalentControlIds(masterControlId);
-
-        // Collect all evidence items from ANY equivalent control
-        const evidence = evidenceList.filter(e => {
-          const evidenceMasterControlId = e.control?.id;
-          return evidenceMasterControlId && equivalentIds.has(evidenceMasterControlId);
-        }).map(e => ({
+        // Same master-control relation the control dialog uses.
+        const evidence = evidenceLinkedToControl(evidenceList, masterControlId, frameworkMappings).map(e => ({
           evidence: e, // Wrap to match UI expectations
           isInherited: e.control?.id !== masterControlId,
           sourceFramework: e.control?.framework,
@@ -239,14 +200,7 @@ export default function Evidence() {
     return Array.from(new Set(clientControls.map(cc => cc.control?.framework).filter(Boolean)));
   }, [clientControls]);
 
-  const getNextEvidenceId = () => {
-    if (!evidenceList || evidenceList.length === 0) return "EVD-001";
-    const maxNum = Math.max(...evidenceList.map(e => {
-      const match = (e.evidenceId as string)?.match(/EVD-(\d+)/);
-      return match ? parseInt(match[1]) : 0;
-    }));
-    return `EVD-${String(maxNum + 1).padStart(3, '0')}`;
-  };
+  const getNextEvidenceId = () => nextEvidenceId((evidenceList || []).map((item) => item.evidenceId));
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
