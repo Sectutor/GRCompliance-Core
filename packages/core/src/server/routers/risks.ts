@@ -1334,17 +1334,20 @@ ${reportData.conclusion}
                     .orderBy(desc(riskTreatments.createdAt));
                 if (treatments.length === 0) return [];
 
+                const treatmentIds: number[] = treatments.map((treatment: { id: number }) => treatment.id);
                 const links = await db.select()
                     .from(treatmentControls)
-                    .where(inArray(treatmentControls.treatmentId, treatments.map((treatment: { id: number }) => treatment.id)));
-                const clientControlIds = Array.from(new Set(links.map((link: { controlId: number }) => link.controlId)));
+                    .where(inArray(treatmentControls.treatmentId, treatmentIds));
+                const clientControlIds: number[] = Array.from(new Set<number>(
+                    (links as { controlId: number }[]).map((link) => link.controlId),
+                ));
                 const clientRows = clientControlIds.length === 0
                     ? []
                     : await db.select().from(clientControls).where(inArray(clientControls.id, clientControlIds));
-                const dictionaryIds = Array.from(new Set(
-                    clientRows
-                        .map((row: { controlId?: number | null }) => row.controlId)
-                        .filter((id: number | null | undefined): id is number => typeof id === "number"),
+                const dictionaryIds: number[] = Array.from(new Set<number>(
+                    (clientRows as { controlId?: number | null }[])
+                        .map((row) => row.controlId)
+                        .filter((id): id is number => typeof id === "number"),
                 ));
                 const dictionary = dictionaryIds.length === 0
                     ? []
