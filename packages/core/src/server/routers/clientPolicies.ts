@@ -4,12 +4,29 @@ import { clientPolicies, clientControls, controls, regulationMappings, notificat
 import { logActivity } from "../../lib/audit";
 import * as db from "../../db";
 import { getDb } from "../../db";
-import { policyGenerator } from "../../lib/policy/policy-generation";
+import { createdPolicyIsAiGenerated, policyGenerator } from "../../lib/policy/policy-generation";
 import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
 
+export const createClientPolicyInput = z.object({
+  clientId: z.number(),
+  templateId: z.number().optional(),
+  clientPolicyId: z.string().optional(),
+  name: z.string(),
+  content: z.string().optional(),
+  status: z.enum(["draft", "review", "approved", "archived"]).optional(),
+  owner: z.string().optional(),
+  version: z.number().optional(),
+  tailor: z.boolean().optional(),
+  instruction: z.string().optional(),
+  sections: z.array(z.string()).optional(),
+  module: z.enum(["general", "privacy", "cyber"]).optional().default("general"),
+  // isAiGenerated is not accepted from the client. The server sets it
+  // only when the language model returns the draft.
+  answers: z.record(z.any()).optional()
+});
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
   return t.router({
@@ -84,24 +101,10 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           .limit(50);
       }),
     create: clientEditorProcedure
-      .input(z.object({
-        clientId: z.number(),
-        templateId: z.number().optional(),
-        clientPolicyId: z.string().optional(),
-        name: z.string(),
-        content: z.string().optional(),
-        status: z.enum(["draft", "review", "approved", "archived"]).optional(),
-        owner: z.string().optional(),
-        version: z.number().optional(),
-        tailor: z.boolean().optional(),
-        instruction: z.string().optional(),
-        sections: z.array(z.string()).optional(),
-        module: z.enum(["general", "privacy", "cyber"]).optional().default("general"),
-        isAiGenerated: z.boolean().optional(),
-        answers: z.record(z.any()).optional()
-      }))
+      .input(createClientPolicyInput)
       .mutation(async ({ input, ctx }: any) => {
         const data = { ...input };
+        delete data.isAiGenerated;
 
         // Check Plan Limits
         const client = await db.getClientById(data.clientId);
@@ -124,33 +127,37 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           }
         }
 
-        // Auto-fill content from template if not provided
+        // Auto-fill content from template if not provided.
+        // isAiGenerated follows the model result, never the request body.
+        let generation: { aiGenerated: boolean } | null = null;
         if ((data.templateId || (data.sections && data.sections.length > 0)) && !data.content) {
           try {
             console.log(`[PolicyCreate] Starting generation for Client ${data.clientId}, Template ${data.templateId || 'from sections'}`);
             if (data.templateId) {
               console.log(`[PolicyCreate] Starting generation for template: ${data.templateId}, tailor: ${data.tailor}`);
               // Generate from Template
-              const generatedContent = await policyGenerator.generate(data.clientId, data.templateId, {
+              const generated = await policyGenerator.generate(data.clientId, data.templateId, {
                 tailorToIndustry: data.tailor,
                 customInstruction: data.instruction,
-                answers: data.answers
+                answers: data.answers,
+                policyName: data.name,
               });
-              data.content = generatedContent;
-              console.log(`[PolicyCreate] Generation from template complete. Content length: ${generatedContent?.length || 0}`);
+              data.content = generated.content;
+              generation = generated;
+              console.log(`[PolicyCreate] Generation from template complete. Content length: ${generated.content?.length || 0}, aiGenerated: ${generated.aiGenerated}`);
             } else if (data.sections && data.sections.length > 0) {
               console.log(`[PolicyCreate] Starting generation from sections for policy: ${data.name}, sections: ${data.sections.length}, tailor: ${data.tailor}`);
               // Generate from Blank with Sections
-              const generatedContent = await policyGenerator.generateFromSections(data.clientId, data.name, data.sections, {
+              const generated = await policyGenerator.generateFromSections(data.clientId, data.name, data.sections, {
                 tailorToIndustry: data.tailor,
                 customInstruction: data.instruction,
-                answers: data.answers
+                answers: data.answers,
+                policyName: data.name,
               });
-              data.content = generatedContent;
-              console.log(`[PolicyCreate] Generation from sections complete. Content length: ${generatedContent?.length || 0}`);
+              data.content = generated.content;
+              generation = generated;
+              console.log(`[PolicyCreate] Generation from sections complete. Content length: ${generated.content?.length || 0}, aiGenerated: ${generated.aiGenerated}`);
             }
-            // Mark as AI generated
-            (data as any).isAiGenerated = true;
             console.log(`[PolicyCreate] Generation complete. Length: ${data.content?.length || 0}`);
           } catch (e: any) {
             console.error("[PolicyCreate] Policy Generation CRITICAL FAILURE:", {
@@ -169,6 +176,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         } else {
           console.log(`[PolicyCreate] Skipping generation - content provided or no template/sections specified`);
         }
+        data.isAiGenerated = createdPolicyIsAiGenerated(generation);
 
         // Remove extra fields and map answers to tailoringAnswers
         const { tailor, instruction, sections, answers, ...insertData } = data;
