@@ -25,6 +25,7 @@ import { Loader2, Trash2 } from "lucide-react";
 import { Slot } from "@/registry";
 import { PageGuide } from "@/components/PageGuide";
 import { SlotNames } from "@/registry/slotNames";
+import { LIBRARY_CONTROL_STATUSES } from "@/lib/controlFilters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -97,6 +98,7 @@ export default function Controls() {
     frameworkParam ? [frameworkParam] : []
   );
   const [ownerFilter, setOwnerFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   // Other filters could be added here
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -138,7 +140,7 @@ export default function Controls() {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [frameworkFilter, debouncedSearchQuery, ownerFilter]);
+  }, [frameworkFilter, debouncedSearchQuery, ownerFilter, statusFilter]);
 
   // Handle framework parameter from URL
   useEffect(() => {
@@ -153,7 +155,8 @@ export default function Controls() {
     framework: frameworkFilter.length > 0 ? (frameworkFilter.includes("all") ? "all" : frameworkFilter) : "all",
     limit: pageSize,
     offset: page * pageSize,
-    search: debouncedSearchQuery
+    search: debouncedSearchQuery,
+    status: statusFilter
   }, {
     keepPreviousData: true
   });
@@ -508,15 +511,17 @@ export default function Controls() {
               filters={{
                 framework: frameworkFilter,
                 owner: ownerFilter,
-                status: [],
+                status: statusFilter,
                 risk: []
               }}
               onFilterChange={(type, value) => {
                 if (type === 'framework') setFrameworkFilter(value);
                 if (type === 'owner') setOwnerFilter(value);
+                if (type === 'status') setStatusFilter(value);
               }}
               availableFrameworks={availableFrameworks}
               availableOwners={Array.from(new Set(controls.map(c => c.owner).filter(Boolean))) as string[]}
+              availableStatuses={[...LIBRARY_CONTROL_STATUSES]}
             />
 
             {isLoading ? (
