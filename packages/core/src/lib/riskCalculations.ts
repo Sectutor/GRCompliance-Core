@@ -127,14 +127,37 @@ export function calculateResidualScore(
     inherentScore: number,
     controlEffectiveness: ControlEffectiveness
 ): number {
-    // Normalize the control effectiveness value
-    const normalizedEffectiveness = normalizeControlEffectiveness(controlEffectiveness);
-    const reduction = CONTROL_REDUCTION[normalizedEffectiveness] || 0;
-    
-    // Calculate residual score using percentage-based reduction (minimum of 1)
-    const result = Math.max(1, Math.round(inherentScore * (1 - reduction)));
-    
-    return result;
+    return calculateMultiControlResidualScore(inherentScore, [{ effectiveness: controlEffectiveness }]);
+}
+
+/** Combined control reduction never exceeds 90%, so residual risk cannot be wiped out. */
+export const RESIDUAL_REDUCTION_CAP = 0.90;
+
+export interface ResidualControlInput {
+    effectiveness?: string | null;
+}
+
+/**
+ * Residual score for one or more controls.
+ * Effective controls reduce the inherent score by 40% each.
+ * Partially effective controls reduce it by 20% each.
+ * Anything else, including ineffective, reduces it by nothing.
+ * The reductions are added, then capped at 90%. The result is at least 1.
+ * The wizard preview and recalculateRiskScore both call this.
+ */
+export function calculateMultiControlResidualScore(
+    inherentScore: number,
+    controls: ResidualControlInput[] | null | undefined,
+): number {
+    let totalReduction = 0;
+    for (const control of controls ?? []) {
+        const normalizedEffectiveness = normalizeControlEffectiveness(control?.effectiveness);
+        totalReduction += CONTROL_REDUCTION[normalizedEffectiveness] || 0;
+    }
+    totalReduction = Math.min(totalReduction, RESIDUAL_REDUCTION_CAP);
+    const score = Number(inherentScore);
+    if (!Number.isFinite(score)) return 1;
+    return Math.max(1, Math.round(score * (1 - totalReduction)));
 }
 
 /**

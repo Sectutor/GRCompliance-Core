@@ -13,7 +13,9 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { Slot, SlotNames } from "@/registry";
 import { Check, Link as LinkIcon, AlertTriangle, Shield, Building, Layers, ArrowRight, Wand2, Sparkles, Loader2, Info } from 'lucide-react';
-import { getRiskLevelColor, getMatrixScoreLevel, getRiskLevelTextColor, MATRIX_SCORE_BANDS } from '@/lib/riskCalculations';
+import { getRiskLevelColor, getMatrixScoreLevel, getRiskLevelTextColor, MATRIX_SCORE_BANDS, calculateMultiControlResidualScore } from '@/lib/riskCalculations';
+
+type ControlEffectivenessValue = 'effective' | 'partially_effective' | 'ineffective';
 import { RiskAppetiteCheck } from '@/components/risk/RiskAppetiteCheck';
 
 type WizardStep = 'method' | 'scope' | 'analysis' | 'treatment';
@@ -49,6 +51,7 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
         selectedControlIds: [] as number[],
         riskOwner: '',
         priority: 'Medium',
+        controlEffectiveness: {} as Record<number, ControlEffectivenessValue>,
     });
 
     // Mutations
@@ -70,18 +73,15 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
     // Computed
     const inherentScore = formData.likelihood * formData.impact;
 
+    const residualControls = formData.treatmentStrategy === 'mitigate'
+        ? formData.selectedControlIds.map((id) => ({
+            effectiveness: formData.controlEffectiveness[id] || 'effective',
+        }))
+        : [];
+
     const residualScore = useMemo(() => {
-        // Simple simulation: each control reduces risk by a factor (e.g. 20% or flat 1 point)
-        // For MPV, let's say each control reduces inherent score by 20% capped at 80% reduction
-        if (formData.treatmentStrategy !== 'mitigate') return inherentScore;
-
-        const controlCount = formData.selectedControlIds.length;
-        if (controlCount === 0) return inherentScore;
-
-        const reductionFactor = Math.min(controlCount * 0.2, 0.8);
-        const reduced = Math.max(1, Math.round(inherentScore * (1 - reductionFactor)));
-        return reduced;
-    }, [inherentScore, formData.selectedControlIds, formData.treatmentStrategy]);
+        return calculateMultiControlResidualScore(inherentScore, residualControls);
+    }, [inherentScore, formData.treatmentStrategy, formData.selectedControlIds, formData.controlEffectiveness]);
 
 
 
@@ -120,6 +120,7 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     selectedControlIds: initialData.contextSnapshot?.controlIds || initialData.controlIds || [],
                     riskOwner: initialData.riskOwner || '',
                     priority: initialData.priority || 'Medium',
+                    controlEffectiveness: initialData.contextSnapshot?.controlEffectiveness || {},
                 });
                 // If this is a new risk being created via a deep link/pre-fill, 
                 // skip the method selection and jump to scope definition
@@ -142,7 +143,8 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     treatmentStrategy: 'mitigate',
                     selectedControlIds: [],
                     riskOwner: '',
-                    priority: 'Medium'
+                    priority: 'Medium',
+                    controlEffectiveness: {},
                 });
                 setStep('method');
             }
@@ -165,21 +167,34 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
         setLoading(true);
         try {
             // 1. Upsert Risk Assessment
-            const risk = await upsertRiskMutation.mutateAsync({
+            const selectedControls = formData.treatmentStrategy === 'mitigate'
+                ? formData.selectedControlIds.map((id) => ({
+                    controlId: id,
+                    effectiveness: formData.controlEffectiveness[id] || 'effective' as ControlEffectivenessValue,
+                }))
+                : [];
+            const savedResidual = calculateMultiControlResidualScore(
+                formData.likelihood * formData.impact,
+                selectedControls,
+            );
+            const savedLevel = getMatrixScoreLevel(savedResidual);
+            const previousSnapshot = initialData?.contextSnapshot && typeof initialData.contextSnapshot === 'object'
+                ? initialData.contextSnapshot
+                : {};
+            const payload: Record<string, unknown> = {
                 id: initialData?.id,
                 clientId,
                 title: formData.title,
                 likelihood: formData.likelihood,
                 impact: formData.impact,
-                status: 'draft',
-                // New Fields
                 riskOwner: formData.riskOwner,
                 treatmentOption: formData.treatmentStrategy,
                 priority: formData.priority,
-                residualScore: residualScore,
-                residualRisk: getMatrixScoreLevel(residualScore),
-                threatDescription: formData.description, // Save description to threatDescription column
+                residualScore: savedResidual,
+                residualRisk: savedLevel,
+                threatDescription: formData.description,
                 contextSnapshot: {
+                    ...previousSnapshot,
                     assessmentType: formData.assessmentType,
                     assetId: formData.assetId,
                     processId: formData.processId,
@@ -189,17 +204,19 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     vulnerability: formData.vulnerability,
                     threatIds: formData.threatIds,
                     vulnerabilityIds: formData.vulnerabilityIds,
-                    controlIds: formData.selectedControlIds, // Persist selected controls
-                    // Include new fields in snapshot too for redundancy/ease
+                    controlIds: formData.selectedControlIds,
+                    controlEffectiveness: Object.fromEntries(selectedControls.map((control) => [control.controlId, control.effectiveness])),
                     riskOwner: formData.riskOwner,
                     treatmentStrategy: formData.treatmentStrategy,
                     priority: formData.priority,
-                    residualScore: residualScore,
-                    residualRisk: getMatrixScoreLevel(residualScore)
-                }
-            });
+                    residualScore: savedResidual,
+                    residualRisk: savedLevel,
+                },
+            };
+            if (!initialData?.id) payload.status = 'draft';
 
-            // 2. Link Controls / Save Treatment Plan
+            const risk = await upsertRiskMutation.mutateAsync(payload as any);
+
             if (formData.treatmentStrategy) {
                 await saveTreatmentMutation.mutateAsync({
                     riskAssessmentId: risk.id,
@@ -207,7 +224,8 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                     treatmentType: formData.treatmentStrategy as any,
                     strategy: formData.description || 'Mitigation via selected controls',
                     owner: formData.riskOwner,
-                    controlIds: formData.selectedControlIds
+                    controlIds: selectedControls.map((control) => control.controlId),
+                    controls: selectedControls,
                 });
             }
 
@@ -580,6 +598,28 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                                                             {c.control?.description || c.description}
                                                         </div>
                                                     </div>
+                                                    {isSelected && (
+                                                        <select
+                                                            aria-label={`Effectiveness of ${c.control?.name || c.name || 'control'}`}
+                                                            className="text-xs border rounded px-1 py-0.5 bg-white"
+                                                            value={formData.controlEffectiveness[controlId] || 'effective'}
+                                                            onClick={(event) => event.stopPropagation()}
+                                                            onChange={(event) => {
+                                                                event.stopPropagation();
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    controlEffectiveness: {
+                                                                        ...formData.controlEffectiveness,
+                                                                        [controlId]: event.target.value as ControlEffectivenessValue,
+                                                                    },
+                                                                });
+                                                            }}
+                                                        >
+                                                            <option value="effective">Effective</option>
+                                                            <option value="partially_effective">Partially effective</option>
+                                                            <option value="ineffective">Ineffective</option>
+                                                        </select>
+                                                    )}
                                                 </div>
                                             );
                                         }) || <div className="text-sm text-gray-400 p-2">No controls found.</div>}

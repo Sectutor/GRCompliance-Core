@@ -16,6 +16,7 @@ import { llmService } from "../../lib/llm/service";
 import { generateRiskReportDocx } from "../../riskExportProfessional";
 import { recalculateRiskScore } from "../services/riskService";
 import { allocateRiskAssessmentId, withUniqueAssessmentIdRetry } from "../services/riskAssessmentIds";
+import { riskAssessmentUpdatePatch } from "../services/riskAssessmentWrite";
 
 /**
  * Bind a risk row to the workspace that owns it.
@@ -738,10 +739,10 @@ ${reportData.conclusion}
                             throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
                         }
                         await assertRiskRowWorkspace(tx, ctx, existing.clientId, input.clientId);
-                        data.clientId = existing.clientId;
+                        const patch = riskAssessmentUpdatePatch(input, existing);
 
                         const [updated] = await tx.update(riskAssessments)
-                            .set(data)
+                            .set(patch)
                             .where(and(
                                 eq(riskAssessments.id, input.id),
                                 eq(riskAssessments.clientId, existing.clientId),
@@ -751,7 +752,7 @@ ${reportData.conclusion}
                             throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
                         }
 
-                        await logActivity({ userId: ctx.user.id, clientId: existing.clientId, action: "update", entityType: "risk", entityId: updated.id, details: { title: updated.title, changes: data } }, tx);
+                        await logActivity({ userId: ctx.user.id, clientId: existing.clientId, action: "update", entityType: "risk", entityId: updated.id, details: { title: updated.title, changes: patch } }, tx);
                         return { id: updated.id, success: true };
                     });
                 }
@@ -1612,6 +1613,10 @@ Example format:
                 owner: z.string().optional(),
                 controlIds: z.array(z.number()).optional(),
                 effectiveness: z.enum(['effective', 'partially_effective', 'ineffective']).optional(),
+                controls: z.array(z.object({
+                    controlId: z.number(),
+                    effectiveness: z.enum(['effective', 'partially_effective', 'ineffective']).optional(),
+                })).optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
                 if (ctx.clientRole === 'viewer') throw new TRPCError({ code: 'FORBIDDEN' });
@@ -1668,17 +1673,23 @@ Example format:
                             .returning();
                     }
 
-                    // 2. Clear old links if any? Or just add new ones?
-                    if (input.controlIds) {
-                        // Delete existing links for this treatment
+                    // 2. Replace linked controls when the caller sent a selection.
+                    // Each control keeps the effectiveness it was given. A bare id list
+                    // still uses the single effectiveness field, defaulting to effective.
+                    const selectedControls = Array.isArray(input.controls)
+                        ? input.controls
+                        : (input.controlIds || []).map((cid: number) => ({
+                            controlId: cid,
+                            effectiveness: input.effectiveness || 'effective',
+                        }));
+                    if (input.controlIds || input.controls) {
                         await tx.delete(treatmentControls).where(eq(treatmentControls.treatmentId, treatment.id));
 
-                        // Insert new ones
-                        const toInsert = input.controlIds.map((cid: number) => ({
+                        const toInsert = selectedControls.map((control: { controlId: number; effectiveness?: string }) => ({
                             clientId: assessment.clientId,
                             treatmentId: treatment.id,
-                            controlId: cid,
-                            effectiveness: input.effectiveness || 'effective'
+                            controlId: control.controlId,
+                            effectiveness: control.effectiveness || input.effectiveness || 'effective'
                         }));
 
                         if (toInsert.length > 0) {
