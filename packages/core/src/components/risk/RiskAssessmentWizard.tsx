@@ -13,7 +13,7 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { Slot, SlotNames } from "@/registry";
 import { Check, Link as LinkIcon, AlertTriangle, Shield, Building, Layers, ArrowRight, Wand2, Sparkles, Loader2, Info } from 'lucide-react';
-import { calculateResidualScore, getRiskLevelColor, scoreToRiskLevel, getMatrixScoreLevel, getRiskLevelTextColor } from '@/lib/riskCalculations';
+import { getRiskLevelColor, getMatrixScoreLevel, getRiskLevelTextColor, MATRIX_SCORE_BANDS } from '@/lib/riskCalculations';
 import { RiskAppetiteCheck } from '@/components/risk/RiskAppetiteCheck';
 
 type WizardStep = 'method' | 'scope' | 'analysis' | 'treatment';
@@ -377,11 +377,12 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
                                         <span className="font-mono bg-slate-200 px-1 py-0.5 rounded text-[10px]">Likelihood (1-5) × Impact (1-5) = Risk Score</span>
                                     </p>
                                     <div className="grid grid-cols-2 gap-x-2 text-[10px] text-slate-500 font-medium pt-1">
-                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-red-800" /> 20-25: Critical</div>
-                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-red-600" /> 15-19: Very High</div>
-                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> 8-14: High</div>
-                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> 4-7: Medium</div>
-                                        <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-600" /> 1-3: Low</div>
+                                        {MATRIX_SCORE_BANDS.map((band) => (
+                                            <div key={band.level} className="flex items-center gap-1">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${BAND_DOT[band.level]}`} />
+                                                {band.min}-{band.max}: {band.level}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -620,6 +621,14 @@ function MethodCard({ icon: Icon, title, description, selected, onClick }: any) 
         </div>
     );
 }
+
+const BAND_DOT: Record<string, string> = {
+    Critical: 'bg-red-800',
+    'Very High': 'bg-red-600',
+    High: 'bg-orange-500',
+    Medium: 'bg-amber-500',
+    Low: 'bg-emerald-600',
+};
 
 function RiskBadge({ score }: { score: number }) {
     const level = getMatrixScoreLevel(score);

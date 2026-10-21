@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
-import { scoreToRiskLevel, getRiskLevelColor } from '@/lib/riskCalculations';
+import { getMatrixScoreLevel } from '@/lib/riskCalculations';
 
 interface RiskAppetiteCheckProps {
     inherentScore: number;
@@ -14,8 +14,8 @@ export function RiskAppetiteCheck({
     residualScore,
     appetiteThreshold = 10
 }: RiskAppetiteCheckProps) {
-    const inherentLevel = scoreToRiskLevel(inherentScore);
-    const residualLevel = scoreToRiskLevel(residualScore);
+    const inherentLevel = getMatrixScoreLevel(inherentScore);
+    const residualLevel = getMatrixScoreLevel(residualScore);
 
     const inherentExceedsAppetite = inherentScore > appetiteThreshold;
     const residualExceedsAppetite = residualScore > appetiteThreshold;
