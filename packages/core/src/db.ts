@@ -2341,6 +2341,9 @@ export async function getEvidence(clientId: number, systemId?: string) {
     description: evidence.description,
     framework: evidence.framework,
     status: evidence.status,
+    type: evidence.type,
+    location: evidence.location,
+    owner: evidence.owner,
     lastVerified: evidence.lastVerified,
     // Include full objects for joined tables if needed, or specific fields
     clientControl: clientControls,

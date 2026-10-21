@@ -7,6 +7,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
+import { resolveEvidenceId } from "../../lib/evidenceId";
 import { recalculateRiskScore } from "../services/riskService";
 
 // Shared Framework Seed Data
@@ -115,8 +116,13 @@ export const createEvidenceRouter = (
                     evidenceId: r.evidenceId,
                     description: r.description,
                     status: r.status,
+                    type: r.type,
+                    location: r.location,
+                    owner: r.owner,
                     lastVerified: r.lastVerified,
+                    // Master control joined the same way the Evidence page matches chips.
                     control: r.control,
+                    clientControlId: r.clientControl?.id ?? null,
                     fileCount: r.fileCount,
                     // Map missing fields expected by frontend
                     framework: r.framework,
@@ -184,7 +190,7 @@ export const createEvidenceRouter = (
             .input(z.object({
                 clientId: z.number(),
                 clientControlId: z.number(),
-                evidenceId: z.string(),
+                evidenceId: z.string().optional(),
                 description: z.string().optional(),
                 type: z.string().optional(),
                 status: z.string().optional(),
@@ -193,8 +199,16 @@ export const createEvidenceRouter = (
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
+                const existing = await dbConn.select({ evidenceId: schema.evidence.evidenceId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.clientId, input.clientId));
+                const evidenceId = resolveEvidenceId(
+                    existing.map((row: { evidenceId: string }) => row.evidenceId),
+                    input.evidenceId
+                );
                 const [newEvidence] = await dbConn.insert(schema.evidence).values({
                     ...input,
+                    evidenceId,
                     createdAt: new Date(),
                     updatedAt: new Date()
                 } as any).returning();

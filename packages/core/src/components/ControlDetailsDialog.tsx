@@ -19,7 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 
 import { trpc } from "@/lib/trpc";
-import { useState, useEffect } from "react";
+import { nextEvidenceId } from "@/lib/evidenceId";
+import { evidenceLinkedToControl } from "@/lib/evidenceLink";
+import { readableMutationError } from "@/lib/readableError";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { FileText, Upload, Trash2, Download, Calendar, User, ClipboardList, MessageSquare } from "lucide-react";
 import { CommentsSection } from "@/components/CommentsSection";
@@ -39,6 +42,7 @@ interface ControlDetailsDialogProps {
     evidenceLocation: string | null;
   };
   control: {
+    id?: number;
     name: string;
     description: string | null;
     framework: string;
@@ -74,18 +78,21 @@ export default function ControlDetailsDialog({
   const [evidenceLocation, setEvidenceLocation] = useState(clientControl.evidenceLocation || "");
   const [deleteEvidenceId, setDeleteEvidenceId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<'responsible' | 'accountable' | 'consulted' | 'informed' | null>(null);
+  const evidenceFormRef = useRef<HTMLFormElement>(null);
 
   const utils = trpc.useUtils();
 
   // Get workspace members
   const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId });
 
-  // Get evidence for this control
+  // Same evidence.list relation the Evidence page uses (master control, plus equivalents).
   const { data: allEvidence, refetch: refetchEvidence } = trpc.evidence.list.useQuery({
     clientId
   });
-  // Filter evidence for this specific control
-  const evidenceList = allEvidence?.filter(item => item.evidence?.clientControlId === clientControl.id);
+  const { data: frameworkMappings } = trpc.compliance.frameworkMappings.list.useQuery({});
+  const evidenceList = control?.id
+    ? evidenceLinkedToControl(allEvidence, control.id, frameworkMappings)
+    : (allEvidence || []).filter((item) => item.clientControlId === clientControl.id);
 
   // Get RACI assignments for this control
   const { data: raciSummary, refetch: refetchRaci } = trpc.taskAssignments.summary.useQuery({
@@ -122,10 +129,9 @@ export default function ControlDetailsDialog({
     onSuccess: () => {
       toast.success("Evidence added");
       refetchEvidence();
-      (document.getElementById("description") as HTMLInputElement).value = "";
-      (document.getElementById("location") as HTMLInputElement).value = "";
+      evidenceFormRef.current?.reset();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(readableMutationError(error)),
   });
 
   const deleteEvidenceMutation = trpc.evidence.delete.useMutation({
@@ -218,15 +224,20 @@ export default function ControlDetailsDialog({
   const handleAddEvidence = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const description = String(formData.get("description") || "").trim();
+    if (!description) {
+      toast.error("Description is required");
+      return;
+    }
     createEvidenceMutation.mutate({
       clientId,
       clientControlId: clientControl.id,
-      description: formData.get("description") as string,
-      type: formData.get("type") as string,
-      location: formData.get("location") as string,
-      owner: formData.get("evidenceOwner") as string,
+      evidenceId: nextEvidenceId((allEvidence || []).map((item) => item.evidenceId)),
+      description,
+      type: (formData.get("type") as string) || "Document",
+      location: (formData.get("location") as string) || undefined,
+      owner: (formData.get("evidenceOwner") as string) || undefined,
     });
-    e.currentTarget.reset();
   };
 
   return (
@@ -597,7 +608,7 @@ export default function ControlDetailsDialog({
                 <CardTitle className="text-sm">Upload Evidence</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <form onSubmit={handleAddEvidence} className="space-y-4">
+                <form ref={evidenceFormRef} onSubmit={handleAddEvidence} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="description">Description *</Label>
@@ -664,21 +675,24 @@ export default function ControlDetailsDialog({
             {evidenceList && evidenceList.length > 0 ? (
               <div className="space-y-2">
                 {evidenceList.map((item) => (
-                  <Card key={item.evidence.id}>
+                  <Card key={item.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{item.evidence.description}</span>
-                            <span className="text-xs px-2 py-0.5 bg-muted rounded">
-                              {item.evidence.type}
-                            </span>
+                            <span className="font-medium">{item.description || item.evidenceId}</span>
+                            {item.type && (
+                              <span className="text-xs px-2 py-0.5 bg-muted rounded">
+                                {item.type}
+                              </span>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                            {item.evidence.location && (
+                            <span className="font-mono text-xs">{item.evidenceId}</span>
+                            {item.location && (
                               <a
-                                href={item.evidence.location}
+                                href={item.location}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1 text-primary hover:underline"
@@ -687,16 +701,16 @@ export default function ControlDetailsDialog({
                                 View
                               </a>
                             )}
-                            {item.evidence.owner && (
+                            {item.owner && (
                               <span className="flex items-center gap-1">
                                 <User className="h-3 w-3" />
-                                {item.evidence.owner}
+                                {item.owner}
                               </span>
                             )}
-                            {item.evidence.lastVerified && (
+                            {item.lastVerified && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                Verified: {new Date(item.evidence.lastVerified).toLocaleDateString()}
+                                Verified: {new Date(item.lastVerified).toLocaleDateString()}
                               </span>
                             )}
                           </div>
@@ -705,7 +719,7 @@ export default function ControlDetailsDialog({
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteEvidenceId(item.evidence.id)}
+                          onClick={() => setDeleteEvidenceId(item.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
