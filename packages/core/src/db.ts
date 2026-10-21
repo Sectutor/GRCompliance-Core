@@ -6,6 +6,7 @@ import postgres from "postgres";
 import { encrypt } from "./lib/crypto";
 import { getSecret } from "./lib/secrets";
 import { policyCoverage, postureScore } from "./lib/postureScore";
+import { getMatrixScoreLevel } from "./lib/riskCalculations";
 
 import {
 
@@ -2813,7 +2814,6 @@ async function seedRiskModule(clientId: number) {
     // 4. Fictional assessments for the demo workspace. Residual likelihood and impact
     // are stored on the assessment and in contextSnapshot so the heat map can plot them.
     const year = new Date().getFullYear();
-    const level = (score: number) => score >= 15 ? "High" : score >= 8 ? "High" : score >= 4 ? "Medium" : "Low";
     const demoRisks = [
       { n: 1, title: "Unauthorized access to the client file store", description: "A stolen staff credential could expose customer proposals stored in the file share.", l: 4, i: 5, rl: 2, ri: 3, owner: "Priya Shah", treatment: "Mitigate", status: "approved" },
       { n: 2, title: "Ransomware on the document system", description: "Malware delivered by email could encrypt the document management system.", l: 3, i: 5, rl: 2, ri: 4, owner: "Jordan Hale", treatment: "Mitigate", status: "reviewed" },
@@ -2838,9 +2838,9 @@ async function seedRiskModule(clientId: number) {
         likelihood: String(risk.l),
         impact: String(risk.i),
         inherentScore,
-        inherentRisk: level(inherentScore),
+        inherentRisk: getMatrixScoreLevel(inherentScore),
         residualScore,
-        residualRisk: level(residualScore),
+        residualRisk: getMatrixScoreLevel(residualScore),
         riskOwner: risk.owner,
         treatmentOption: risk.treatment,
         threatId: risk.n === 1 ? threat.id : undefined,
@@ -2849,7 +2849,7 @@ async function seedRiskModule(clientId: number) {
           description: risk.description,
           residualLikelihood: String(risk.rl),
           residualImpact: String(risk.ri),
-          residualRisk: level(residualScore),
+          residualRisk: getMatrixScoreLevel(residualScore),
           treatmentStrategy: risk.treatment,
           riskOwner: risk.owner,
           assetId: risk.n === 1 ? asset.id : undefined,

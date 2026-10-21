@@ -252,16 +252,16 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
 
                 const orgName = client?.name || "the Organization";
 
-                // Calculate Stats for AI Context using strictly verified score buckets
+                // Bands come from getMatrixScoreLevel: Critical 20-25, Very High 15-19, High 8-14.
                 const totalRisks = assessments.length;
-                const criticalRisksList = assessments.filter((r: any) => (typeof r.inherentScore === 'number' ? r.inherentScore : 0) >= 15);
-                const highRisksList = assessments.filter((r: any) => {
-                    const s = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
-                    return s === 8 || s === 9;
-                });
+                const levelOf = (assessment: any) => getMatrixScoreLevel(typeof assessment.inherentScore === 'number' ? assessment.inherentScore : 0);
+                const criticalRisksList = assessments.filter((r: any) => levelOf(r) === 'Critical');
+                const veryHighRisksList = assessments.filter((r: any) => levelOf(r) === 'Very High');
+                const highRisksList = assessments.filter((r: any) => levelOf(r) === 'High');
 
-                const criticalCount = criticalRisksList.length; // Target 8
-                const highCount = highRisksList.length; // Target 92
+                const criticalCount = criticalRisksList.length;
+                const veryHighCount = veryHighRisksList.length;
+                const highCount = highRisksList.length;
                 const approvedRisks = assessments.filter((r: any) => r.status === 'approved').length;
                 const draftRisks = assessments.filter((r: any) => r.status === 'draft').length;
 
@@ -280,8 +280,8 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
                         title: r.title,
                         inherentScore: inherent,
                         residualScore: residual,
-                        inherentLevel: inherent >= 15 ? 'Critical/Very High' : r.inherentRisk,
-                        residualLevel: r.residualRisk || (inherent >= 15 ? 'Critical/Very High' : r.inherentRisk),
+                        inherentLevel: getMatrixScoreLevel(inherent),
+                        residualLevel: typeof r.residualScore === 'number' ? getMatrixScoreLevel(r.residualScore) : (r.residualRisk || getMatrixScoreLevel(inherent)),
                         status: r.status,
                         owner: r.riskOwner,
                         treatment: r.treatmentOption
@@ -298,8 +298,9 @@ IMPORTANT: You must use the specific metrics provided in the context to back up 
 
 CONTEXT & METRICS (Use these exact numbers in your analysis):
 - Total Risks Identified: ${totalRisks}
-- Critical/Very High Risks (Score 15+): ${criticalCount}
-- High Priority Risks (Score 8-9): ${highCount}
+- Critical Risks (score 20-25): ${criticalCount}
+- Very High Risks (score 15-19): ${veryHighCount}
+- High Risks (score 8-14): ${highCount}
 - Approval Status: ${approvedRisks} Approved, ${draftRisks} Draft
 
 DATASET SUMMARY (Prioritized by Score):
@@ -309,8 +310,8 @@ REPORT REQUIREMENTS:
 Return a JSON object with these EXACT keys (values MUST be Markdown strings):
 1. "title": "Strategic Risk Management Analysis for ${orgName} (${new Date().toLocaleString()})"
 2. "executiveSummary": Strategic overview. YOU MUST EXPLICITLY MENTION the total (${totalRisks}) and especially the ${criticalCount} critical risks. Use Markdown.
-3. "keyFindings": YOU MUST LIST AND ANALYZE ALL ${criticalCount} CRITICAL/VERY HIGH RISKS INDIVIDUALLY. For EACH risk, you MUST explicitly state the Inherent Risk Score and the Residual Risk Score. Use their specific IDs and professional English business names. Format as Markdown lists/headings.
-4. "recommendations": Strategic steps for the ${criticalCount} critical risks and the broader high-risk landscape. Format as Markdown.
+3. "keyFindings": YOU MUST LIST AND ANALYZE ALL ${criticalCount} CRITICAL RISKS AND ALL ${veryHighCount} VERY HIGH RISKS INDIVIDUALLY. For EACH risk, you MUST explicitly state the Inherent Risk Score and the Residual Risk Score. Use their specific IDs and professional English business names. Format as Markdown lists/headings.
+4. "recommendations": Strategic steps for the ${criticalCount} critical risks, the ${veryHighCount} very high risks, and the broader high-risk landscape. Format as Markdown.
 5. "conclusion": Forward-looking summary. Markdown string.
 6. "methodology": AI-driven quantitative and qualitative risk analysis. Markdown string.`;
 

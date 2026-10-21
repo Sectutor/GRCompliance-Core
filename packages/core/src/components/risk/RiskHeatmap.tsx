@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@complianceos/ui/ui/tooltip';
 import { Button } from '@complianceos/ui/ui/button';
+import { getMatrixScoreLevel } from '@/lib/riskCalculations';
 
 interface RiskHeatmapProps {
     assessments: any[];
@@ -64,11 +65,18 @@ export function RiskHeatmap({ assessments = [], onFilterChange, activeFilter, ty
     }, [assessments, type]);
 
     const getCellColor = (l: number, i: number) => {
-        const score = l * i;
-        if (score >= 15) return 'bg-red-500 hover:bg-red-600 text-white';
-        if (score >= 8) return 'bg-orange-500 hover:bg-orange-600 text-white';
-        if (score >= 4) return 'bg-yellow-400 hover:bg-yellow-500 text-black';
-        return 'bg-green-400 hover:bg-green-500 text-black';
+        switch (getMatrixScoreLevel(l * i)) {
+            case 'Critical':
+                return 'bg-red-800 hover:bg-red-900 text-white';
+            case 'Very High':
+                return 'bg-red-500 hover:bg-red-600 text-white';
+            case 'High':
+                return 'bg-orange-500 hover:bg-orange-600 text-white';
+            case 'Medium':
+                return 'bg-yellow-400 hover:bg-yellow-500 text-black';
+            default:
+                return 'bg-green-400 hover:bg-green-500 text-black';
+        }
     };
 
     const handleCellClick = (l: number, i: number) => {

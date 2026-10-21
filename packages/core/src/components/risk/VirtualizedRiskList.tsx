@@ -2,7 +2,7 @@ import React from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
-import { scoreToRiskLevel, getRiskLevelColor } from '@/lib/riskCalculations';
+import { getMatrixScoreLevel, getRiskLevelColor } from '@/lib/riskCalculations';
 
 interface RiskItem {
     id: number;
@@ -64,8 +64,8 @@ export function VirtualizedRiskList({ items, onItemClick, height = 400 }: Virtua
                     >
                         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                             const item = items[virtualRow.index];
-                            const inherentLevel = item.inherentScore ? scoreToRiskLevel(item.inherentScore) : '';
-                            const residualLevel = item.residualScore ? scoreToRiskLevel(item.residualScore) : '';
+                            const inherentLevel = item.inherentScore ? getMatrixScoreLevel(item.inherentScore) : '';
+                            const residualLevel = item.residualScore ? getMatrixScoreLevel(item.residualScore) : '';
 
                             return (
                                 <div

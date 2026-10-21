@@ -65,7 +65,8 @@ export function parseLikelihoodImpact(value: string | number | null | undefined)
 }
 
 /**
- * Convert numeric score back to risk level
+ * Convert a 1-5 axis score back to a risk level.
+ * Do not call this with a 1-25 matrix product; use getMatrixScoreLevel.
  */
 export function scoreToRiskLevel(score: number): RiskLevel {
     if (score <= 1) return 'Low';
@@ -76,14 +77,25 @@ export function scoreToRiskLevel(score: number): RiskLevel {
 }
 
 /**
- * Convert 1-25 matrix score to risk level (5-point scale)
+ * Bands for a 1-25 likelihood × impact score.
+ * High starts at 8. Critical starts at 20.
+ * This list is the only band table. UI legends and stored words call getMatrixScoreLevel.
+ */
+export const MATRIX_SCORE_BANDS: readonly { min: number; max: number; level: RiskLevel }[] = [
+    { min: 20, max: 25, level: 'Critical' },
+    { min: 15, max: 19, level: 'Very High' },
+    { min: 8, max: 14, level: 'High' },
+    { min: 4, max: 7, level: 'Medium' },
+    { min: 1, max: 3, level: 'Low' },
+];
+
+/**
+ * Convert a 1-25 matrix score to a risk level.
+ * Scores above 25 stay Critical. Scores below 1 stay Low.
  */
 export function getMatrixScoreLevel(score: number): RiskLevel {
-    if (score >= 20) return 'Critical';
-    if (score >= 15) return 'Very High';
-    if (score >= 9) return 'High'; // Was 8, but Score 9 is the target for High
-    if (score >= 4) return 'Medium';
-    return 'Low';
+    const band = MATRIX_SCORE_BANDS.find((item) => score >= item.min);
+    return band?.level ?? 'Low';
 }
 
 /**

@@ -6,7 +6,7 @@ import { threatModels, threatModelComponents, riskScenarios, devProjects, riskTr
 import { eq, and, desc, or } from "drizzle-orm";
 import { logActivity } from "../../lib/audit";
 
-import { calculateResidualScore, scoreToRiskLevel } from "../../lib/riskCalculations";
+import { getMatrixScoreLevel } from "../../lib/riskCalculations";
 
 // Basic STRIDE mapping logic
 const STRIDE_MAPPING: Record<string, any[]> = {
@@ -1240,7 +1240,7 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
 
                 for (const risk of input.risks) {
                     const inherentScore = risk.likelihood * risk.impact;
-                    const inherentRisk = scoreToRiskLevel(inherentScore);
+                    const inherentRisk = getMatrixScoreLevel(inherentScore);
 
                     // 1. Create Risk Scenario (Project Level)
                     const [savedScenario] = await db.insert(riskScenarios).values({
