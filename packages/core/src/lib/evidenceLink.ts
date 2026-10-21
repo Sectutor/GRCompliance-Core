@@ -4,7 +4,11 @@ export type ControlMappingEdge = {
 };
 
 export type LinkedEvidence = {
-    control?: { id?: number | null } | null;
+    control?: {
+        id?: number | null;
+        framework?: string | null;
+        controlId?: string | null;
+    } | null;
 };
 
 /**
