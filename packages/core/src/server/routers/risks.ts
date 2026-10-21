@@ -15,6 +15,7 @@ import { logActivity } from "../../lib/audit";
 import { llmService } from "../../lib/llm/service";
 import { generateRiskReportDocx } from "../../riskExportProfessional";
 import { recalculateRiskScore } from "../services/riskService";
+import { allocateRiskAssessmentId, withUniqueAssessmentIdRetry } from "../services/riskAssessmentIds";
 
 /**
  * Bind a risk row to the workspace that owns it.
@@ -755,15 +756,15 @@ ${reportData.conclusion}
                 }
 
                 await assertRiskRowWorkspace(db, ctx, input.clientId, input.clientId);
-                return await db.transaction(async (tx: any) => {
-                    data.assessmentId = `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`;
+                return await withUniqueAssessmentIdRetry(() => db.transaction(async (tx: any) => {
+                    data.assessmentId = await allocateRiskAssessmentId(tx, Number(input.clientId));
                     const [created] = await tx.insert(riskAssessments)
                         .values(data)
                         .returning();
 
                     await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: created.id, details: { title: created.title } }, tx);
                     return { id: created.id, success: true };
-                });
+                }));
             }),
 
         // Delete Risk
@@ -1221,24 +1222,27 @@ ${reportData.conclusion}
                 const inherentScore = likelihood * impact;
                 const inherentRisk = getMatrixScoreLevel(inherentScore);
 
-                const [assessment] = await db.insert(riskAssessments)
-                    .values({
-                        clientId: input.clientId,
-                        title: input.title,
-                        threatId: input.threatId,
-                        vulnerabilityId: input.vulnerabilityId,
-                        assessmentId: `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
-                        likelihood: String(likelihood),
-                        impact: String(impact),
-                        inherentScore,
-                        inherentRisk,
-                        status: input.status,
-                        contextSnapshot: input.contextSnapshot,
-                    })
-                    .returning();
+                return await withUniqueAssessmentIdRetry(() => db.transaction(async (tx: any) => {
+                    const assessmentId = await allocateRiskAssessmentId(tx, Number(input.clientId));
+                    const [assessment] = await tx.insert(riskAssessments)
+                        .values({
+                            clientId: input.clientId,
+                            title: input.title,
+                            threatId: input.threatId,
+                            vulnerabilityId: input.vulnerabilityId,
+                            assessmentId,
+                            likelihood: String(likelihood),
+                            impact: String(impact),
+                            inherentScore,
+                            inherentRisk,
+                            status: input.status,
+                            contextSnapshot: input.contextSnapshot,
+                        })
+                        .returning();
 
-                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: assessment.id, details: { title: assessment.title } });
-                return assessment;
+                    await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: assessment.id, details: { title: assessment.title } }, tx);
+                    return assessment;
+                }));
             }),
 
         updateRiskAssessment: procedure

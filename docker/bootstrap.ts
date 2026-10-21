@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { hashPassword } from '../packages/core/src/server/localAuth';
 import { ensureDefaultDataSeeded, getDb, getUserByEmail, seedSampleData } from '../packages/core/src/db';
+import { ensureRiskAssessmentIdUniqueIndex } from '../packages/core/src/server/services/riskAssessmentIdIndex';
 import { users } from '../packages/core/src/schema';
 
 function sslOption(databaseUrl: string) {
@@ -99,6 +100,12 @@ async function main() {
     }
     await applySchema(databaseUrl);
     await ensureDefaultDataSeeded();
+    // Schema changes on an existing database have to happen here. Drizzle
+    // migrations are not applied on boot, and schema.sql runs only when
+    // public.users is missing. If #6 lands first, keep this call beside
+    // ensureDefaultDataSeeded(); that PR inserts its own call on the line above.
+    const db = await getDb();
+    await ensureRiskAssessmentIdUniqueIndex(db);
     await ensureLocalCredentialsTable();
     if (process.env.AUTH_MODE === 'local') {
         const user = await ensureAdmin();
