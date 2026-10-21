@@ -23,8 +23,8 @@ import { createEvidenceRouter } from "./evidence";
 function procedure() {
     const chain: any = {
         input: () => chain,
-        query: (handler: any) => handler,
-        mutation: (handler: any) => handler,
+        query: (handler: any) => (input: any) => handler({ input }),
+        mutation: (handler: any) => (input: any) => handler({ input }),
     };
     return chain;
 }

@@ -3,7 +3,7 @@ export type ControlMappingEdge = {
     targetControlId?: number | null;
 };
 
-export type LinkedEvidence<T = unknown> = T & {
+export type LinkedEvidence = {
     control?: { id?: number | null } | null;
 };
 
@@ -43,11 +43,11 @@ export function equivalentControlIds(
     return equivalents;
 }
 
-export function evidenceLinkedToControl<T>(
-    evidence: Array<LinkedEvidence<T>> | null | undefined,
+export function evidenceLinkedToControl<T extends LinkedEvidence>(
+    evidence: T[] | null | undefined,
     masterControlId: number | null | undefined,
     mappings: ControlMappingEdge[] | null | undefined
-): Array<LinkedEvidence<T>> {
+): T[] {
     if (!evidence || masterControlId == null) return [];
     const ids = equivalentControlIds(masterControlId, mappings);
     return evidence.filter((item) => {
