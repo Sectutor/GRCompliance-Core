@@ -29,6 +29,7 @@ import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrate
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
 import { logActivity } from "./lib/audit";
 import { postureScore } from "./lib/postureScore";
+import { evidenceRequestScope } from "./lib/evidenceRequestScope";
 import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
@@ -2161,6 +2162,10 @@ ONLY return the JSON. No Markdown formatting.
       }))
       .query(async ({ input }) => {
         const dbConn = await getDb();
+        const scope = evidenceRequestScope(input);
+        const filters = [];
+        if (scope.clientId !== undefined) filters.push(eq(evidenceRequests.clientId, scope.clientId));
+        if (scope.clientControlId !== undefined) filters.push(eq(evidenceRequests.clientControlId, scope.clientControlId));
 
         const results = await dbConn.select({
           request: evidenceRequests,
@@ -2173,10 +2178,7 @@ ONLY return the JSON. No Markdown formatting.
           .leftJoin(users, eq(evidenceRequests.requesterId, users.id))
           .leftJoin(clientControls, eq(evidenceRequests.clientControlId, clientControls.id))
           .leftJoin(controls, eq(clientControls.controlId, controls.id))
-          .where(
-            input.clientId ? eq(evidenceRequests.clientId, input.clientId) :
-              input.clientControlId ? eq(evidenceRequests.clientControlId, input.clientControlId) : undefined
-          );
+          .where(filters.length > 0 ? and(...filters) : undefined);
 
         return results;
       }),

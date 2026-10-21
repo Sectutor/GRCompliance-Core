@@ -2378,13 +2378,6 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 </div>
 
                                 <div>
-                                    <Label>Client ID</Label>
-                                    <div className="text-sm text-muted-foreground font-mono p-2 bg-muted rounded">
-                                        {clientId}
-                                    </div>
-                                </div>
-
-                                <div>
                                     <Label>Last Updated</Label>
                                     <div className="text-sm text-muted-foreground">
                                         {policy.updatedAt
