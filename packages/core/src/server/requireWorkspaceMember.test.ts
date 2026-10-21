@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
-import { requireWorkspaceMember } from "./workspaceAccess";
+import { requireWorkspaceMember } from "./requireWorkspaceMember";
 
 describe("requireWorkspaceMember", () => {
     it("requires a signed-in member of the workspace", async () => {

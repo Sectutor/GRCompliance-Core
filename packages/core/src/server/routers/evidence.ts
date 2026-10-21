@@ -10,7 +10,7 @@ import { llmService } from "../../lib/llm/service";
 import { openEvidenceRequestLink } from "../../lib/openEvidenceRequestLink";
 import { recalculateRiskScore } from "../services/riskService";
 import { authorizeEvidenceLink } from "../linkEvidence";
-import { requireWorkspaceMember } from "../workspaceAccess";
+import { requireWorkspaceMember } from "../requireWorkspaceMember";
 
 // Shared Framework Seed Data
 export const FRAMEWORK_SEEDS: Record<string, any[]> = {

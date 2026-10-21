@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { evidenceRequestAssignee } from "../lib/evidenceRequestAssignee";
 import { evidenceRequestScope } from "../lib/evidenceRequestScope";
-import { requireWorkspaceMember } from "./workspaceAccess";
+import { requireWorkspaceMember } from "./requireWorkspaceMember";
 
 const REQUEST_STATUSES = new Set(["open", "submitted", "verified", "rejected", "fulfilled"]);
 
