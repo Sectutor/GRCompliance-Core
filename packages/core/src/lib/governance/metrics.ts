@@ -1,6 +1,7 @@
 import { getDb } from '../../db';
 import { workItems, clientPolicies, clientControls, evidence, governanceEvents } from '../../schema';
-import { eq, and, sql, lt, gte, or } from 'drizzle-orm';
+import { eq, and, sql, lt, gte } from 'drizzle-orm';
+import { APPROVED_POLICY_STATUS, approvedPolicyStatusClause } from './policyStats';
 
 /**
  * Calculate governance health score for a client
@@ -28,10 +29,10 @@ export async function calculateGovernanceHealthScore(clientId: number): Promise<
     const db = await getDb();
     const now = new Date();
 
-    // Policy metrics
+    // Policy metrics. policy_status has no 'published'; publish stores 'approved'.
     const [policyStats] = await db.select({
         total: sql<number>`count(*)`,
-        approved: sql<number>`count(*) filter (where status = 'approved' or status = 'published')`,
+        approved: sql<number>`count(*) filter (where ${sql.raw(approvedPolicyStatusClause())})`,
     }).from(clientPolicies)
         .where(eq(clientPolicies.clientId, clientId));
 
@@ -71,10 +72,7 @@ export async function calculateGovernanceHealthScore(clientId: number): Promise<
     }).from(clientPolicies)
         .where(and(
             eq(clientPolicies.clientId, clientId),
-            or(
-                eq(clientPolicies.status, 'approved'),
-                eq(clientPolicies.status, 'published')
-            )
+            eq(clientPolicies.status, APPROVED_POLICY_STATUS)
         ));
 
     const avgApprovalDays = approvalVelocityQuery[0]?.avgDays || 0;
