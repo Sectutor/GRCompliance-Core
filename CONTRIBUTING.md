@@ -11,6 +11,8 @@ git checkout -b feature/short-description
 git config core.hooksPath .githooks
 ```
 
+`git config core.hooksPath .githooks` installs the pre-commit hook. It runs gitleaks on staged changes when `gitleaks` is on your PATH. The same gitleaks check is installed with `pre-commit install` if you use the pre-commit framework.
+
 The app lives in npm workspaces:
 
 - `packages/core` is the application
@@ -25,7 +27,7 @@ The app lives in npm workspaces:
 - Do not add `.env` files, uploads, build output, or one-off database scripts
 - Do not add paths under `.cursor/`, `.claude/`, `plans/`, `notes/`, or `internal/`, and do not add `*.chat.md`
 
-CI rejects those paths and fails on gitleaks findings in the tree you push.
+CI rejects those paths. A push to the default branch fails when gitleaks finds a secret anywhere in history. A pull request fails when gitleaks finds a secret in the diff.
 
 ## License
 
