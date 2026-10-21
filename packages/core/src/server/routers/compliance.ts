@@ -8,6 +8,7 @@ import { llmService } from "../../lib/llm/service";
 import { cosineSimilarity } from "../../lib/utils";
 import { EmailService } from "../../lib/email/service";
 import { postureScoreFromStatuses } from "../../lib/postureScore";
+import { policyApprovalStats } from "../../lib/governance/policyStats";
 
 function cosineSimilarity(vecA: number[], vecB: number[]) {
   let dotProduct = 0;
@@ -872,11 +873,9 @@ export const createComplianceRouter = (
           total: controlPosture.inScope
         };
 
-        // Calculate Policy Stats
-        const policyStats = {
-          approved: clientPolicies.filter((p: any) => p.status === 'approved').length,
-          total: clientPolicies.length
-        };
+        // getClientPolicies returns { clientPolicy, template }. Count the general
+        // policies the policies page lists (the card links to that page).
+        const policyStats = policyApprovalStats(clientPolicies);
 
         // Calculate Evidence Stats
         const evidenceStats = {

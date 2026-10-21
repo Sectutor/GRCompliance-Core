@@ -9,6 +9,7 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
+import { POLICIES_LIST_MODULE } from "../../lib/governance/policyStats";
 
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
@@ -26,11 +27,8 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         if (input.module) {
           conditions.push(eq(clientPolicies.module, input.module));
         } else {
-          // Default to general if not specified, OR return all? 
-          // For backward compatibility, existing calls won't have module. 
-          // If we want to hide privacy docs from main list, we should maybe filter reasonable defaults or return all.
-          // Let's filter by 'general' by default to hide Privacy docs from main view unless requested.
-          conditions.push(eq(clientPolicies.module, 'general'));
+          // The policies page omits module. Policy Coverage uses this same default.
+          conditions.push(eq(clientPolicies.module, POLICIES_LIST_MODULE));
         }
 
         const results = await dbConn.select({
