@@ -3,6 +3,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { clientControls, controlMappings, controls, regulationMappings, notificationLog, controlBaselines } from "../../schema";
 import { logActivity } from "../../lib/audit";
+import { reconcileControlApplicability } from "../../lib/controlApplicability";
 import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
@@ -221,6 +222,15 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
 
         // Fetch previous state for logging
         const previousState = await db.getClientControlById(id);
+        const reconciled = reconcileControlApplicability(
+          { status: data.status, applicability: data.applicability },
+          {
+            status: previousState?.clientControl?.status,
+            applicability: previousState?.clientControl?.applicability,
+          }
+        );
+        if (reconciled.status) data.status = reconciled.status;
+        if (reconciled.applicability) data.applicability = reconciled.applicability;
 
         await db.updateClientControl(id, data);
 
