@@ -1,14 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { clientPolicies, clientControls, controls, regulationMappings, notificationLog, users, policyVersions, riskPolicyMappings, riskAssessments, controlPolicyMappings, policyTemplates, employees } from "../../schema";
+import { clientPolicies, clientControls, controls, regulationMappings, notificationLog, users, policyVersions, riskPolicyMappings, riskAssessments, controlPolicyMappings, policyTemplates } from "../../schema";
 import { logActivity } from "../../lib/audit";
 import * as db from "../../db";
 import { getDb } from "../../db";
 import { policyGenerator } from "../../lib/policy/policy-generation";
 import * as schema from "../../schema";
-import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
+import { eq, and, desc, sql, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
+import { buildReviewDecisionEmail, buildReviewRequestedEmail, policyPageUrl } from "../../lib/email/policyReviewNotice";
+import { findWorkspaceReviewers, InvalidReviewerIdError, parseReviewerUserIds } from "../services/policyReviewers";
 
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
@@ -291,7 +293,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           });
         }
 
-        // Validate reviewers
+        // Validate reviewers before any write. The dialog sends workspace user ids.
         if (!reviewers || reviewers.length === 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -299,11 +301,31 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           });
         }
 
+        let reviewerIds: number[];
+        try {
+          reviewerIds = parseReviewerUserIds(reviewers);
+        } catch (error) {
+          if (error instanceof InvalidReviewerIdError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+          }
+          throw error;
+        }
+
+        const dbConn = await db.getDb();
+        const resolvedReviewers = await findWorkspaceReviewers(dbConn, clientId, reviewerIds);
+        if (resolvedReviewers.length !== reviewerIds.length) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "One or more reviewers are not members of this workspace"
+          });
+        }
+
+        const reviewerIdStrings = reviewerIds.map((reviewerId) => String(reviewerId));
         console.log(`[PolicyReview] Request review for policy ${id}, client ${clientId}`);
 
         await db.updateClientPolicy(id, {
           approvalStatus: 'requested',
-          reviewers: reviewers,
+          reviewers: reviewerIdStrings,
           reviewDueDate: dueDate ? new Date(dueDate) : null,
           status: 'review',
           updatedAt: new Date()
@@ -315,73 +337,47 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           entityType: 'policy',
           entityId: id,
           clientId: clientId,
-          details: { reviewers, dueDate, message }
+          details: { reviewers: reviewerIdStrings, dueDate, message }
         });
 
-        // Send Notifications to Reviewers
+        // Notify only the selected workspace members. A delivery failure must not
+        // roll back the review request, and must not leak it to anyone else.
+        const policyName = existingPolicy.clientPolicy.name || "Policy";
+        const requesterName = ctx.user.name || "A team member";
         try {
-          const dbConn = await db.getDb();
-          const policyResult = await db.getClientPolicyById(id);
-          const policyName = policyResult?.clientPolicy?.name || "Policy";
-
-          // Find Users associated with these Reviewers (matching by email)
-          const reviewerDetails = await dbConn.select({
-            id: employees.id,
-            email: employees.email,
-            firstName: employees.firstName,
-            lastName: employees.lastName
-          })
-            .from(employees)
-            .where(inArray(employees.id, reviewers.map((r: string) => parseInt(r, 10))));
-
-          if (reviewerDetails.length > 0) {
-            const reviewerEmails = reviewerDetails.map((r: typeof reviewerDetails[number]) => r.email);
-            const userResults = await dbConn.select({ id: users.id, email: users.email })
-              .from(users)
-              .where(inArray(users.email, reviewerEmails));
-
-            const userIds = userResults.map((u: typeof userResults[number]) => u.id);
-
-            // 1. In-App Notifications
-            if (userIds.length > 0) {
-              await notifyUsers(userIds, {
-                type: "policy_review_requested",
-                title: "Policy Review Requested",
-                message: `${ctx.user.name || 'A team member'} has requested your review for the policy: ${policyName}.`,
-                link: `/clients/${clientId}/policies/${id}`,
-                relatedEntityType: "policy",
-                relatedEntityId: id
-              });
-            }
-
-            // 2. Email Notifications
-            for (const reviewer of reviewerDetails) {
-              await EmailService.send({
-                to: reviewer.email,
-                subject: `Review Requested: ${policyName}`,
-                html: `
-                  <div style="font-family: sans-serif; color: #374151;">
-                    <h2>Policy Review Requested</h2>
-                    <p>Hello ${reviewer.firstName},</p>
-                    <p><strong>${ctx.user.name || 'A team member'}</strong> has requested that you review the following policy:</p>
-                    <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                      <p><strong>Policy:</strong> ${policyName}</p>
-                      ${dueDate ? `<p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>` : ''}
-                      ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
-                    </div>
-                    <p>Please log in to the GRCompliance dashboard to review and provide your feedback.</p>
-                    <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
-                       style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
-                      View Policy
-                    </a>
-                  </div>
-                `,
-                clientId: clientId
-              });
-            }
-          }
+          await notifyUsers(resolvedReviewers.map((reviewer) => reviewer.id), {
+            type: "policy_review_requested",
+            title: "Policy Review Requested",
+            message: `${requesterName} has requested your review for the policy: ${policyName}.`,
+            link: `/clients/${clientId}/policies/${id}`,
+            relatedEntityType: "policy",
+            relatedEntityId: id
+          });
         } catch (error) {
-          console.error("[PolicyReview] Notification failed:", error);
+          console.error("[PolicyReview] In-app notification failed:", error);
+        }
+
+        const policyUrl = policyPageUrl(clientId, id);
+        for (const reviewer of resolvedReviewers) {
+          if (!reviewer.email) continue;
+          try {
+            const notice = buildReviewRequestedEmail({
+              reviewerName: reviewer.name,
+              requesterName,
+              policyName,
+              dueDate,
+              message,
+              policyUrl,
+            });
+            await EmailService.send({
+              to: reviewer.email,
+              subject: notice.subject,
+              html: notice.html,
+              clientId: clientId
+            });
+          } catch (error) {
+            console.error("[PolicyReview] Email notification failed:", error);
+          }
         }
 
         return { success: true };
@@ -466,23 +462,16 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                 });
               }
 
+              const decisionNotice = buildReviewDecisionEmail({
+                policyName: policy.name || "Policy",
+                decision,
+                notes,
+                policyUrl: policyPageUrl(clientId, id),
+              });
               await EmailService.send({
                 to: policy.owner,
-                subject: `Policy Review Update: ${policy.name}`,
-                html: `
-                      <div style="font-family: sans-serif; color: #374151;">
-                        <h2>Policy Review Decision</h2>
-                        <p>A decision has been made on the policy: <strong>${policy.name}</strong></p>
-                        <div style="background-color: ${decision === 'approved' ? '#ecfdf5' : '#fef2f2'}; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid ${decision === 'approved' ? '#10b981' : '#ef4444'};">
-                          <p><strong>Decision:</strong> <span style="font-weight: bold; color: ${decision === 'approved' ? '#059669' : '#dc2626'}; text-transform: uppercase;">${decision.replace('_', ' ')}</span></p>
-                          ${notes ? `<p><strong>Notes/Feedback:</strong> ${notes}</p>` : ''}
-                        </div>
-                        <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
-                           style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
-                          View Policy
-                        </a>
-                      </div>
-                    `,
+                subject: decisionNotice.subject,
+                html: decisionNotice.html,
                 clientId: clientId
               });
             }
