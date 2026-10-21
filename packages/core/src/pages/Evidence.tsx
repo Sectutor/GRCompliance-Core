@@ -32,6 +32,8 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { authedFetch } from "@/lib/authedFetch";
+import { evidenceCollectionStats, matchesEvidenceStatusFilter } from "@/lib/evidenceCollectionStats";
+import { EVIDENCE_STATUSES, evidenceStatusDotClass, evidenceStatusLabel } from "@/lib/evidenceStatus";
 
 export default function Evidence() {
   const { id } = useParams<{ id: string }>();
@@ -98,7 +100,7 @@ export default function Evidence() {
   });
 
   // Categorization and Filtering Logic
-  const groupedData = useMemo(() => {
+  const evidenceView = useMemo(() => {
     console.log("[DEBUG] groupedData memo recalculating. Dependencies:", {
       clientControls: !!clientControls,
       evidenceList: !!evidenceList,
@@ -110,7 +112,7 @@ export default function Evidence() {
 
     if (!clientControls || !evidenceList) {
       console.log("[DEBUG] evidenceList or clientControls missing, skipping memo logic");
-      return [];
+      return { groups: [], stats: evidenceCollectionStats([]) };
     }
 
     try {
@@ -185,17 +187,21 @@ export default function Evidence() {
         );
       }
 
-      // Apply Filters
-      if (statusFilter !== "all") {
-        filtered = filtered.filter(item => {
-          if (statusFilter === "need_documents") return item.evidence.length === 0;
-          if (statusFilter === "ok") return item.evidence.some(e => e.evidence.status === 'verified');
-          return true;
-        });
-      }
-
+      // Search and framework narrow the workspace view. The status filter does not:
+      // the stat cards stay on these totals.
       if (frameworkFilter !== "all") {
         filtered = filtered.filter(item => item.control?.framework === frameworkFilter);
+      }
+
+      const stats = evidenceCollectionStats(filtered.map(item => ({
+        statuses: item.evidence.map(entry => entry.evidence.status),
+      })));
+
+      if (statusFilter !== "all") {
+        filtered = filtered.filter(item => matchesEvidenceStatusFilter(
+          item.evidence.map(entry => entry.evidence.status),
+          statusFilter,
+        ));
       }
 
       const categories: Record<string, any> = {};
@@ -227,12 +233,18 @@ export default function Evidence() {
         }
       });
 
-      return Object.values(categories).sort((a, b) => a.name.localeCompare(b.name));
+      return {
+        groups: Object.values(categories).sort((a, b) => a.name.localeCompare(b.name)),
+        stats,
+      };
     } catch (err) {
       console.error("[DEBUG] Error in groupedData memo:", err);
-      return [];
+      return { groups: [], stats: evidenceCollectionStats([]) };
     }
   }, [clientControls, evidenceList, frameworkMappings, searchQuery, statusFilter, frameworkFilter]);
+
+  const groupedData = evidenceView.groups;
+  const workspaceStats = evidenceView.stats;
 
   const uniqueFrameworks = useMemo(() => {
     if (!clientControls) return [];
@@ -395,7 +407,7 @@ export default function Evidence() {
               },
               {
                 step: "Monitor Status",
-                description: "Track 'Verified OK' vs 'Missing Docs' to see where remediation resources are needed most.",
+                description: "Track Verified OK against controls with no evidence yet.",
                 targetId: "evidence-stats-summary"
               },
               {
@@ -408,7 +420,7 @@ export default function Evidence() {
               {
                 title: "Preparing for Stage 2 Audit",
                 example: "The auditor is arriving tomorrow and you need to ensure every 'Implemented' control has a 'Verified' document.",
-                auditTip: "Set the Status filter to 'Needs Documents'. This will highlight the 'Empty' controls. Every control marked as 'Implemented' in Phase 1 MUST have at least one verified document in Phase 2."
+                auditTip: "Set the status filter to No evidence yet. That lists controls with no evidence rows. Verified OK is counted separately."
               },
               {
                 title: "Handling Multi-Framework Audits",
@@ -509,10 +521,9 @@ export default function Evidence() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="verified">Verified</SelectItem>
-                          <SelectItem value="expired">Expired</SelectItem>
-                          <SelectItem value="not_applicable">Not Applicable</SelectItem>
+                          {EVIDENCE_STATUSES.map((status) => (
+                            <SelectItem key={status} value={status}>{evidenceStatusLabel(status)}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -644,13 +655,13 @@ export default function Evidence() {
                 <div className="h-7 w-[1px] bg-slate-200 mx-1" />
 
                 <Select id="evidence-filter-status" value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px] h-11 bg-transparent border-transparent hover:bg-white transition-all rounded-xl font-bold text-slate-500 gap-2">
+                  <SelectTrigger className="w-[180px] h-11 bg-transparent border-transparent hover:bg-white transition-all rounded-xl font-bold text-slate-500 gap-2">
                     <Filter className="h-4 w-4 opacity-50" />
                     <SelectValue placeholder="Filter" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl shadow-xl">
                     <SelectItem value="all" className="font-medium">All Documents</SelectItem>
-                    <SelectItem value="need_documents" className="font-medium">Need Docs</SelectItem>
+                    <SelectItem value="no_evidence" className="font-medium">No evidence yet</SelectItem>
                     <SelectItem value="ok" className="font-medium">Verified OK</SelectItem>
                   </SelectContent>
                 </Select>
@@ -679,7 +690,7 @@ export default function Evidence() {
               </div>
               <div className="flex-1">
                 <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Total Controls</div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + cat.totalItems, 0)}</div>
+                <div className="text-3xl font-black text-slate-900 tracking-tight">{workspaceStats.total}</div>
               </div>
             </CardContent>
           </Card>
@@ -691,7 +702,7 @@ export default function Evidence() {
               </div>
               <div className="flex-1">
                 <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Verified OK</div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + cat.okItems, 0)}</div>
+                <div className="text-3xl font-black text-slate-900 tracking-tight">{workspaceStats.verified}</div>
               </div>
             </CardContent>
           </Card>
@@ -702,8 +713,8 @@ export default function Evidence() {
                 <AlertCircle className="h-7 w-7 text-white" />
               </div>
               <div className="flex-1">
-                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">Missing Docs</div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">{groupedData.reduce((acc, cat) => acc + (cat.totalItems - cat.okItems), 0)}</div>
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">No evidence yet</div>
+                <div className="text-3xl font-black text-slate-900 tracking-tight">{workspaceStats.noEvidence}</div>
               </div>
             </CardContent>
           </Card>
@@ -717,7 +728,7 @@ export default function Evidence() {
               <div className="flex-1">
                 <div className="text-[11px] font-black text-white/80 uppercase tracking-widest mb-1 drop-shadow-sm">Completion Rate</div>
                 <div className="text-3xl font-black text-white tracking-tight drop-shadow-md">
-                  {Math.round((groupedData.reduce((acc, cat) => acc + cat.okItems, 0) / (groupedData.reduce((acc, cat) => acc + cat.totalItems, 0) || 1)) * 100)}%
+                  {workspaceStats.completion}%
                 </div>
               </div>
             </CardContent>
@@ -758,7 +769,7 @@ export default function Evidence() {
                               <div className="flex items-center gap-2">
                                 {subgroup.items.some((i: any) => i.evidence.length === 0) && (
                                   <Badge variant="secondary" className="bg-amber-50 text-amber-700 font-bold px-2 py-0 h-6 border-amber-100 border shadow-sm">
-                                    {subgroup.items.filter((i: any) => i.evidence.length === 0).length} Action Required
+                                    {subgroup.items.filter((i: any) => i.evidence.length === 0).length} No evidence yet
                                   </Badge>
                                 )}
                                 <Badge className="bg-slate-50 text-slate-500 font-medium px-2 py-0 h-6 border-slate-100 border shadow-none">
@@ -787,10 +798,8 @@ export default function Evidence() {
                                               <div key={ev.evidence.id} className="flex flex-col gap-1">
                                                 <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-slate-200 text-xs shadow-sm group/ev">
                                                   <span className="font-medium text-slate-700">{ev.evidence.evidenceId}</span>
-                                                  <span className={`h-1.5 w-1.5 rounded-full ${ev.evidence.status === 'verified' ? 'bg-green-500' :
-                                                    ev.evidence.status === 'pending' ? 'bg-blue-400' :
-                                                      ev.evidence.status === 'expired' ? 'bg-red-500' : 'bg-slate-300'
-                                                    }`} />
+                                                  <span className={`h-1.5 w-1.5 rounded-full ${evidenceStatusDotClass(ev.evidence.status)}`} title={evidenceStatusLabel(ev.evidence.status)} />
+                                                  <span className="text-[10px] text-slate-500">{evidenceStatusLabel(ev.evidence.status)}</span>
 
                                                   {ev.isInherited && (
                                                     <Badge variant="outline" className="h-4 px-1 text-[10px] bg-slate-50 text-slate-500 border-slate-200 font-normal">

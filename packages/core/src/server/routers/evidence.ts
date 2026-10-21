@@ -7,7 +7,9 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
+import { controlCodeFromEvidenceRow } from "../../lib/linkedControlCode";
 import { recalculateRiskScore } from "../services/riskService";
+import { requireWorkspaceMember } from "../requireWorkspaceMember";
 
 // Shared Framework Seed Data
 export const FRAMEWORK_SEEDS: Record<string, any[]> = {
@@ -105,25 +107,34 @@ export const createEvidenceRouter = (
                     name: name
                 }));
             }),
-        list: publicProcedure
+        list: protectedProcedure
             .input(z.object({ clientId: z.number(), systemId: z.string().optional() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceMember({
+                    userId: ctx.user?.id,
+                    clientId: input.clientId,
+                    canView: (userId, clientId) => db.isUserAllowedForClient(userId, clientId),
+                });
                 const results = await db.getEvidence(input.clientId, input.systemId);
                 // Flatten structure for report consumption
-                return results.map((r: any) => ({
-                    id: r.id,
-                    evidenceId: r.evidenceId,
-                    description: r.description,
-                    status: r.status,
-                    lastVerified: r.lastVerified,
-                    control: r.control,
-                    fileCount: r.fileCount,
-                    // Map missing fields expected by frontend
-                    framework: r.framework,
-                    title: r.description || r.evidenceId,
-                    collectionFrequency: 'On Demand', // Default
-                    lastVerificationDate: r.lastVerified
-                }));
+                return results.map((r: any) => {
+                    const coded = controlCodeFromEvidenceRow(r);
+                    return {
+                        id: r.id,
+                        evidenceId: r.evidenceId,
+                        description: r.description,
+                        status: r.status,
+                        lastVerified: r.lastVerified,
+                        controlCode: coded,
+                        control: r.control ? { ...r.control, controlCode: coded || r.control.controlId || null } : null,
+                        fileCount: r.fileCount,
+                        // Map missing fields expected by frontend
+                        framework: r.framework,
+                        title: r.description || r.evidenceId,
+                        collectionFrequency: 'On Demand', // Default
+                        lastVerificationDate: r.lastVerified
+                    };
+                });
             }),
 
         listOpenRequests: publicProcedure

@@ -6,6 +6,7 @@ import postgres from "postgres";
 import { encrypt } from "./lib/crypto";
 import { getSecret } from "./lib/secrets";
 import { policyCoverage, postureScore } from "./lib/postureScore";
+import { linkedControlCode } from "./lib/linkedControlCode";
 
 import {
 
@@ -2335,7 +2336,7 @@ export async function getEvidence(clientId: number, systemId?: string) {
     conditions.push(eq(evidence.systemId, systemId));
   }
 
-  return db.select({
+  const rows = await db.select({
     id: evidence.id,
     evidenceId: evidence.evidenceId,
     description: evidence.description,
@@ -2352,6 +2353,14 @@ export async function getEvidence(clientId: number, systemId?: string) {
     .leftJoin(controls, eq(clientControls.controlId, controls.id))
     .where(and(...conditions))
     .orderBy(evidence.evidenceId);
+
+  return rows.map((row) => ({
+    ...row,
+    controlCode: linkedControlCode({
+      clientControlCode: row.clientControl?.clientControlId ?? null,
+      masterControlId: row.control?.controlId ?? null,
+    }),
+  }));
 }
 
 
