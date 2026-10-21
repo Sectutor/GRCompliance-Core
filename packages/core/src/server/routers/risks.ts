@@ -7,7 +7,8 @@ import {
     riskAssessments, riskTreatments, treatmentControls,
     riskAssessmentStatusEnum,
     threats, vulnerabilities,
-    riskPolicyMappings
+    riskPolicyMappings,
+    clientControls, controls,
 } from "../../schema";
 import { eq, and, desc, asc, sql, inArray, ilike, or, isNull, lt, lte, gt, gte, not, getTableColumns } from "drizzle-orm";
 import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from "../../lib/riskCalculations";
@@ -17,6 +18,7 @@ import { generateRiskReportDocx } from "../../riskExportProfessional";
 import { recalculateRiskScore } from "../services/riskService";
 import { allocateRiskAssessmentId, withUniqueAssessmentIdRetry } from "../services/riskAssessmentIds";
 import { riskAssessmentUpdatePatch } from "../services/riskAssessmentWrite";
+import { controlsForTreatment } from "../services/treatmentControlNames";
 
 /**
  * Bind a risk row to the workspace that owns it.
@@ -1320,7 +1322,7 @@ ${reportData.conclusion}
                     .limit(1);
                 if (!assessment) return [];
                 await assertRiskRowWorkspace(db, ctx, assessment.clientId, input.clientId);
-                return await db.select()
+                const treatments = await db.select()
                     .from(riskTreatments)
                     .where(and(
                         eq(riskTreatments.riskAssessmentId, input.riskAssessmentId),
@@ -1330,6 +1332,28 @@ ${reportData.conclusion}
                         ),
                     ))
                     .orderBy(desc(riskTreatments.createdAt));
+                if (treatments.length === 0) return [];
+
+                const links = await db.select()
+                    .from(treatmentControls)
+                    .where(inArray(treatmentControls.treatmentId, treatments.map((treatment: { id: number }) => treatment.id)));
+                const clientControlIds = Array.from(new Set(links.map((link: { controlId: number }) => link.controlId)));
+                const clientRows = clientControlIds.length === 0
+                    ? []
+                    : await db.select().from(clientControls).where(inArray(clientControls.id, clientControlIds));
+                const dictionaryIds = Array.from(new Set(
+                    clientRows
+                        .map((row: { controlId?: number | null }) => row.controlId)
+                        .filter((id: number | null | undefined): id is number => typeof id === "number"),
+                ));
+                const dictionary = dictionaryIds.length === 0
+                    ? []
+                    : await db.select().from(controls).where(inArray(controls.id, dictionaryIds));
+
+                return treatments.map((treatment: { id: number }) => ({
+                    ...treatment,
+                    controls: controlsForTreatment(treatment.id, links, clientRows, dictionary),
+                }));
             }),
 
 
