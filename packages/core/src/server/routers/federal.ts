@@ -1562,7 +1562,7 @@ export const createFederalRouter = (t: any, clientProcedure: any, recordProcedur
                     .orderBy(schema.federalDisaStigItems.ruleId);
             }),
 
-        updateDisaStigItem: recordProcedure
+        updateDisaStigItem: recordProcedure.use(checkPremiumAccess)
             .input(z.object({
                 id: z.number(),
                 status: z.string().optional(),

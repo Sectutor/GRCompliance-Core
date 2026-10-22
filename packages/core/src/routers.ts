@@ -4045,16 +4045,23 @@ export const appRouter = router({
         responses: z.any(),
         version: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({
+          user: ctx.user,
+          table: schema.internationalTransfers,
+          id: input.transferId,
+          suppliedClientId: input.clientId,
+          minRole: "editor",
+        });
         const dbConn = await getDb();
-        const { transferId, ...data } = input;
 
         // Find existing draft or create new
         const [existing] = await dbConn
           .select()
           .from(schema.transferImpactAssessments)
           .where(and(
-            eq(schema.transferImpactAssessments.transferId, transferId),
+            eq(schema.transferImpactAssessments.transferId, input.transferId),
+            eq(schema.transferImpactAssessments.clientId, access.clientId),
             eq(schema.transferImpactAssessments.status, "draft")
           ))
           .limit(1);
@@ -4068,15 +4075,18 @@ export const appRouter = router({
               status: input.status,
               updatedAt: new Date()
             })
-            .where(eq(schema.transferImpactAssessments.id, existing.id))
+            .where(and(
+              eq(schema.transferImpactAssessments.id, existing.id),
+              eq(schema.transferImpactAssessments.clientId, access.clientId),
+            ))
             .returning();
           return updated;
         } else {
           const [inserted] = await dbConn
             .insert(schema.transferImpactAssessments)
             .values({
-              transferId,
-              clientId: input.clientId,
+              transferId: input.transferId,
+              clientId: access.clientId,
               riskLevel: input.riskLevel,
               status: input.status || "draft",
               questionnaireData: input.responses,
