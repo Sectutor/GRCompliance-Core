@@ -2,9 +2,10 @@
 import { z } from "zod";
 import { getDb } from "../../db";
 import { vendorRequests, vendors, vendorScans, vendorCveMatches } from "../../schema";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
+import { enforceExistingPremium, requireOwnedRow } from "../recordAccess";
 
-export const createVendorRequestsRouter = (t: any, clientProcedure: any) => {
+export const createVendorRequestsRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) => {
   return t.router({
     list: clientProcedure
       .input(z.object({ clientId: z.number() }))
@@ -40,7 +41,14 @@ export const createVendorRequestsRouter = (t: any, clientProcedure: any) => {
         id: z.number(),
         clientId: z.number(),
       }))
-      .mutation(async ({ input }: { input: any }) => {
+      .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+        const access = await requireOwnedRow({
+          user: ctx.user,
+          table: vendorRequests,
+          id: input.id,
+          suppliedClientId: input.clientId,
+          minRole: "editor",
+        });
         const db = await getDb();
         
         return await db.transaction(async (tx) => {
@@ -51,7 +59,7 @@ export const createVendorRequestsRouter = (t: any, clientProcedure: any) => {
 
             // 2. Create the Vendor - default to "Medium" criticality, status "Active"
             const [newVendor] = await tx.insert(vendors).values({
-                clientId: input.clientId,
+                clientId: access.clientId,
                 name: request.name,
                 description: request.description,
                 website: request.website,
@@ -69,7 +77,7 @@ export const createVendorRequestsRouter = (t: any, clientProcedure: any) => {
 
             // 4. Trigger Automated Initial Scan (Simulated)
             const [scan] = await tx.insert(vendorScans).values({
-                clientId: input.clientId,
+                clientId: access.clientId,
                 vendorId: newVendor.id,
                 status: 'Completed',
                 riskScore: 45, // Initial baseline
@@ -104,12 +112,14 @@ export const createVendorRequestsRouter = (t: any, clientProcedure: any) => {
         });
       }),
 
-    reject: clientProcedure
+    reject: recordProcedure
       .input(z.object({
         id: z.number(),
         reason: z.string()
       }))
-      .mutation(async ({ input }: { input: any }) => {
+      .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: vendorRequests, id: input.id, minRole: "editor" });
+        await enforceExistingPremium(access.clientId, ctx.user, access.clientRole);
         const db = await getDb();
         await db.update(vendorRequests)
             .set({ 
@@ -117,7 +127,10 @@ export const createVendorRequestsRouter = (t: any, clientProcedure: any) => {
                 rejectionReason: input.reason,
                 updatedAt: new Date() 
             })
-            .where(eq(vendorRequests.id, input.id));
+            .where(and(
+                eq(vendorRequests.id, input.id),
+                eq(vendorRequests.clientId, access.clientId),
+            ));
         return { success: true };
       }),
   });

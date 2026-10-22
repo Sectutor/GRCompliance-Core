@@ -5,6 +5,7 @@ import { getDb } from "../../db";
 import { threatModels, threatModelComponents, riskScenarios, devProjects, riskTreatments, threatModelDataFlows, riskAssessments, frameworkRequirements } from "../../schema";
 import { eq, and, desc, or } from "drizzle-orm";
 import { logActivity } from "../../lib/audit";
+import { loadRowById, requireRecordWorkspace } from "../recordAccess";
 
 import { calculateResidualScore, scoreToRiskLevel } from "../../lib/riskCalculations";
 
@@ -784,7 +785,22 @@ const LINDDUN_MAPPING: Record<string, any[]> = {
 
 };
 
-export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
+async function requireThreatPart(user: any, table: any, id: number) {
+    return requireRecordWorkspace({
+        user,
+        minRole: "editor",
+        loadRow: async () => {
+            const part = await loadRowById<any>(table, table.id, id);
+            if (!part) return null;
+            const model = await loadRowById<any>(threatModels, threatModels.id, part.threatModelId);
+            if (!model) return null;
+            return { ...part, clientId: model.clientId };
+        },
+        workspaceId: (row) => row.clientId,
+    });
+}
+
+export const createThreatModelsRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) => {
     return t.router({
         create: clientProcedure
             .input(z.object({
@@ -862,13 +878,17 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                 return component;
             }),
 
-        removeComponent: clientProcedure
+        removeComponent: recordProcedure
             .input(z.object({
                 id: z.number(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireThreatPart(ctx.user, threatModelComponents, input.id);
                 const db = await getDb();
-                await db.delete(threatModelComponents).where(eq(threatModelComponents.id, input.id));
+                await db.delete(threatModelComponents).where(and(
+                    eq(threatModelComponents.id, input.id),
+                    eq(threatModelComponents.threatModelId, access.row.threatModelId),
+                ));
                 // Also delete related flows
                 await db.delete(threatModelDataFlows).where(or(
                     eq(threatModelDataFlows.sourceComponentId, input.id),
@@ -877,17 +897,21 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                 return { success: true };
             }),
 
-        updateComponentPosition: clientProcedure
+        updateComponentPosition: recordProcedure
             .input(z.object({
                 id: z.coerce.number(),
                 x: z.number(),
                 y: z.number()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireThreatPart(ctx.user, threatModelComponents, input.id);
                 const db = await getDb();
                 await db.update(threatModelComponents)
                     .set({ x: input.x, y: input.y })
-                    .where(eq(threatModelComponents.id, input.id));
+                    .where(and(
+                        eq(threatModelComponents.id, input.id),
+                        eq(threatModelComponents.threatModelId, access.row.threatModelId),
+                    ));
                 return { success: true };
             }),
 
@@ -908,14 +932,15 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                 return flow;
             }),
 
-        updateFlow: clientProcedure
+        updateFlow: recordProcedure
             .input(z.object({
                 id: z.number(),
                 protocol: z.string().optional(),
                 description: z.string().optional(),
                 isEncrypted: z.boolean().optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireThreatPart(ctx.user, threatModelDataFlows, input.id);
                 const db = await getDb();
                 await db.update(threatModelDataFlows)
                     .set({
@@ -923,18 +948,25 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                         description: input.description,
                         isEncrypted: input.isEncrypted
                     })
-                    .where(eq(threatModelDataFlows.id, input.id));
+                    .where(and(
+                        eq(threatModelDataFlows.id, input.id),
+                        eq(threatModelDataFlows.threatModelId, access.row.threatModelId),
+                    ));
                 return { success: true };
             }),
 
 
-        removeFlow: clientProcedure
+        removeFlow: recordProcedure
             .input(z.object({
                 id: z.number(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireThreatPart(ctx.user, threatModelDataFlows, input.id);
                 const db = await getDb();
-                await db.delete(threatModelDataFlows).where(eq(threatModelDataFlows.id, input.id));
+                await db.delete(threatModelDataFlows).where(and(
+                    eq(threatModelDataFlows.id, input.id),
+                    eq(threatModelDataFlows.threatModelId, access.row.threatModelId),
+                ));
                 return { success: true };
             }),
 

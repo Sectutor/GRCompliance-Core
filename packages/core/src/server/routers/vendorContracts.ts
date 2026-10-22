@@ -2,9 +2,10 @@
 import { z } from "zod";
 import { getDb } from "../../db";
 import { vendorContracts } from "../../schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { enforceExistingPremium, requireOwnedRow } from "../recordAccess";
 
-export const createVendorContractsRouter = (t: any, clientProcedure: any) => {
+export const createVendorContractsRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) => {
   return t.router({
     list: clientProcedure
       .input(z.object({ vendorId: z.number() }))
@@ -75,11 +76,16 @@ export const createVendorContractsRouter = (t: any, clientProcedure: any) => {
         return contract;
       }),
 
-    delete: clientProcedure
+    delete: recordProcedure
         .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }: { input: any }) => {
+        .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+            const access = await requireOwnedRow({ user: ctx.user, table: vendorContracts, id: input.id, minRole: "editor" });
+            await enforceExistingPremium(access.clientId, ctx.user, access.clientRole);
             const db = await getDb();
-            await db.delete(vendorContracts).where(eq(vendorContracts.id, input.id));
+            await db.delete(vendorContracts).where(and(
+                eq(vendorContracts.id, input.id),
+                eq(vendorContracts.clientId, access.clientId),
+            ));
             return { success: true };
         }),
   });

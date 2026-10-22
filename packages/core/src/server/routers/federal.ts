@@ -7,10 +7,11 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { llmService } from "../../lib/llm/service";
+import { loadRowById, requireOwnedRow, requireRecordWorkspace } from "../recordAccess";
 
 import { t as tType, clientProcedure as cpType, checkPremiumAccess } from "../trpc";
 
-export const createFederalRouter = (t: any, clientProcedure: any) => {
+export const createFederalRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) => {
     // Federal Compliance is a Premium Feature
     const premiumProcedure = clientProcedure.use(checkPremiumAccess);
 
@@ -123,10 +124,20 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
                 id: z.number()
             }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireOwnedRow({
+                    user: ctx.user,
+                    table: schema.federalSSPs,
+                    id: input.id,
+                    suppliedClientId: input.clientId,
+                    minRole: "viewer",
+                });
                 const dbConn = await getDb();
                 const [ssp] = await dbConn.select().from(schema.federalSSPs)
-                    .where(eq(schema.federalSSPs.id, input.id));
+                    .where(and(
+                        eq(schema.federalSSPs.id, input.id),
+                        eq(schema.federalSSPs.clientId, input.clientId),
+                    ));
 
                 if (ssp) {
                     ssp.content = (ssp.content && ssp.content.trim()) ? ssp.content : '{}';
@@ -160,7 +171,14 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 content: z.string(),
                 systemName: z.string().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireOwnedRow({
+                    user: ctx.user,
+                    table: schema.federalSSPs,
+                    id: input.id,
+                    suppliedClientId: input.clientId,
+                    minRole: "editor",
+                });
                 const dbConn = await getDb();
                 const [ssp] = await dbConn.update(schema.federalSSPs)
                     .set({
@@ -168,14 +186,24 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                         systemName: input.systemName,
                         updatedAt: new Date(),
                     })
-                    .where(eq(schema.federalSSPs.id, input.id))
+                    .where(and(
+                        eq(schema.federalSSPs.id, input.id),
+                        eq(schema.federalSSPs.clientId, access.clientId),
+                    ))
                     .returning();
                 return ssp;
             }),
 
         getSspControls: clientProcedure
             .input(z.object({ clientId: z.number(), sspId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireOwnedRow({
+                    user: ctx.user,
+                    table: schema.federalSSPs,
+                    id: input.sspId,
+                    suppliedClientId: input.clientId,
+                    minRole: "viewer",
+                });
                 const dbConn = await getDb();
                 return await dbConn.select().from(schema.federalSspControls)
                     .where(eq(schema.federalSspControls.sspId, input.sspId));
@@ -330,10 +358,20 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
                 id: z.number()
             }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireOwnedRow({
+                    user: ctx.user,
+                    table: schema.federalPoams,
+                    id: input.id,
+                    suppliedClientId: input.clientId,
+                    minRole: "viewer",
+                });
                 const dbConn = await getDb();
                 const [poam] = await dbConn.select().from(schema.federalPoams)
-                    .where(eq(schema.federalPoams.id, input.id));
+                    .where(and(
+                        eq(schema.federalPoams.id, input.id),
+                        eq(schema.federalPoams.clientId, input.clientId),
+                    ));
                 if (!poam) return null;
 
                 const items = await dbConn.select({
@@ -630,7 +668,14 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
                 sspId: z.number()
             }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireOwnedRow({
+                    user: ctx.user,
+                    table: schema.federalSSPs,
+                    id: input.sspId,
+                    suppliedClientId: input.clientId,
+                    minRole: "viewer",
+                });
                 const dbConn = await getDb();
                 return await dbConn.select().from(schema.federalSspControls)
                     .where(eq(schema.federalSspControls.sspId, input.sspId));
@@ -1186,10 +1231,20 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 step: z.number(),
                 status: z.string(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireOwnedRow({
+                    user: ctx.user,
+                    table: schema.federalRmfWorkflows,
+                    id: input.id,
+                    suppliedClientId: input.clientId,
+                    minRole: "editor",
+                });
                 const dbConn = await getDb();
                 const results = await dbConn.select().from(schema.federalRmfWorkflows)
-                    .where(eq(schema.federalRmfWorkflows.id, input.id));
+                    .where(and(
+                        eq(schema.federalRmfWorkflows.id, input.id),
+                        eq(schema.federalRmfWorkflows.clientId, access.clientId),
+                    ));
 
                 const existing = results[0];
                 if (!existing) throw new Error("Workflow not found");
@@ -1200,7 +1255,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                         stepStatus: newStatus,
                         updatedAt: new Date(),
                     })
-                    .where(eq(schema.federalRmfWorkflows.id, input.id))
+                    .where(and(
+                        eq(schema.federalRmfWorkflows.id, input.id),
+                        eq(schema.federalRmfWorkflows.clientId, access.clientId),
+                    ))
                     .returning();
                 return updated;
             }),
@@ -1504,13 +1562,25 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                     .orderBy(schema.federalDisaStigItems.ruleId);
             }),
 
-        updateDisaStigItem: clientProcedure
+        updateDisaStigItem: recordProcedure
             .input(z.object({
                 id: z.number(),
                 status: z.string().optional(),
                 comments: z.string().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireRecordWorkspace({
+                    user: ctx.user,
+                    minRole: "editor",
+                    loadRow: async () => {
+                        const item = await loadRowById<any>(schema.federalDisaStigItems, schema.federalDisaStigItems.id, input.id);
+                        if (!item) return null;
+                        const checklist = await loadRowById<any>(schema.federalDisaStigChecklists, schema.federalDisaStigChecklists.id, item.checklistId);
+                        if (!checklist) return null;
+                        return { ...item, clientId: checklist.clientId };
+                    },
+                    workspaceId: (row) => row.clientId,
+                });
                 const dbConn = await getDb();
                 const [updated] = await dbConn.update(schema.federalDisaStigItems)
                     .set({
@@ -1518,7 +1588,10 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                         comments: input.comments,
                         updatedAt: new Date(),
                     })
-                    .where(eq(schema.federalDisaStigItems.id, input.id))
+                    .where(and(
+                        eq(schema.federalDisaStigItems.id, input.id),
+                        eq(schema.federalDisaStigItems.checklistId, access.row.checklistId),
+                    ))
                     .returning();
                 return updated;
             }),

@@ -4,8 +4,9 @@ import { router, clientProcedure } from "../../server/trpc";
 import * as schema from "../../schema";
 import { eq, desc, and, ilike, or } from "drizzle-orm";
 import * as db from "../../db";
+import { requireOwnedRow } from "../recordAccess";
 
-export const createKnowledgeBaseRouter = (t: any, clientProcedure: any) =>
+export const createKnowledgeBaseRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) =>
   router({
     list: clientProcedure
       .input(
@@ -92,13 +93,17 @@ export const createKnowledgeBaseRouter = (t: any, clientProcedure: any) =>
         return { success: true };
       }),
 
-    delete: clientProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }: any) => {
+      .mutation(async ({ input, ctx }: any) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.knowledgeBaseEntries, id: input.id, minRole: "editor" });
         const dbConn = await db.getDb();
         await dbConn
           .delete(schema.knowledgeBaseEntries)
-          .where(eq(schema.knowledgeBaseEntries.id, input.id));
+          .where(and(
+            eq(schema.knowledgeBaseEntries.id, input.id),
+            eq(schema.knowledgeBaseEntries.clientId, access.clientId),
+          ));
         return { success: true };
       }),
   });

@@ -9,6 +9,7 @@ import * as schema from '../../schema';
 import { eq, desc, and } from "drizzle-orm";
 import { sendEmail } from '../../lib/email/transporter';
 import { rateLimiter } from "../../lib/redis";
+import { requireOwnedRow } from "../recordAccess";
 
 // Rate limiting configuration for public vendor endpoints
 // Configurable via environment variables with sensible defaults
@@ -104,7 +105,7 @@ const FileInputSchema = z.object({
   fileType: z.enum(['pdf', 'xlsx', 'csv', 'docx'])
 });
 
-export function createQuestionnaireRouter(t: any, protectedProcedure: any, premiumClientProcedure: any, publicProcedure: any) {
+export function createQuestionnaireRouter(t: any, protectedProcedure: any, premiumClientProcedure: any, publicProcedure: any, recordProcedure = protectedProcedure) {
   return t.router({
     /**
      * Parse an uploaded questionnaire file to extract questions
@@ -447,11 +448,12 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
     /**
      * Get a single questionnaire with questions
      */
-    get: protectedProcedure
+    get: recordProcedure
       .input(z.object({
         id: z.number()
       }))
-      .query(async ({ input }: any) => {
+      .query(async ({ input, ctx }: any) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.questionnaires, id: input.id, minRole: "viewer" });
         const db = await getDb();
         const project = await db.select().from(schema.questionnaires).where(eq(schema.questionnaires.id, input.id)).limit(1);
 
@@ -632,13 +634,14 @@ Generate a professional answer. Response format:
         return { success: true, indexedCount };
       }),
 
-    update: protectedProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         status: z.string().optional(),
         progress: z.number().optional()
       }))
-      .mutation(async ({ input }: any) => {
+      .mutation(async ({ input, ctx }: any) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.questionnaires, id: input.id, minRole: "editor" });
         const db = await getDb();
         await db.update(schema.questionnaires)
           .set({
@@ -646,15 +649,22 @@ Generate a professional answer. Response format:
             ...(input.progress ? { progress: input.progress } : {}),
             updatedAt: new Date()
           })
-          .where(eq(schema.questionnaires.id, input.id));
+          .where(and(
+            eq(schema.questionnaires.id, input.id),
+            eq(schema.questionnaires.clientId, access.clientId),
+          ));
         return { success: true };
       }),
 
-    delete: protectedProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }: any) => {
+      .mutation(async ({ input, ctx }: any) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.questionnaires, id: input.id, minRole: "editor" });
         const db = await getDb();
-        await db.delete(schema.questionnaires).where(eq(schema.questionnaires.id, input.id));
+        await db.delete(schema.questionnaires).where(and(
+          eq(schema.questionnaires.id, input.id),
+          eq(schema.questionnaires.clientId, access.clientId),
+        ));
         return { success: true };
       }),
 
