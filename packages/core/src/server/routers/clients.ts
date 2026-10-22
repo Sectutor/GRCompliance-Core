@@ -10,6 +10,7 @@ import { canCreateAnotherWorkspace, isPremiumEditionEnabled } from "../../lib/ed
 import { policyCoverage, postureScore } from "../../lib/postureScore";
 import { generateGapAnalysisReport } from "../../lib/reporting";
 import { sendEmail } from "../../lib/email/transporter";
+import { requireWorkspaceRole } from "../recordAccess";
 
 function assertCanOwnAnotherWorkspace(opts: {
     premiumFlag: string | undefined;
@@ -681,7 +682,8 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             }),
         stats: publicProcedure
             .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 return await db.getClientStats(input.clientId);
             }),
         removeLogo: adminProcedure.use(requiresMFA)

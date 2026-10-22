@@ -6,12 +6,14 @@ import { eq, desc, and, or, isNull, asc } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
 import { checkPremiumAccess } from "../trpc";
 import { randomUUID } from "node:crypto";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
 
 export const createImplementationRouter = (t: any, publicProcedure: any, adminProcedure: any, protectedProcedure: any) => {
     return t.router({
         list: publicProcedure.input(z.object({
             clientId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const db = await getDb();
             const plans = await db.select().from(schema.implementationPlans)
                 .where(eq(schema.implementationPlans.clientId, input.clientId))
@@ -87,7 +89,8 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
         listTemplates: publicProcedure.input(z.object({
             clientId: z.number(),
             category: z.string().optional()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const db = await getDb();
             const templates = await db.select().from(schema.implementationTemplates)
                 .where(
@@ -291,7 +294,13 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
 
         getPlan: publicProcedure.input(z.object({
             planId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireRecordWorkspace({
+                user: ctx?.user,
+                loadRow: () => loadRowById<{ clientId: number }>(schema.implementationPlans, schema.implementationPlans.id, input.planId),
+                workspaceId: (row) => row.clientId,
+                minRole: "viewer",
+            });
             const db = await getDb();
 
             // Fetch Plan with Framework details
@@ -394,7 +403,13 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
 
         getPlanTasks: publicProcedure.input(z.object({
             planId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireRecordWorkspace({
+                user: ctx?.user,
+                loadRow: () => loadRowById<{ clientId: number }>(schema.implementationPlans, schema.implementationPlans.id, input.planId),
+                workspaceId: (row) => row.clientId,
+                minRole: "viewer",
+            });
             const db = await getDb();
             const tasks = await db.select().from(schema.implementationTasks)
                 .where(eq(schema.implementationTasks.implementationPlanId, input.planId))
@@ -460,7 +475,8 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
 
         getTeamCapacity: publicProcedure.input(z.object({
             clientId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const db = await getDb();
             // Aggregate estimated hours by assignee
             const tasks = await db.select({
