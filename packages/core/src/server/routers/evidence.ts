@@ -8,6 +8,17 @@ import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
 import { recalculateRiskScore } from "../services/riskService";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
+
+function requireEvidenceRow(user: any, id: number, minRole: "viewer" | "editor", suppliedClientId?: unknown) {
+    return requireRecordWorkspace({
+        user,
+        loadRow: () => loadRowById<{ clientId: number }>(schema.evidence, schema.evidence.id, id),
+        workspaceId: (row) => row.clientId,
+        suppliedClientId,
+        minRole,
+    });
+}
 
 // Shared Framework Seed Data
 export const FRAMEWORK_SEEDS: Record<string, any[]> = {
@@ -131,7 +142,8 @@ export const createEvidenceRouter = (
                 clientId: z.number(),
                 framework: z.string().optional()
             }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 const dbConn = await getDb();
 
                 // Fetch pending evidence requests
@@ -173,10 +185,19 @@ export const createEvidenceRouter = (
 
         getByControl: publicProcedure
             .input(z.object({ clientControlId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                const access = await requireRecordWorkspace({
+                    user: ctx?.user,
+                    loadRow: () => loadRowById<{ clientId: number }>(schema.clientControls, schema.clientControls.id, input.clientControlId),
+                    workspaceId: (row) => row.clientId,
+                    minRole: "viewer",
+                });
                 const dbConn = await getDb();
                 return await dbConn.select().from(schema.evidence)
-                    .where(eq(schema.evidence.clientControlId, input.clientControlId))
+                    .where(and(
+                        eq(schema.evidence.clientControlId, input.clientControlId),
+                        eq(schema.evidence.clientId, access.clientId),
+                    ))
                     .orderBy(desc(schema.evidence.createdAt));
             }),
 
@@ -203,10 +224,11 @@ export const createEvidenceRouter = (
 
         delete: publicProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.id, "editor");
                 const dbConn = await getDb();
                 await dbConn.delete(schema.evidence)
-                    .where(eq(schema.evidence.id, input.id));
+                    .where(and(eq(schema.evidence.id, input.id), eq(schema.evidence.clientId, access.clientId)));
                 return { success: true };
             }),
 
@@ -220,7 +242,8 @@ export const createEvidenceRouter = (
                 owner: z.string().nullable().optional(),
                 location: z.string().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.id, "editor");
                 const dbConn = await getDb();
                 const { id, ...data } = input;
 
@@ -232,7 +255,7 @@ export const createEvidenceRouter = (
 
                 await dbConn.update(schema.evidence)
                     .set(updateData)
-                    .where(eq(schema.evidence.id, id));
+                    .where(and(eq(schema.evidence.id, id), eq(schema.evidence.clientId, access.clientId)));
                 return { success: true };
             }),
 
@@ -241,7 +264,8 @@ export const createEvidenceRouter = (
                 evidenceId: z.number(),
                 status: z.enum(['verified', 'rejected', 'collected', 'pending', 'expired', 'not_applicable'])
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.evidenceId, "editor");
                 const dbConn = await getDb();
 
                 // 1. Update Evidence Status
@@ -251,7 +275,7 @@ export const createEvidenceRouter = (
                         lastVerified: input.status === 'verified' ? new Date() : null,
                         updatedAt: new Date()
                     } as any)
-                    .where(eq(schema.evidence.id, input.evidenceId));
+                    .where(and(eq(schema.evidence.id, input.evidenceId), eq(schema.evidence.clientId, access.clientId)));
 
                 // 2. "Live Wire": Propagate to Control and Risk
                 if (input.status === 'verified') {
@@ -311,7 +335,8 @@ export const createEvidenceRouter = (
                 resourceId: z.string(), // e.g. PR URL, S3 ARN
                 metadata: z.record(z.any()).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.evidenceId, "editor");
                 const dbConn = await getDb();
 
                 // Update evidence to point to integration
@@ -324,7 +349,7 @@ export const createEvidenceRouter = (
                         status: 'collected', // Automatically mark as collected
                         updatedAt: new Date()
                     } as any)
-                    .where(eq(schema.evidence.id, input.evidenceId));
+                    .where(and(eq(schema.evidence.id, input.evidenceId), eq(schema.evidence.clientId, access.clientId)));
 
                 // In a real implementation: Trigger a fetch/verify job for this resource
 
@@ -333,7 +358,8 @@ export const createEvidenceRouter = (
 
         getFiles: publicProcedure
             .input(z.object({ evidenceId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireEvidenceRow(ctx?.user, input.evidenceId, "viewer");
                 const dbConn = await getDb();
                 return dbConn.select().from(schema.evidenceFiles)
                     .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId));
@@ -459,6 +485,7 @@ Provide a structured JSON response:
                 framework: z.string().optional().default('ISO 27001')
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await getDb();
                 const framework = input.framework;
                 console.log(`[Evidence Seed] Called for Client ID: ${input.clientId}, Framework: ${framework}`);
@@ -704,6 +731,7 @@ Provide a structured JSON response:
             evidenceId: z.number(),
             content: z.string()
         })).mutation(async ({ input, ctx }: any) => {
+            await requireEvidenceRow(ctx?.user, input.evidenceId, "editor");
             const dbConn = await getDb();
             const [comment] = await dbConn.insert(schema.evidenceComments).values({
                 evidenceId: input.evidenceId,
@@ -715,7 +743,8 @@ Provide a structured JSON response:
 
         getComments: protectedProcedure.input(z.object({
             evidenceId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireEvidenceRow(ctx?.user, input.evidenceId, "viewer");
             const dbConn = await getDb();
             const comments = await dbConn.select({
                 id: schema.evidenceComments.id,
@@ -733,6 +762,7 @@ Provide a structured JSON response:
         }),
 
         getAllComments: protectedProcedure.input(z.object({ clientId: z.number() })).query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const dbConn = await getDb();
 
             // Get all evidence IDs for this client

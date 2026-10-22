@@ -180,7 +180,8 @@ export default function EvidenceIntakeBox() {
                         filename: file.name,
                         data: base64,
                         contentType: file.type,
-                        folder: 'uploads/intake'
+                        folder: 'uploads/intake',
+                        clientId,
                     })
                 });
 

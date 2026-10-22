@@ -221,6 +221,7 @@ export default function EvidenceFileUpload({
                   data: base64Data,
                   contentType: file.type,
                   folder: "evidence",
+                  clientId,
                 }),
               });
 

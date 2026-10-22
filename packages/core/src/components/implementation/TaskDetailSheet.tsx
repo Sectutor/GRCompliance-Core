@@ -119,7 +119,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdate }: TaskDeta
                         filename: file.name,
                         data: base64Data,
                         contentType: file.type,
-                        folder: 'evidence'
+                        folder: 'evidence',
+                        clientId: task.clientId,
                     })
                 });
 
