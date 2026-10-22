@@ -61,4 +61,4 @@ console.log(`VITE_ENABLE_PREMIUM: ${process.env.VITE_ENABLE_PREMIUM || 'not set'
 console.log(`VITE_LICENSE_KEY: ${process.env.VITE_LICENSE_KEY ? '*** set ***' : 'not set'}`);
 
 console.log('\n=== Test Complete ===');
-console.log('\nCommunity is the default. Premium requires VITE_ENABLE_PREMIUM=true exactly, and a plan change requires a verified Gumroad purchase. A license key in the environment does not activate a plan.');
+console.log('\nCommunity is the default. VITE_ENABLE_PREMIUM does not authorize premium APIs. A plan change requires a verified Gumroad purchase in the paid edition. A license key in the environment does not activate a plan.');

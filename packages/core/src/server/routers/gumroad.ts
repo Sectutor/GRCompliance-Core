@@ -164,22 +164,12 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
           const activeLicense = await licenseDbService.getActiveLicenseForClient(input.clientId);
 
           if (!activeLicense) {
-            // Check if this is a community build
-            const isPremiumBuild = process.env.VITE_ENABLE_PREMIUM === 'true';
-
-            if (!isPremiumBuild) {
-              return {
-                status: 'community',
-                type: 'community',
-                message: 'Using community edition (no license required)',
-                features: [],
-              };
-            }
-
+            // A public env flag is not a license. Core reports Community
+            // until a real activation row exists.
             return {
-              status: 'inactive',
-              type: 'none',
-              message: 'No active license found',
+              status: 'community',
+              type: 'community',
+              message: 'Using community edition (no license required)',
               features: [],
             };
           }

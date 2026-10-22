@@ -120,17 +120,17 @@ export const FEATURES = {
 - No license key required
 
 ### Enterprise Edition (Commercial)
-- Premium features after a verified Gumroad purchase
-- `VITE_ENABLE_PREMIUM` must be exactly `true`
-- A license key string on its own does not change the plan
+- Premium server procedures run only in the paid edition, which registers a server entitlement provider at boot
+- A license key string, `VITE_ENABLE_PREMIUM`, and `BUILD_TYPE` do not change the plan
+- The browser flag may show premium navigation. It does not authorize APIs
 
 ### Trial Edition
-- A verified Gumroad trial purchase
+- A verified purchase in the paid edition
 - Does not start because the premium flag is set or a key is typed into the app
 
 ## Environment Configuration
 
-Community is the default. Leave `VITE_ENABLE_PREMIUM` unset or set it to `false`. Premium behavior requires the exact value `true` plus a purchase Gumroad has verified. Do not put a license key in the client, and do not treat an example string as a working key. There is no mock license server.
+Community is the default. Leave `VITE_ENABLE_PREMIUM` unset or set it to `false`. Setting it to `true` can show premium navigation in the client bundle and does not unlock server procedures. Do not put a license key in the client, and do not treat an example string as a working key. There is no mock license server.
 
 ## Server Integration
 
@@ -252,12 +252,12 @@ console.log('[License] Has AI feature:', licenseValidator.hasFeature(FEATURES.AI
 
 ## Migration from Old System
 
-The old system used `VITE_ENABLE_PREMIUM` environment variable. The new system:
+The old system treated `VITE_ENABLE_PREMIUM=true` as a server unlock. That no longer authorizes APIs.
 
-1. **Backward compatible**: Old env var still works
-2. **Enhanced features**: Feature-based access control
-3. **Better UX**: Improved upgrade prompts
-4. **Server integration**: Real license validation
+1. **Server authorization** comes from a paid-edition entitlement provider registered at boot. With no provider, premium procedures return forbidden.
+2. **Navigation** may still follow the client flag. Showing a screen is not permission to call it.
+3. **Feature checks** in this package do not grant a plan.
+4. **Workspace plans** change only after Gumroad verifies a purchase.
 
 To migrate:
 1. Update `main.tsx` to use new license validator

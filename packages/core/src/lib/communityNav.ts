@@ -3,7 +3,8 @@
  *
  * Community is the default. Premium-only entries stay in the menu data so a
  * build with the exact flag VITE_ENABLE_PREMIUM=true can show them with a Pro
- * badge. Every other value, including unset, omits them.
+ * badge. Every other value, including unset, omits them. Showing an entry
+ * does not authorize the API. The server ignores this flag.
  */
 
 export { isCommunityEdition } from "./edition";
