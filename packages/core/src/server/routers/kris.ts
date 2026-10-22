@@ -3,13 +3,15 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, and } from "drizzle-orm";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
 
 export const createKrisRouter = (t: any, procedure: any) => {
     return t.router({
         // List all KRIs for a client
         list: procedure
             .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 const db = await getDb();
 
                 const krisList = await db
@@ -24,7 +26,14 @@ export const createKrisRouter = (t: any, procedure: any) => {
         // Get a single KRI by ID
         get: procedure
             .input(z.object({ id: z.number(), clientId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireRecordWorkspace({
+                    user: ctx?.user,
+                    loadRow: () => loadRowById<{ clientId: number }>(schema.kris, schema.kris.id, input.id),
+                    workspaceId: (row) => row.clientId,
+                    suppliedClientId: input.clientId,
+                    minRole: "viewer",
+                });
                 const db = await getDb();
 
                 const kri = await db
@@ -57,6 +66,7 @@ export const createKrisRouter = (t: any, procedure: any) => {
                 owner: z.string().optional()
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "editor" });
                 if (ctx.clientRole === 'viewer') {
                     throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create KRIs' });
                 }
@@ -83,7 +93,7 @@ export const createKrisRouter = (t: any, procedure: any) => {
             }),
 
         // Update an existing KRI
-        update: procedure
+        update: t.procedure
             .input(z.object({
                 id: z.number(),
                 name: z.string().optional(),
@@ -97,9 +107,12 @@ export const createKrisRouter = (t: any, procedure: any) => {
                 status: z.enum(["active", "archived"]).optional()
             }))
             .mutation(async ({ input, ctx }: any) => {
-                if (ctx.clientRole === 'viewer') {
-                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update KRIs' });
-                }
+                const access = await requireRecordWorkspace({
+                    user: ctx?.user,
+                    loadRow: () => loadRowById<{ clientId: number }>(schema.kris, schema.kris.id, input.id),
+                    workspaceId: (row) => row.clientId,
+                    minRole: "editor",
+                });
 
                 const db = await getDb();
                 const { id, ...updateData } = input;
@@ -110,7 +123,7 @@ export const createKrisRouter = (t: any, procedure: any) => {
                         ...updateData,
                         lastUpdated: new Date()
                     })
-                    .where(eq(schema.kris.id, id))
+                    .where(and(eq(schema.kris.id, id), eq(schema.kris.clientId, access.clientId)))
                     .returning();
 
                 if (!updated) {
@@ -124,18 +137,21 @@ export const createKrisRouter = (t: any, procedure: any) => {
             }),
 
         // Delete a KRI
-        delete: procedure
+        delete: t.procedure
             .input(z.object({ id: z.number() }))
             .mutation(async ({ input, ctx }: any) => {
-                if (ctx.clientRole === 'viewer') {
-                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete KRIs' });
-                }
+                const access = await requireRecordWorkspace({
+                    user: ctx?.user,
+                    loadRow: () => loadRowById<{ clientId: number }>(schema.kris, schema.kris.id, input.id),
+                    workspaceId: (row) => row.clientId,
+                    minRole: "editor",
+                });
 
                 const db = await getDb();
 
                 const [deleted] = await db
                     .delete(schema.kris)
-                    .where(eq(schema.kris.id, input.id))
+                    .where(and(eq(schema.kris.id, input.id), eq(schema.kris.clientId, access.clientId)))
                     .returning();
 
                 if (!deleted) {

@@ -60,6 +60,7 @@ import { toast } from "sonner";
 import { NotificationCenter } from "./notifications/NotificationCenter";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
 import { filterNavForEdition, isCommunityEdition } from "@/lib/communityNav";
+import { isPremiumEditionEnabled } from "@/lib/edition";
 
 // ... (existing imports)
 
@@ -618,7 +619,8 @@ function DashboardLayoutContent({
     );
 
     // Premium Feature: Threat Intelligence
-    const isPremiumClient = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
+    const premiumEdition = isPremiumEditionEnabled(import.meta.env.VITE_ENABLE_PREMIUM);
+    const isPremiumClient = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && premiumEdition;
     if (isPremiumClient) {
       groups.push({
         label: "Threat Intelligence",
@@ -631,7 +633,7 @@ function DashboardLayoutContent({
 
     // Premium Feature: Vendor Management
     // Show when a client is selected (premium check happens at route level)
-    const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
+    const enabledInBuild = premiumEdition;
     const { isPremiumStatus } = useClientContext();
     const isPremium = isPremiumStatus && enabledInBuild;
 

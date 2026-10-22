@@ -7,12 +7,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @complianceos/core",
+    "dev": "npx cross-env BUILD_TYPE=AGPLv3 VITE_ENABLE_PREMIUM=false npm run dev -w @complianceos/core",
     "dev:full": "npx concurrently \"npm run server\" \"npm run dev\"",
     "dev:community": "npx cross-env BUILD_TYPE=AGPLv3 VITE_ENABLE_PREMIUM=false npm run dev -w @complianceos/core",
     "dev:enterprise": "npx cross-env BUILD_TYPE=COMMERCIAL VITE_ENABLE_PREMIUM=true npm run dev -w @complianceos/core",
     "dev:trial": "npx cross-env BUILD_TYPE=TRIAL VITE_ENABLE_PREMIUM=true npm run dev -w @complianceos/core",
-    "build": "npm run build -w @complianceos/core",
+    "build": "npx cross-env BUILD_TYPE=AGPLv3 VITE_ENABLE_PREMIUM=false npm run build -w @complianceos/core",
     "build:community": "npx cross-env BUILD_TYPE=AGPLv3 VITE_ENABLE_PREMIUM=false npm run build -w @complianceos/core",
     "build:enterprise": "npx cross-env BUILD_TYPE=COMMERCIAL VITE_ENABLE_PREMIUM=true npm run build -w @complianceos/core",
     "build:trial": "npx cross-env BUILD_TYPE=TRIAL VITE_ENABLE_PREMIUM=true npm run build -w @complianceos/core",
@@ -22,7 +22,7 @@
     "check": "tsc",
     "db:push": "drizzle-kit push:pg",
     "db:studio": "drizzle-kit studio",
-    "server": "tsx --watch server_entry.ts",
+    "server": "npx cross-env BUILD_TYPE=AGPLv3 VITE_ENABLE_PREMIUM=false tsx --watch server_entry.ts",
     "server:community": "npx cross-env BUILD_TYPE=AGPLv3 VITE_ENABLE_PREMIUM=false tsx --watch server_entry.ts",
     "server:enterprise": "npx cross-env BUILD_TYPE=COMMERCIAL VITE_ENABLE_PREMIUM=true tsx --watch server_entry.ts",
     "server:trial": "npx cross-env BUILD_TYPE=TRIAL VITE_ENABLE_PREMIUM=true tsx --watch server_entry.ts",

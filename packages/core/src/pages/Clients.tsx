@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { canCreateAnotherWorkspace, isCommunityEdition as communityFromFlag, LATORE_DEMO_NAME } from "@/lib/edition";
 import { Plus, FolderOpen, ArrowRight, Search, Building2, Trash2, Edit, Settings, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -86,18 +87,18 @@ export default function Clients() {
 
   const clientsArray = Array.isArray(clients) ? clients : (clients as any)?.json || [];
 
-  const isCommunityEdition = import.meta.env.VITE_ENABLE_PREMIUM === 'false';
+  const isCommunityEdition = communityFromFlag(import.meta.env.VITE_ENABLE_PREMIUM);
 
-  // Count organizations where user is owner
+  // Count organizations where user is owner. Latore is seeded demo data.
+  // Administrators are counted the same as every other role.
   const ownedClientsLimit = me?.maxClients || 2;
-  const ownedClientsCount = clientsArray.filter((c: any) => c.role === 'owner').length;
-
-  // Logic identifying if the user can create more clients
-  const isAtLimit = (isCommunityEdition && clientsArray.length >= 1 && me?.role !== 'admin' && me?.role !== 'super_admin') ||
-    (ownedClientsCount >= ownedClientsLimit &&
-      me?.role !== 'admin' &&
-      me?.role !== 'owner' &&
-      me?.role !== 'super_admin');
+  const ownedNames = clientsArray.filter((c: any) => c.role === 'owner').map((c: any) => c.name as string);
+  const ownedClientsCount = ownedNames.length;
+  const isAtLimit = !canCreateAnotherWorkspace({
+    premiumFlag: import.meta.env.VITE_ENABLE_PREMIUM,
+    ownedNames,
+    maxClients: ownedClientsLimit,
+  });
 
   const filteredClients = clientsArray.filter(client =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -135,7 +136,9 @@ export default function Clients() {
               {me && (
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                    {me.role === 'admin' || me.role === 'owner' || me.role === 'super_admin' ? "Unlimited Organizations" : `${ownedClientsCount} / ${ownedClientsLimit} used`}
+                    {isCommunityEdition
+                      ? `${ownedNames.filter((name: string) => name !== LATORE_DEMO_NAME).length} / 1 workspace`
+                      : `${ownedClientsCount} / ${ownedClientsLimit} used`}
                   </span>
                   <PageGuide
                     title="Client Management"

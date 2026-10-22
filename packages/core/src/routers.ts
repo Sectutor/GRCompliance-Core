@@ -29,7 +29,11 @@ import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrate
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
 import { logActivity } from "./lib/audit";
 import { postureScore } from "./lib/postureScore";
+import { isPlatformAdmin, listAuthorizedClientIds, loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "./server/recordAccess";
 import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { evidenceRequestAssigneeLabel } from "./lib/evidenceRequestAssignee";
+import { createEvidenceRequest, resolveEvidenceRequestListScope, updateEvidenceRequestStatus } from "./server/evidenceRequests";
 import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
 import {
@@ -38,7 +42,6 @@ import {
   sendDailyDigest,
   sendWeeklyDigest
 } from "./emailNotification";
-import { llmService } from "./lib/llm/service";
 import { generateGapAnalysisReport } from "./lib/reporting";
 import { suggestControlsForTreatment } from "./lib/ai/controlSuggestions";
 // cleaned up unused imports
@@ -57,9 +60,12 @@ import {
   premiumClientProcedure,
   checkClientAccess,
   checkPremiumAccess,
+  requirePremiumEdition,
   isAuthed,
   isAdmin,
-  requiresMFA
+  requiresMFA,
+  bindRecordWorkspace,
+  authorizeWorkspace,
 } from "./server/trpc";
 import { createCrmRouter } from './lib/modules/crm/router';
 import { createSalesRouter } from './lib/modules/crm/sales-router';
@@ -114,6 +120,7 @@ import { createTrustCenterRouter } from "./server/routers/trustCenter";
 import { createIso27001Router } from "./server/routers/iso27001";
 import { createAiSystemsRouter } from "./server/routers/aiSystems";
 import { createCommentsRouter } from "./server/routers/comments";
+import { enforceExistingPremium, requireOwnedRow } from "./server/recordAccess";
 import { createOnboardingRouter } from "./server/routers/onboarding";
 import { createTrainingRouter } from "./server/routers/training";
 import { magicLinksRouter } from "./server/routers/magicLinks";
@@ -134,51 +141,12 @@ import { createKrisRouter } from "./server/routers/kris";
 // Procedures and Middleware are now imported from ./server/trpc
 
 
-const STANDARD_CONTROLS_CONTEXT = `
-AC-1: Access Control Policy and Procedures
-AC-2: Account Management
-AC-3: Access Enforcement
-AC-4: Information Flow Enforcement
-AC-5: Separation of Duties
-AC-6: Least Privilege
-AT-1: Security Awareness and Training Policy
-AT-2: Security Awareness Training
-AT-3: Role-Based Security Training
-AU-1: Audit and Accountability Policy
-AU-2: Audit Events
-AU-3: Content of Audit Records
-AU-6: Audit Review, Analysis, and Reporting
-CM-1: Configuration Management Policy
-CM-2: Baseline Configuration
-CM-3: Configuration Change Control
-CP-1: Contingency Planning Policy
-CP-2: Contingency Plan
-IA-1: Identification and Authentication Policy
-IA-2: Identification and Authentication (Organizational Users)
-IA-5: Authenticator Management
-IR-1: Incident Response Policy
-IR-4: Incident Handling
-IR-6: Incident Reporting
-PE-1: Physical and Environmental Protection Policy
-PE-2: Physical Access Authorizations
-PE-3: Physical Access Control
-RA-1: Risk Assessment Policy
-RA-3: Risk Assessment
-SA-1: System and Services Acquisition Policy
-SC-1: System and Communications Protection Policy
-SC-7: Boundary Protection
-SC-8: Transmission Confidentiality and Integrity
-SI-1: System and Information Integrity Policy
-SI-2: Flaw Remediation
-SI-3: Malicious Code Protection
-SI-4: Information System Monitoring
-`;
-
-
-
 import { createAuditorsRouter } from "./server/routers/auditors";
 import { createRequirementsRouter } from "./server/routers/complianceRequirements";
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
+
+/** Login and MFA, without treating `id` as a workspace id. */
+const recordProcedure = protectedProcedure.use(requiresMFA);
 
 export const appRouter = router({
   programGuides: createProgramGuidesRouter(t, clientProcedure),
@@ -186,13 +154,13 @@ export const appRouter = router({
   actions: createActionsRouter(t, clientProcedure),
   auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
   clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
-  controls: createControlsRouter(t, adminProcedure, publicProcedure), // Restore missing router mapping
+  controls: createControlsRouter(t, adminProcedure, publicProcedure), // Community control library. AI guidance is gated inside the router.
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   users: usersSubRouter,
   employees: createEmployeesRouter(t, clientProcedure),
-  crm: createCrmRouter(t, clientProcedure),
-  sales: createSalesRouter(t, clientProcedure),
+  crm: createCrmRouter(t, clientProcedure.use(requirePremiumEdition)),
+  sales: createSalesRouter(t, clientProcedure.use(requirePremiumEdition)),
   businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
   gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
@@ -202,8 +170,8 @@ export const appRouter = router({
   requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
   autopilot: createAutopilotRouter(t, clientProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
-  gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
-  federal: createFederalRouter(t, clientProcedure),
+  gapAnalysis: createGapAnalysisRouter(t, clientProcedure, recordProcedure),
+  federal: createFederalRouter(t, clientProcedure.use(requirePremiumEdition)),
   nist80030: createNist80030Router(t, clientProcedure),
   readiness: createReadinessRouter(t, clientProcedure),
   samm: createSammRouter(t, clientProcedure),
@@ -211,7 +179,7 @@ export const appRouter = router({
   essentialEight: createEssentialEightRouter(t, clientProcedure),
   asvs: createAsvsRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
-  intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
+  intake: createIntakeRouter(t, clientProcedure, protectedProcedure, recordProcedure),
   iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
 
 
@@ -221,21 +189,21 @@ export const appRouter = router({
   notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
 
   // Risk Management Module
-  risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
-  riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
+  risks: createRisksRouter(t, clientProcedure),
+  riskSettings: createRiskSettingsRouter(t, clientProcedure),
   kris: createKrisRouter(t, clientProcedure),
   metrics: createMetricsRouter(t, clientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),
   projects: createProjectsRouter(t, clientProcedure),
-  threatModels: createThreatModelsRouter(t, clientProcedure),
+  threatModels: createThreatModelsRouter(t, clientProcedure.use(requirePremiumEdition)),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
   adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
-  vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
+  vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure, recordProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
-  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
+  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure, recordProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
-  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
+  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure, recordProcedure),
 
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
@@ -248,7 +216,7 @@ export const appRouter = router({
   emailTemplates: emailTemplatesRouter,
   emailTriggers: emailTriggersRouter,
 
-  globalCrm: createGlobalCrmRouter(t, adminProcedure),
+  globalCrm: createGlobalCrmRouter(t, adminProcedure.use(requirePremiumEdition)),
   privacy: createPrivacyRouter(t, clientProcedure),
   privacyEnhancements: createPrivacyEnhancementsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   cyber: createCyberRouter(t, clientProcedure),
@@ -261,8 +229,8 @@ export const appRouter = router({
   learning: createLearningRouter(t, publicProcedure, adminProcedure),
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
   training: createTrainingRouter(t, clientProcedure, clientEditorProcedure),
-  knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
-  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure),
+  knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure, recordProcedure),
+  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure, recordProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
   subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed),
@@ -271,13 +239,13 @@ export const appRouter = router({
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
 
   ai: router({
-    systems: createAiSystemsRouter(t, clientProcedure),
+    systems: createAiSystemsRouter(t, clientProcedure.use(requirePremiumEdition)),
     // advisor: createAdvisorRouter(t, clientProcedure)
   }),
   feedback: feedbackRouter,
-  studio: createStudioRouter(t, protectedProcedure),
-  backupRestore: createBackupRestoreRouter(t, clientProcedure),
-  advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(({ ctx, next, path, input }) => {
+  studio: createStudioRouter(t, protectedProcedure.use(requirePremiumEdition)),
+  backupRestore: createBackupRestoreRouter(t, clientProcedure.use(requirePremiumEdition)),
+  advisor: createAdvisorRouter(t, clientProcedure.use(requirePremiumEdition).use(t.middleware(({ ctx, next, path, input }) => {
     const sig = ctx.req.headers["x-signature"] as string | undefined;
     const ts = ctx.req.headers["x-timestamp"] as string | undefined;
     const secret = process.env.TOOL_HMAC_SECRET as string | undefined;
@@ -880,7 +848,8 @@ export const appRouter = router({
         clientId: z.number(),
         limit: z.number().optional().default(12) // Last 12 weeks
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
         const dbConn = await getDb();
 
         return dbConn.select().from(schema.complianceSnapshots)
@@ -892,7 +861,8 @@ export const appRouter = router({
     // Get forecast based on historical velocity
     getForecast: publicProcedure
       .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
         const dbConn = await getDb();
 
         const snapshots = await dbConn.select().from(schema.complianceSnapshots)
@@ -950,61 +920,17 @@ export const appRouter = router({
       }),
 
     // List all snapshots (admin)
-    list: publicProcedure.query(async () => {
+    list: publicProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required for client access." });
+      }
+      if (!isPlatformAdmin(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
       const dbConn = await getDb();
       return dbConn.select().from(schema.complianceSnapshots)
         .orderBy(desc(schema.complianceSnapshots.snapshotDate));
     }),
-  }),
-
-  // Gap Email Questionnaire
-  kris: router({
-    list: publicProcedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
-        const db = await getDb();
-        return db.select().from(schema.kris).where(eq(schema.kris.clientId, input.clientId));
-      }),
-    create: adminProcedure
-      .input(z.object({
-        clientId: z.number(),
-        name: z.string(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const [kri] = await db.insert(schema.kris).values({ ...input, status: 'active' }).returning();
-        return kri;
-      }),
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const { id, ...data } = input;
-        const [kri] = await db.update(schema.kris).set(data).where(eq(schema.kris.id, id)).returning();
-        return kri;
-      }),
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        await db.delete(schema.kris).where(eq(schema.kris.id, input.id));
-        return true;
-      }),
   }),
 
   vendorAuthorizations: router({
@@ -1081,11 +1007,16 @@ export const appRouter = router({
         const [contact] = await db.update(schema.vendorContacts).set(data).where(eq(schema.vendorContacts.id, id)).returning();
         return contact;
       }),
-    delete: premiumClientProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.vendorContacts, id: input.id, minRole: "editor" });
+        await enforceExistingPremium(access.clientId, ctx.user, access.clientRole);
         const db = await getDb();
-        await db.delete(schema.vendorContacts).where(eq(schema.vendorContacts.id, input.id));
+        await db.delete(schema.vendorContacts).where(and(
+          eq(schema.vendorContacts.id, input.id),
+          eq(schema.vendorContacts.clientId, access.clientId),
+        ));
         return true;
       }),
   }),
@@ -1595,397 +1526,22 @@ export const appRouter = router({
       })
   }),
 
-  aiLegacy1: router({
-    suggestMismatch: publicProcedure
-      .input(z.object({
-        articleId: z.string(),
-        title: z.string(),
-        description: z.string()
-      }))
-      .mutation(async ({ input }) => {
-        console.log("AI Suggestion Request Started:", input.articleId);
-        try {
-          const prompt = `
-You are a Senior Compliance Officer.
-Your task is to map a "Regulation Article" to standard NIST 800-53 controls.
-
-Regulation Article:
-ID: ${input.articleId}
-Title: ${input.title}
-Text: "${input.description}"
-
-Available Standard Controls:
-${STANDARD_CONTROLS_CONTEXT}
-
-Instructions:
-1. Analyze the article text.
-2. Select 1 to 3 best matching controls from the list above.
-3. Return a JSON object in this format:
-{
-  "matches": [
-    { "controlId": "AC-1", "reason": "Article requires policy documentation." }
-  ],
-  "confidence": "High"
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-          console.log("Calling LLM Service...");
-          // Fallback if LLM fails (for debugging/demo purposes if no keys configured)
-          let response;
-          try {
-            response = await llmService.generate({
-              userPrompt: prompt,
-              systemPrompt: "You are a specialized JSON-only compliance scheduling API helper.",
-              temperature: 0.1
-            });
-          } catch (e: any) {
-            console.error("LLM Service Failed hard:", e);
-            // Return a mock success to prove the endpoint works
-            return {
-              matches: [
-                { controlId: "AC-1", reason: "(MOCK) System Access Control Policy - Fallback due to missing LLM Key" },
-                { controlId: "IA-2", reason: "(MOCK) User Identification - Fallback due to missing LLM Key" }
-              ],
-              confidence: "Low (Fallback)"
-            };
-          }
-
-          console.log("LLM Response received:", response.text.substring(0, 50) + "...");
-
-          // Clean response of potential markdown code blocks
-          // Clean response of potential markdown code blocks
-          const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-          if (!cleanJson) {
-            throw new Error("Empty response from LLM");
-          }
-
-          const parsed = JSON.parse(cleanJson);
-          return parsed;
-
-        } catch (error: any) {
-          console.error("AI Suggestion Logic Error:", error);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to generate AI suggestions: " + error.message
-          });
-        }
-      }),
-
-    // AI Advisor sub-router
-    advisor: router({
-      suggestTechnologies: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          vendorPreference: z.string().optional(),
-          budgetConstraint: z.enum(['low', 'medium', 'high']).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: suggestTechnologies called with:", input);
-          try {
-            const control = await db.getControlById(input.controlId);
-            if (!control) throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
-
-            const prompt = `
-You are an expert compliance technology advisor.
-Suggest 2-3 technology solutions for implementing the following control:
-
-Control ID: ${control.controlId}
-Control Name: ${control.name}
-Description: ${control.description || 'N/A'}
-Framework: ${control.framework}
-
-${input.vendorPreference ? `Vendor Preference: ${input.vendorPreference}` : ''}
-${input.budgetConstraint ? `Budget Constraint: ${input.budgetConstraint}` : ''}
-
-Return a JSON object with this structure:
-{
-  "suggestions": [
-    {
-      "techId": "unique-id",
-      "name": "Technology Name",
-      "vendor": "Vendor Name",
-      "description": "Brief description",
-      "pros": ["pro1", "pro2"],
-      "cons": ["con1", "con2"],
-      "effort": "low|medium|high",
-      "confidence": 0.8
-    }
-  ],
-  "contextSummary": "Brief summary of recommendations"
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance technology advisor.",
-                temperature: 0.3
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for suggestTechnologies:", e);
-              // Return mock data
-              return {
-                suggestions: [
-                  {
-                    techId: "mock-1",
-                    name: "Example IAM Solution",
-                    vendor: "Cloud Provider",
-                    description: "Identity and Access Management solution for control implementation",
-                    pros: ["Easy integration", "Scalable"],
-                    cons: ["Requires training"],
-                    effort: "medium" as const,
-                    sources: [],
-                    confidence: 0.7
-                  }
-                ],
-                contextSummary: "Mock suggestions provided due to LLM unavailability"
-              };
-            }
-          } catch (error: any) {
-            console.error("suggestTechnologies error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to suggest technologies: " + error.message
-            });
-          }
-        }),
-
-      implementationPlan: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          selectedTech: z.string().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: implementationPlan called with:", input);
-          try {
-            const control = await db.getControlById(input.controlId);
-            if (!control) throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
-
-            const prompt = `
-You are an expert compliance implementation consultant.
-Generate an implementation plan for the following control:
-
-Control ID: ${control.controlId}
-Control Name: ${control.name}
-Description: ${control.description || 'N/A'}
-Framework: ${control.framework}
-${input.selectedTech ? `Selected Technology: ${input.selectedTech}` : ''}
-
-Return a JSON object with this structure:
-{
-  "steps": [
-    {
-      "order": 1,
-      "title": "Step title",
-      "description": "Detailed description",
-      "owner": "Role responsible",
-      "estimatedDuration": "1 week"
-    }
-  ],
-  "prerequisites": ["prerequisite1", "prerequisite2"],
-  "estimatedDuration": "4 weeks",
-  "sources": []
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance implementation planner.",
-                temperature: 0.3
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for implementationPlan:", e);
-              return {
-                steps: [
-                  {
-                    order: 1,
-                    title: "Assess Current State",
-                    description: "Review existing controls and identify gaps",
-                    owner: "Compliance Team",
-                    estimatedDuration: "1 week"
-                  },
-                  {
-                    order: 2,
-                    title: "Implement Control",
-                    description: "Deploy necessary technical and procedural controls",
-                    owner: "IT Team",
-                    estimatedDuration: "2 weeks"
-                  },
-                  {
-                    order: 3,
-                    title: "Validate and Test",
-                    description: "Verify control effectiveness through testing",
-                    owner: "Audit Team",
-                    estimatedDuration: "1 week"
-                  }
-                ],
-                prerequisites: ["Management approval", "Budget allocation"],
-                estimatedDuration: "4 weeks",
-                sources: []
-              };
-            }
-          } catch (error: any) {
-            console.error("implementationPlan error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to generate implementation plan: " + error.message
-            });
-          }
-        }),
-
-      explainMapping: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          regulationId: z.string(),
-          articleId: z.string(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: explainMapping called with:", input);
-          try {
-            const prompt = `
-You are an expert compliance analyst.
-Explain how the following regulation article maps to controls:
-
-Regulation ID: ${input.regulationId}
-Article ID: ${input.articleId}
-
-Provide an explanation of the mapping, any related controls, evidence requirements, and gaps.
-
-Return a JSON object with this structure:
-{
-  "explanation": "Detailed explanation of the mapping",
-  "mappedControls": [
-    { "controlId": "AC-1", "controlName": "Access Control Policy", "status": "implemented" }
-  ],
-  "evidenceLinks": [
-    { "evidenceId": "E-001", "description": "Evidence description", "status": "collected" }
-  ],
-  "gaps": ["Gap 1", "Gap 2"],
-  "sources": []
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance mapping analyst.",
-                temperature: 0.3
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for explainMapping:", e);
-              return {
-                explanation: "This regulation article requires implementation of access control policies and procedures. Mock explanation provided.",
-                mappedControls: [
-                  { controlId: "AC-1", controlName: "Access Control Policy", status: "pending" }
-                ],
-                evidenceLinks: [],
-                gaps: ["Full LLM analysis unavailable"],
-                sources: []
-              };
-            }
-          } catch (error: any) {
-            console.error("explainMapping error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to explain mapping: " + error.message
-            });
-          }
-        }),
-
-      askQuestion: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          question: z.string(),
-          context: z.object({
-            type: z.enum(['control', 'policy', 'evidence', 'regulation']),
-            id: z.string(),
-          }).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: askQuestion called with:", input);
-          try {
-            let contextInfo = "";
-            if (input.context) {
-              contextInfo = `\nContext: ${input.context.type} with ID: ${input.context.id}`;
-            }
-
-            const prompt = `
-You are an expert compliance advisor for a GRC (Governance, Risk, Compliance) platform.
-Answer the following question from a compliance professional:
-
-Question: ${input.question}
-${contextInfo}
-
-Provide a helpful, accurate, and actionable answer. Include relevant sources or references where applicable.
-
-Return a JSON object with this structure:
-{
-  "answer": "Your detailed answer here",
-  "sources": [
-    { "type": "external", "title": "Source title", "url": "https://example.com" }
-  ]
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance expert advisor.",
-                temperature: 0.5
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for askQuestion:", e);
-              return {
-                answer: "I apologize, but I'm currently unable to process your question due to a service limitation. Please try again later or contact support for assistance.",
-                sources: []
-              };
-            }
-          } catch (error: any) {
-            console.error("askQuestion error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to answer question: " + error.message
-            });
-          }
-        }),
-    }),
-  }),
-
-
   orgRoles: router({
     list: publicProcedure
       .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
         return await db.getOrgRoles(input.clientId);
       }),
     get: publicProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireRecordWorkspace({
+          user: ctx?.user,
+          loadRow: () => loadRowById<{ clientId: number }>(orgRoles, orgRoles.id, input.id),
+          workspaceId: (row) => row.clientId,
+          minRole: "viewer",
+        });
         const role = await db.getOrgRoleById(input.id);
         if (!role) throw new TRPCError({ code: "NOT_FOUND" });
         return role;
@@ -2108,8 +1664,13 @@ ONLY return the JSON. No Markdown formatting.
           type: z.enum(['control', 'policy', 'evidence', 'client']).optional()
         }).optional()
       }))
-      .query(async ({ input }) => {
-        return await db.globalSearch(input.query, input.limit, input.filters);
+      .query(async ({ input, ctx }) => {
+        const allowed = await listAuthorizedClientIds({ user: ctx?.user });
+        if (input.filters?.clientId != null && !allowed.includes(input.filters.clientId)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "No access to this client workspace. Membership required." });
+        }
+        const scope = input.filters?.clientId != null ? [input.filters.clientId] : allowed;
+        return await db.globalSearch(input.query, input.limit, input.filters, scope);
       }),
     getMappings: publicProcedure
       .input(z.object({ controlId: z.number() }))
@@ -2128,69 +1689,119 @@ ONLY return the JSON. No Markdown formatting.
 
 
   evidenceRequests: router({
-    create: adminProcedure
+    create: protectedProcedure
       .input(z.object({
-        clientId: z.number(),
+        clientId: z.number().optional(),
         clientControlId: z.number(),
-        assigneeId: z.number(),
+        assigneeId: z.number().optional(),
+        assigneeEmployeeId: z.number().optional(),
         dueDate: z.string().optional(),
         description: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Default requester to admin/owner if context user is weird, but ctx.user should be there
-        const requesterId = (ctx.user as any)?.id || 1;
-
         const dbConn = await getDb();
-
-        await dbConn.insert(evidenceRequests).values({
-          clientId: input.clientId,
-          clientControlId: input.clientControlId,
-          requesterId: requesterId,
-          assigneeId: input.assigneeId,
-          dueDate: input.dueDate ? new Date(input.dueDate) : null,
-          description: input.description,
-          status: 'open'
+        await createEvidenceRequest({
+          userId: ctx.user?.id,
+          input,
+          loadControl: async (id) => {
+            const [row] = await dbConn.select({
+              id: clientControls.id,
+              clientId: clientControls.clientId,
+            }).from(clientControls).where(eq(clientControls.id, id)).limit(1);
+            return row ?? null;
+          },
+          loadEmployee: async (id) => {
+            const [row] = await dbConn.select({ clientId: employees.clientId })
+              .from(employees).where(eq(employees.id, id)).limit(1);
+            return row ?? null;
+          },
+          userInWorkspace: (userId, clientId) => db.isUserAllowedForClient(userId, clientId),
+          canEdit: (userId, clientId) => db.isUserAllowedForClient(userId, clientId, "editor"),
+          insert: async (row) => {
+            await dbConn.insert(evidenceRequests).values(row);
+          },
         });
         return { success: true };
       }),
 
-    list: publicProcedure
+    list: protectedProcedure
       .input(z.object({
         clientId: z.number().optional(),
         clientControlId: z.number().optional()
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const dbConn = await getDb();
+        const scope = await resolveEvidenceRequestListScope({
+          userId: ctx.user?.id,
+          input,
+          loadControl: async (id) => {
+            const [row] = await dbConn.select({
+              id: clientControls.id,
+              clientId: clientControls.clientId,
+            }).from(clientControls).where(eq(clientControls.id, id)).limit(1);
+            return row ?? null;
+          },
+          canView: (userId, clientId) => db.isUserAllowedForClient(userId, clientId),
+        });
+
+        const assigneeUsers = alias(users, "evidence_request_assignee");
+        const filters = [eq(evidenceRequests.clientId, scope.clientId)];
+        if (scope.clientControlId !== undefined) {
+          filters.push(eq(evidenceRequests.clientControlId, scope.clientControlId));
+        }
 
         const results = await dbConn.select({
           request: evidenceRequests,
-          assignee: employees,
+          assigneeEmployee: employees,
+          assigneeUser: assigneeUsers,
           requester: users,
-          control: controls
+          control: controls,
+          clientControlCode: clientControls.clientControlId,
         })
           .from(evidenceRequests)
-          .leftJoin(employees, eq(evidenceRequests.assigneeId, employees.id))
+          .leftJoin(employees, eq(evidenceRequests.assigneeEmployeeId, employees.id))
+          .leftJoin(assigneeUsers, eq(evidenceRequests.assigneeId, assigneeUsers.id))
           .leftJoin(users, eq(evidenceRequests.requesterId, users.id))
           .leftJoin(clientControls, eq(evidenceRequests.clientControlId, clientControls.id))
           .leftJoin(controls, eq(clientControls.controlId, controls.id))
-          .where(
-            input.clientId ? eq(evidenceRequests.clientId, input.clientId) :
-              input.clientControlId ? eq(evidenceRequests.clientControlId, input.clientControlId) : undefined
-          );
+          .where(and(...filters));
 
-        return results;
+        return results.map((row) => ({
+          ...row,
+          controlCode: row.clientControlCode || row.control?.controlId || null,
+          assignee: evidenceRequestAssigneeLabel({
+            assigneeEmployeeId: row.request.assigneeEmployeeId,
+            assigneeId: row.request.assigneeId,
+            employeeFirst: row.assigneeEmployee?.firstName,
+            employeeLast: row.assigneeEmployee?.lastName,
+            userName: row.assigneeUser?.name,
+          }),
+        }));
       }),
 
-    updateStatus: publicProcedure
+    updateStatus: protectedProcedure
       .input(z.object({ id: z.number(), status: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const dbConn = await getDb();
-
-        await dbConn.update(evidenceRequests)
-          .set({ status: input.status })
-          .where(eq(evidenceRequests.id, input.id));
-
-        return { success: true };
+        const updated = await updateEvidenceRequestStatus({
+          userId: ctx.user?.id,
+          requestId: input.id,
+          status: input.status,
+          loadRequest: async (id) => {
+            const [row] = await dbConn.select({
+              id: evidenceRequests.id,
+              clientId: evidenceRequests.clientId,
+            }).from(evidenceRequests).where(eq(evidenceRequests.id, id)).limit(1);
+            return row ?? null;
+          },
+          canEdit: (userId, clientId) => db.isUserAllowedForClient(userId, clientId, "editor"),
+          save: async (id, status) => {
+            await dbConn.update(evidenceRequests)
+              .set({ status, updatedAt: new Date() })
+              .where(eq(evidenceRequests.id, id));
+          },
+        });
+        return { success: true, ...updated };
       })
   }),
 
@@ -2777,80 +2388,6 @@ ONLY return the JSON. No Markdown formatting.
       }),
   }),
 
-  // AI Advisor Router - Phase 3
-  aiLegacy2: router({
-    advisor: router({
-      suggestTechnologies: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          vendorPreference: z.string().optional(),
-          budgetConstraint: z.enum(['low', 'medium', 'high']).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { suggestTechnologies } = await import('./lib/advisor/service');
-          return await suggestTechnologies(input);
-        }),
-
-      implementationPlan: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          selectedTech: z.string().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { generateImplementationPlan } = await import('./lib/advisor/service');
-          return await generateImplementationPlan(input);
-        }),
-
-      vendorMitigationPlan: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          vendorId: z.number(),
-          scanId: z.number().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { generateVendorMitigationPlan } = await import('./lib/advisor/service');
-          return await generateVendorMitigationPlan(input);
-        }),
-
-      explainMapping: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          regulationId: z.string(),
-          articleId: z.string(),
-        }))
-        .mutation(async ({ input }) => {
-          const { explainMapping } = await import('./lib/advisor/service');
-          return await explainMapping(input);
-        }),
-
-      askQuestion: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          question: z.string(),
-          context: z.object({
-            type: z.enum(['control', 'policy', 'evidence', 'regulation']),
-            id: z.string(),
-          }).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { askQuestion } = await import('./lib/advisor/service');
-          return await askQuestion({
-            clientId: input.clientId,
-            question: input.question,
-            context: input.context as { type: 'control' | 'policy' | 'evidence' | 'regulation'; id: string } | undefined
-          });
-        }),
-    }),
-  }),
-
-
   mappings: router({
     list: clientProcedure
       .input(z.object({ clientId: z.number() }))
@@ -2892,12 +2429,16 @@ ONLY return the JSON. No Markdown formatting.
         return { success: true };
       }),
 
-    delete: clientProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: controlPolicyMappings, id: input.id, minRole: "editor" });
         const dbConn = await db.getDb();
 
-        await dbConn.delete(controlPolicyMappings).where(eq(controlPolicyMappings.id, input.id));
+        await dbConn.delete(controlPolicyMappings).where(and(
+          eq(controlPolicyMappings.id, input.id),
+          eq(controlPolicyMappings.clientId, access.clientId),
+        ));
         return { success: true };
       }),
   }),
@@ -3147,7 +2688,7 @@ ONLY return the JSON. No Markdown formatting.
         return newTask;
       }),
 
-    update: clientProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -3157,7 +2698,8 @@ ONLY return the JSON. No Markdown formatting.
         assigneeId: z.number().nullable().optional(),
         dueDate: z.string().nullable().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: projectTasks, id: input.id, minRole: "editor" });
         const dbConn = await db.getDb();
 
         const updateData: any = {};
@@ -3171,20 +2713,26 @@ ONLY return the JSON. No Markdown formatting.
 
         await dbConn.update(projectTasks)
           .set(updateData)
-          .where(eq(projectTasks.id, input.id));
+          .where(and(eq(projectTasks.id, input.id), eq(projectTasks.clientId, access.clientId)));
 
         return { success: true };
       }),
 
-    updatePosition: clientProcedure
+    updatePosition: recordProcedure
       .input(z.object({
         id: z.number(), // This is the ID of the entity
         sourceType: z.string().optional().default('project_task'), // New field to identify type
         status: z.enum(['todo', 'in_progress', 'review', 'done']),
         position: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
+          const sourceTable = input.sourceType === "remediation" ? remediationTasks
+            : input.sourceType === "control" ? clientControls
+              : input.sourceType === "policy" ? clientPolicies
+                : input.sourceType === "risk_treatment" ? riskTreatments
+                  : projectTasks;
+          const access = await requireOwnedRow({ user: ctx.user, table: sourceTable, id: input.id, minRole: "editor" });
           const dbConn = await db.getDb();
 
           const { id, status, sourceType } = input;
@@ -3197,7 +2745,7 @@ ONLY return the JSON. No Markdown formatting.
                 position: input.position || 0,
                 updatedAt: new Date()
               })
-              .where(eq(projectTasks.id, id));
+              .where(and(eq(projectTasks.id, id), eq(projectTasks.clientId, access.clientId)));
           } else if (sourceType === 'remediation') {
             // Map Kanban status back to Remediation ID
             const revRemMap: Record<string, string> = { 'todo': 'open', 'in_progress': 'in_progress', 'review': 'resolved', 'done': 'closed' };
@@ -3205,7 +2753,7 @@ ONLY return the JSON. No Markdown formatting.
 
             await dbConn.update(remediationTasks)
               .set({ status: newStatus, updatedAt: new Date() })
-              .where(eq(remediationTasks.id, id));
+              .where(and(eq(remediationTasks.id, id), eq(remediationTasks.clientId, access.clientId)));
           } else if (sourceType === 'risk_treatment') {
             // Map Kanban status back to Risk Treatment
             const revRiskMap: Record<string, string> = { 'todo': 'planned', 'in_progress': 'in_progress', 'review': 'implemented', 'done': 'verified' };
@@ -3213,7 +2761,7 @@ ONLY return the JSON. No Markdown formatting.
 
             await dbConn.update(riskTreatments)
               .set({ status: newStatus }) // riskTreatments might not have updatedAt
-              .where(eq(riskTreatments.id, id));
+              .where(and(eq(riskTreatments.id, id), eq(riskTreatments.clientId, access.clientId)));
           } else if (sourceType === 'control') {
             // Map Kanban status back to Client Control
             // 'not_implemented', 'in_progress', 'implemented', 'not_applicable'
@@ -3227,7 +2775,7 @@ ONLY return the JSON. No Markdown formatting.
 
             await dbConn.update(clientControls)
               .set({ status: newStatus as any, updatedAt: new Date() })
-              .where(eq(clientControls.id, id));
+              .where(and(eq(clientControls.id, id), eq(clientControls.clientId, access.clientId)));
           } else if (sourceType === 'policy') {
             // Map Kanban status back to Policy
             // 'draft', 'review', 'approved', 'archived'
@@ -3241,24 +2789,29 @@ ONLY return the JSON. No Markdown formatting.
 
             await dbConn.update(clientPolicies)
               .set({ status: newStatus as any, updatedAt: new Date() })
-              .where(eq(clientPolicies.id, id));
+              .where(and(eq(clientPolicies.id, id), eq(clientPolicies.clientId, access.clientId)));
           }
 
           return { success: true };
         } catch (error) {
+          if (error instanceof TRPCError) throw error;
           console.error("Error in projectTasks.updatePosition:", error);
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: String(error) });
         }
       }),
 
-    delete: clientProcedure
+    delete: recordProcedure
       .input(z.object({
         id: z.number(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: projectTasks, id: input.id, minRole: "editor" });
         const dbConn = await db.getDb();
 
-        await dbConn.delete(projectTasks).where(eq(projectTasks.id, input.id));
+        await dbConn.delete(projectTasks).where(and(
+          eq(projectTasks.id, input.id),
+          eq(projectTasks.clientId, access.clientId),
+        ));
         return { success: true };
       }),
   }),
@@ -3478,16 +3031,22 @@ ONLY return the JSON. No Markdown formatting.
   }),
 
   gapQuestionnaire: router({
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         assessmentId: z.number(),
         controlIds: z.array(z.number()),
         recipientEmail: z.string().email(),
         message: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        const token = crypto.randomUUID();
+        const [assessment] = await db.select({ clientId: schema.gapAssessments.clientId })
+          .from(schema.gapAssessments)
+          .where(eq(schema.gapAssessments.id, input.assessmentId))
+          .limit(1);
+        if (!assessment) throw new TRPCError({ code: "NOT_FOUND", message: "Assessment not found" });
+        await authorizeWorkspace(ctx, assessment.clientId);
+        const token = crypto.randomBytes(32).toString("base64url");
 
         // Store controlIds as JSON (array of strings)
         const [request] = await db.insert(schema.gapQuestionnaireRequests).values({
@@ -3504,7 +3063,7 @@ ONLY return the JSON. No Markdown formatting.
         return { success: true, token, link };
       }),
 
-    sendEmail: publicProcedure
+    sendEmail: protectedProcedure
       .input(z.object({
         email: z.string().email(),
         link: z.string(),
@@ -3512,7 +3071,6 @@ ONLY return the JSON. No Markdown formatting.
       }))
       .mutation(async ({ input }) => {
         console.log(`[gapQuestionnaire] Sending email to ${input.email}`);
-        console.log(`[gapQuestionnaire] Link: ${input.link}`);
         // Real email sending would go here (using user's SMTP if set, or system default)
         return { success: true };
       }),
@@ -3734,7 +3292,28 @@ ONLY return the JSON. No Markdown formatting.
       }),
 
     // Update Task (Universal)
-    update: clientProcedure
+    update: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.id);
+        const type = String(raw?.type || "");
+        if (!Number.isInteger(id) || id <= 0) return null;
+        const dbConn = await db.getDb();
+        if (type === "project_tasks" || type === "general") {
+          const [row] = await dbConn.select({ clientId: projectTasks.clientId })
+            .from(projectTasks)
+            .where(eq(projectTasks.id, id))
+            .limit(1);
+          return row?.clientId ?? null;
+        }
+        if (type === "remediation_tasks" || type === "remediation") {
+          const [row] = await dbConn.select({ clientId: remediationTasks.clientId })
+            .from(remediationTasks)
+            .where(eq(remediationTasks.id, id))
+            .limit(1);
+          return row?.clientId ?? null;
+        }
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown task type for update" });
+      }))
       .input(z.object({
         id: z.number(),
         type: z.string(), // 'project_tasks' or 'remediation_tasks' (origin) OR 'remediation', 'general' (type) - Let's use 'origin' from listAll
@@ -3756,9 +3335,9 @@ ONLY return the JSON. No Markdown formatting.
         if (updates.assigneeId) data.assigneeId = updates.assigneeId;
 
         if (type === 'project_tasks' || type === 'general') {
-          await dbConn.update(projectTasks).set(data).where(eq(projectTasks.id, id));
+          await dbConn.update(projectTasks).set(data).where(and(eq(projectTasks.id, id), eq(projectTasks.clientId, ctx.clientId as number)));
         } else if (type === 'remediation_tasks' || type === 'remediation') {
-          await dbConn.update(remediationTasks).set(data).where(eq(remediationTasks.id, id));
+          await dbConn.update(remediationTasks).set(data).where(and(eq(remediationTasks.id, id), eq(remediationTasks.clientId, ctx.clientId as number)));
         } else {
           // Fallback or Error?
           // Maybe it's a 'project_task' with source type... treat as project_task if id matches?
@@ -3861,9 +3440,10 @@ ONLY return the JSON. No Markdown formatting.
           .orderBy(desc(schema.processingActivities.createdAt));
       }),
 
-    get: clientProcedure
+    get: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const [activity] = await dbConn.select()
           .from(schema.processingActivities)
@@ -3927,7 +3507,7 @@ ONLY return the JSON. No Markdown formatting.
         return activity;
       }),
 
-    update: clientEditorProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         activityName: z.string().optional(),
@@ -3946,12 +3526,16 @@ ONLY return the JSON. No Markdown formatting.
         organizationalMeasures: z.array(z.string()).optional(),
         status: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "editor" });
         const { id, ...updates } = input;
         const dbConn = await getDb();
         const [activity] = await dbConn.update(schema.processingActivities)
           .set({ ...updates, updatedAt: new Date() })
-          .where(eq(schema.processingActivities.id, id))
+          .where(and(
+            eq(schema.processingActivities.id, id),
+            eq(schema.processingActivities.clientId, access.clientId),
+          ))
           .returning();
         return activity;
       }),
@@ -3984,12 +3568,13 @@ ONLY return the JSON. No Markdown formatting.
       }),
 
     // Phase 3: Compliance Automation
-    scheduleReview: clientEditorProcedure
+    scheduleReview: recordProcedure
       .input(z.object({
         id: z.number(),
         reviewIntervalMonths: z.number().default(12)
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         const now = new Date();
         const nextReview = new Date(now);
@@ -4001,7 +3586,10 @@ ONLY return the JSON. No Markdown formatting.
             nextReviewDate: nextReview,
             updatedAt: now
           })
-          .where(eq(schema.processingActivities.id, input.id))
+          .where(and(
+            eq(schema.processingActivities.id, input.id),
+            eq(schema.processingActivities.clientId, access.clientId),
+          ))
           .returning();
 
         return activity;
@@ -4073,9 +3661,10 @@ ONLY return the JSON. No Markdown formatting.
         };
       }),
 
-    getCompletenessScore: clientProcedure
+    getCompletenessScore: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const [activity] = await dbConn.select()
           .from(schema.processingActivities)
@@ -4236,9 +3825,10 @@ ONLY return the JSON. No Markdown formatting.
           .orderBy(desc(schema.dataProtImpactAssessments.createdAt));
       }),
 
-    get: clientProcedure
+    get: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const results = await dbConn
           .select()
@@ -4271,7 +3861,7 @@ ONLY return the JSON. No Markdown formatting.
         return result;
       }),
 
-    update: clientEditorProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         activityId: z.number().optional(),
@@ -4284,7 +3874,8 @@ ONLY return the JSON. No Markdown formatting.
         assignedTo: z.number().optional(),
         lastReviewDate: z.date().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "editor" });
         const { id, ...data } = input;
         const dbConn = await getDb();
         const [result] = await dbConn
@@ -4293,28 +3884,36 @@ ONLY return the JSON. No Markdown formatting.
             ...data,
             updatedAt: new Date(),
           })
-          .where(eq(schema.dataProtImpactAssessments.id, id))
+          .where(and(
+            eq(schema.dataProtImpactAssessments.id, id),
+            eq(schema.dataProtImpactAssessments.clientId, access.clientId),
+          ))
           .returning();
         return result;
       }),
 
-    delete: clientEditorProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         await dbConn
           .delete(schema.dataProtImpactAssessments)
-          .where(eq(schema.dataProtImpactAssessments.id, input.id));
+          .where(and(
+            eq(schema.dataProtImpactAssessments.id, input.id),
+            eq(schema.dataProtImpactAssessments.clientId, access.clientId),
+          ));
         return { success: true };
       }),
 
-    saveResponses: clientEditorProcedure
+    saveResponses: recordProcedure
       .input(z.object({
         id: z.number(),
         responses: z.any(), // JSON data for sections
         status: z.enum(["draft", "in_progress", "under_review", "completed"]).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         const [result] = await dbConn
           .update(schema.dataProtImpactAssessments)
@@ -4323,7 +3922,10 @@ ONLY return the JSON. No Markdown formatting.
             status: input.status,
             updatedAt: new Date(),
           })
-          .where(eq(schema.dataProtImpactAssessments.id, input.id))
+          .where(and(
+            eq(schema.dataProtImpactAssessments.id, input.id),
+            eq(schema.dataProtImpactAssessments.clientId, access.clientId),
+          ))
           .returning();
         return result;
       }),
@@ -4342,9 +3944,10 @@ ONLY return the JSON. No Markdown formatting.
           .orderBy(desc(schema.internationalTransfers.createdAt));
       }),
 
-    get: clientProcedure
+    get: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.internationalTransfers, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const [transfer] = await dbConn
           .select()
@@ -4385,7 +3988,7 @@ ONLY return the JSON. No Markdown formatting.
         return result;
       }),
 
-    update: clientEditorProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         clientId: z.number().optional(),
@@ -4398,24 +4001,38 @@ ONLY return the JSON. No Markdown formatting.
         sccModule: z.enum(["c2c", "c2p", "p2p", "p2c"]).optional().nullable(),
         nextReviewDate: z.date().optional().nullable(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({
+          user: ctx.user,
+          table: schema.internationalTransfers,
+          id: input.id,
+          suppliedClientId: input.clientId,
+          minRole: "editor",
+        });
         const dbConn = await getDb();
-        const { id, clientId, ...data } = input;
+        const { id, clientId: _clientId, ...data } = input;
         const [result] = await dbConn
           .update(schema.internationalTransfers)
           .set({ ...data, updatedAt: new Date() })
-          .where(eq(schema.internationalTransfers.id, id))
+          .where(and(
+            eq(schema.internationalTransfers.id, id),
+            eq(schema.internationalTransfers.clientId, access.clientId),
+          ))
           .returning();
         return result;
       }),
 
-    delete: clientEditorProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.internationalTransfers, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         await dbConn
           .delete(schema.internationalTransfers)
-          .where(eq(schema.internationalTransfers.id, input.id));
+          .where(and(
+            eq(schema.internationalTransfers.id, input.id),
+            eq(schema.internationalTransfers.clientId, access.clientId),
+          ));
         return { success: true };
       }),
 
@@ -4428,16 +4045,23 @@ ONLY return the JSON. No Markdown formatting.
         responses: z.any(),
         version: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({
+          user: ctx.user,
+          table: schema.internationalTransfers,
+          id: input.transferId,
+          suppliedClientId: input.clientId,
+          minRole: "editor",
+        });
         const dbConn = await getDb();
-        const { transferId, ...data } = input;
 
         // Find existing draft or create new
         const [existing] = await dbConn
           .select()
           .from(schema.transferImpactAssessments)
           .where(and(
-            eq(schema.transferImpactAssessments.transferId, transferId),
+            eq(schema.transferImpactAssessments.transferId, input.transferId),
+            eq(schema.transferImpactAssessments.clientId, access.clientId),
             eq(schema.transferImpactAssessments.status, "draft")
           ))
           .limit(1);
@@ -4451,15 +4075,18 @@ ONLY return the JSON. No Markdown formatting.
               status: input.status,
               updatedAt: new Date()
             })
-            .where(eq(schema.transferImpactAssessments.id, existing.id))
+            .where(and(
+              eq(schema.transferImpactAssessments.id, existing.id),
+              eq(schema.transferImpactAssessments.clientId, access.clientId),
+            ))
             .returning();
           return updated;
         } else {
           const [inserted] = await dbConn
             .insert(schema.transferImpactAssessments)
             .values({
-              transferId,
-              clientId: input.clientId,
+              transferId: input.transferId,
+              clientId: access.clientId,
               riskLevel: input.riskLevel,
               status: input.status || "draft",
               questionnaireData: input.responses,

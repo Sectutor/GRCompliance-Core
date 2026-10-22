@@ -129,8 +129,17 @@ export function createLocalAuthClient() {
             async updateUser() {
                 return { data: { user: readSession()?.user ?? null }, error: { message: 'Password changes are not available in this build.' } };
             },
-            async resetPasswordForEmail() {
-                return { data: {}, error: { message: 'Password reset email is not configured for local authentication.' } };
+            async resetPasswordForEmail(email: string) {
+                const response = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    return { data: {}, error: { message: body.error || 'Could not send a password reset email' } };
+                }
+                return { data: {}, error: null };
             },
             async refreshSession() {
                 return { data: { session: readSession() }, error: null };

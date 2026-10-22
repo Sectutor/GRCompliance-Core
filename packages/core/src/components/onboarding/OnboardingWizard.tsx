@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { isCommunityEdition as communityFromFlag } from "@/lib/edition";
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from "@complianceos/ui/ui/dialog";
@@ -114,7 +115,7 @@ export function OnboardingWizard() {
         });
     };
 
-    const isCommunityEdition = import.meta.env.VITE_ENABLE_PREMIUM === 'false';
+    const isCommunityEdition = communityFromFlag(import.meta.env.VITE_ENABLE_PREMIUM);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

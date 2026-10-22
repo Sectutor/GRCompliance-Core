@@ -2012,6 +2012,7 @@ export default function VendorDetails() {
                                 toast.success("File uploaded successfully");
                             }}
                             folder="vendor-docs"
+                            clientId={clientId}
                         />
                     </div>
                     <div className="relative">

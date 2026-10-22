@@ -5,6 +5,7 @@ import { getDb } from "../../db";
 import { devProjects, threatModels, riskScenarios, riskTreatments, projectTasks, projectComplianceMappings } from "../../schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { logActivity } from "../../lib/audit";
+import { requireOwnedRow, requireWorkspaceRole } from "../recordAccess";
 
 
 
@@ -119,9 +120,8 @@ export const createDevProjectsRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const db = await getDb();
-
-                // Check permissions?
 
                 await db.delete(devProjects)
                     .where(and(eq(devProjects.id, input.id), eq(devProjects.clientId, input.clientId)));
@@ -285,13 +285,19 @@ export const createDevProjectsRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
             }))
             .mutation(async ({ input, ctx }: any) => {
+                const access = await requireOwnedRow({
+                    user: ctx.user,
+                    table: riskScenarios,
+                    id: input.id,
+                    suppliedClientId: input.clientId,
+                    minRole: "editor",
+                });
                 const db = await getDb();
-                // Delete treatments first (manual cascade)
                 await db.delete(riskTreatments)
                     .where(eq(riskTreatments.riskScenarioId, input.id));
 
                 await db.delete(riskScenarios)
-                    .where(and(eq(riskScenarios.id, input.id), eq(riskScenarios.clientId, input.clientId)));
+                    .where(and(eq(riskScenarios.id, input.id), eq(riskScenarios.clientId, access.clientId)));
 
                 await logActivity({
                     userId: ctx.user.id,

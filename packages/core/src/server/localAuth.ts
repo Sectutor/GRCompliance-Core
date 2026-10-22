@@ -1,4 +1,5 @@
-import { createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'crypto';
+import { escapeHtml } from './recordAccess';
 import type { Request, Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
 import { getDb } from '../db';
@@ -164,5 +165,128 @@ export async function localLoginHandler(req: Request, res: Response): Promise<vo
     } catch (error) {
         console.error('[local-auth] login failed:', error instanceof Error ? error.message : 'unknown');
         res.status(500).json({ error: 'Sign-in failed' });
+    }
+}
+
+const RESET_TTL_SECONDS = 60 * 60 * 24;
+
+export function appOrigin(): string {
+    const raw = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+    try {
+        const url = new URL(raw);
+        if (url.protocol === 'http:' || url.protocol === 'https:') return url.origin;
+    } catch {
+        /* ignore a malformed app URL */
+    }
+    return 'http://localhost:3001';
+}
+
+async function credentialFingerprint(userId: number): Promise<string> {
+    const db = await getDb();
+    const rows = await db.execute(sql`select password_hash from local_credentials where user_id = ${userId} limit 1`);
+    const row = Array.isArray(rows) ? rows[0] as { password_hash?: string } : undefined;
+    if (!row?.password_hash) return 'none';
+    return createHash('sha256').update(row.password_hash).digest('hex').slice(0, 16);
+}
+
+/**
+ * Signed reset link. The credential fingerprint makes the link single-use:
+ * setting a password changes the hash, so the same token cannot be reused.
+ * The token is not logged.
+ */
+export async function createPasswordResetToken(userId: number, email: string): Promise<string> {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET is required');
+    const cred = await credentialFingerprint(userId);
+    const exp = Math.floor(Date.now() / 1000) + RESET_TTL_SECONDS;
+    const payload = b64url(JSON.stringify({ purpose: 'password-reset', uid: userId, email, exp, cred }));
+    const signature = createHmac('sha256', secret).update(payload).digest('base64url');
+    return `${payload}.${signature}`;
+}
+
+export async function completePasswordReset(token: string, password: string): Promise<void> {
+    if (typeof password !== 'string' || password.length < 12 || password.length > 200) {
+        throw new Error('Password must be at least 12 characters');
+    }
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET is required');
+    const parts = typeof token === 'string' ? token.split('.') : [];
+    if (parts.length !== 2) throw new Error('Invalid or expired reset link');
+    const [payload, signature] = parts;
+    const expected = createHmac('sha256', secret).update(payload).digest('base64url');
+    const given = Buffer.from(signature);
+    const wanted = Buffer.from(expected);
+    if (given.length !== wanted.length || !timingSafeEqual(given, wanted)) {
+        throw new Error('Invalid or expired reset link');
+    }
+    let claims: { purpose?: string; uid?: number; email?: string; exp?: number; cred?: string };
+    try {
+        claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    } catch {
+        throw new Error('Invalid or expired reset link');
+    }
+    if (
+        claims.purpose !== 'password-reset'
+        || typeof claims.uid !== 'number'
+        || typeof claims.email !== 'string'
+        || typeof claims.exp !== 'number'
+        || typeof claims.cred !== 'string'
+        || claims.exp < Math.floor(Date.now() / 1000)
+    ) {
+        throw new Error('Invalid or expired reset link');
+    }
+    const db = await getDb();
+    const [user] = await db.select().from(users).where(eq(users.id, claims.uid)).limit(1);
+    if (!user?.email || user.email.toLowerCase() !== claims.email.toLowerCase()) {
+        throw new Error('Invalid or expired reset link');
+    }
+    if ((await credentialFingerprint(user.id)) !== claims.cred) {
+        throw new Error('Invalid or expired reset link');
+    }
+    await upsertLocalCredential(user.id, password);
+}
+
+export async function localForgotPasswordHandler(req: Request, res: Response): Promise<void> {
+    if (process.env.AUTH_MODE !== 'local') {
+        res.status(404).json({ error: 'Local authentication is not enabled' });
+        return;
+    }
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    if (!email || !email.includes('@') || email.length > 320) {
+        res.status(400).json({ error: 'A valid email is required' });
+        return;
+    }
+    try {
+        const db = await getDb();
+        const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        if (user?.id && user.email) {
+            const token = await createPasswordResetToken(user.id, user.email);
+            const resetUrl = `${appOrigin()}/update-password?token=${encodeURIComponent(token)}`;
+            const { sendEmail } = await import('../lib/email/transporter');
+            await sendEmail({
+                to: user.email,
+                subject: 'Reset your GRCompliance password',
+                html: `<p>Use this link to set a new password. It expires in 24 hours.</p><p><a href="${escapeHtml(resetUrl)}">Set your password</a></p>`,
+            });
+        }
+    } catch (error) {
+        console.error('[local-auth] password reset email failed:', error instanceof Error ? error.message : 'unknown');
+    }
+    res.json({ ok: true });
+}
+
+export async function localResetPasswordHandler(req: Request, res: Response): Promise<void> {
+    if (process.env.AUTH_MODE !== 'local') {
+        res.status(404).json({ error: 'Local authentication is not enabled' });
+        return;
+    }
+    const token = typeof req.body?.token === 'string' ? req.body.token : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    try {
+        await completePasswordReset(token, password);
+        res.json({ ok: true });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Reset failed';
+        res.status(400).json({ error: message });
     }
 }

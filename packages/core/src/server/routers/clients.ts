@@ -1,4 +1,5 @@
 
+import { randomBytes } from "crypto";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 
@@ -6,9 +7,86 @@ import * as db from "../../db";
 import * as schema from "../../schema";
 import { clients, userClients } from "../../schema";
 import { eq, desc, and, sql, inArray, ne } from "drizzle-orm";
+import { canCreateAnotherWorkspace, isPremiumEditionEnabled } from "../../lib/edition";
 import { policyCoverage, postureScore } from "../../lib/postureScore";
 import { generateGapAnalysisReport } from "../../lib/reporting";
 import { sendEmail } from "../../lib/email/transporter";
+import { appOrigin, createPasswordResetToken, upsertLocalCredential } from "../localAuth";
+import { escapeHtml, isPlatformAdmin, requireWorkspaceRole } from "../recordAccess";
+
+function assertCanOwnAnotherWorkspace(opts: {
+    premiumFlag: string | undefined;
+    ownedNames: string[];
+    maxClients: number;
+}) {
+    if (canCreateAnotherWorkspace(opts)) return;
+    if (!isPremiumEditionEnabled(opts.premiumFlag)) {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
+        });
+    }
+    throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: `Organization Limit Reached: Your current plan allows for ${opts.maxClients} organizations. Please upgrade to add more.`
+    });
+}
+
+async function ownedWorkspaceNames(dbConn: any, userId: number): Promise<string[]> {
+    const owned = await dbConn.select({ name: schema.clients.name })
+        .from(schema.userClients)
+        .innerJoin(schema.clients, eq(schema.userClients.clientId, schema.clients.id))
+        .where(and(
+            eq(schema.userClients.userId, userId),
+            eq(schema.userClients.role, 'owner')
+        ));
+    return owned.map((row: { name: string }) => row.name);
+}
+
+const rejectedLicenseWrite = (field: string) =>
+    z.any().optional().superRefine((value, ctx) => {
+        if (value !== undefined) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `${field} cannot be changed through clients.update`,
+            });
+        }
+    });
+
+export const clientUpdateSchema = z.object({
+    id: z.number(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    industry: z.string().optional(),
+    size: z.string().optional(),
+    status: z.string().optional(),
+    notes: z.string().optional(),
+    primaryContactName: z.string().optional(),
+    primaryContactEmail: z.string().optional(),
+    primaryContactPhone: z.string().optional(),
+    cisoName: z.string().optional(),
+    dpoName: z.string().optional(),
+    headquarters: z.string().optional(),
+    mainServiceRegion: z.string().optional(),
+    deploymentType: z.string().optional(),
+    region: z.string().optional(),
+    clientTier: z.string().optional(),
+    logoUrl: z.string().nullable().optional(),
+    policyLanguage: z.string().optional(),
+    legalEntityName: z.string().optional(),
+    regulatoryJurisdictions: z.array(z.string()).optional(),
+    defaultDocumentClassification: z.string().optional(),
+    planTier: rejectedLicenseWrite("planTier"),
+    activeModules: rejectedLicenseWrite("activeModules"),
+    brandPrimaryColor: rejectedLicenseWrite("brandPrimaryColor"),
+    brandSecondaryColor: rejectedLicenseWrite("brandSecondaryColor"),
+    sidebarBg: rejectedLicenseWrite("sidebarBg"),
+    sidebarFg: rejectedLicenseWrite("sidebarFg"),
+    headingFont: rejectedLicenseWrite("headingFont"),
+    bodyFont: rejectedLicenseWrite("bodyFont"),
+    portalTitle: rejectedLicenseWrite("portalTitle"),
+    requireMfa: z.boolean().optional(),
+});
 
 export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure: any, clientEditorProcedure: any, publicProcedure: any, isAuthed: any, requiresMFA: any) => {
     return t.router({
@@ -251,55 +329,37 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     console.log(`[Clients] Creating client (Enhanced): ${input.name} (Admin: ${ctx.user?.id})`);
                     const fullUser = await db.getUserById(ctx.user.id);
 
-                    // 1. Check Limits for the Creator (if not admin)
+                    // 1. Workspace capacity applies to every role, including administrators.
                     const d = await db.getDb();
-                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
-                        .from(schema.userClients)
-                        .where(and(
-                            eq(schema.userClients.userId, ctx.user.id),
-                            eq(schema.userClients.role, 'owner')
-                        ));
-
-                    const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
-
-                    // Admins/Internal Owners/Super Admins bypass limit
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
-
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
-                            });
-                        }
-                    }
+                    assertCanOwnAnotherWorkspace({
+                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
+                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
+                        maxClients: limit,
+                    });
 
                     // 2. Determine Owner User (Create if needed)
                     let ownerUserId = ctx.user.id;
                     let isNewUser = false;
                     const targetEmail = input.adminEmail;
 
+                    let resetUrl: string | null = null;
                     if (input.adminEmail && input.adminEmail !== ctx.user.email) {
                         let existingUser = await db.getUserByEmail(input.adminEmail);
                         if (!existingUser) {
                             console.log(`[Clients] Creating new user for org: ${input.adminEmail}`);
-                            // Create temp user
-                            const randomPassword = Math.random().toString(36).slice(-8);
                             existingUser = await db.createUser({
                                 email: input.adminEmail,
                                 name: input.adminEmail.split('@')[0],
-                                password: randomPassword // They should reset this
                             });
                             isNewUser = true;
+                            try {
+                                await upsertLocalCredential(existingUser.id, randomBytes(32).toString("base64url"));
+                                const token = await createPasswordResetToken(existingUser.id, input.adminEmail);
+                                resetUrl = `${appOrigin()}/update-password?token=${encodeURIComponent(token)}`;
+                            } catch (setupError) {
+                                console.error("[Clients] Password setup failed:", setupError instanceof Error ? setupError.message : "unknown");
+                            }
                         }
                         ownerUserId = existingUser.id;
                     }
@@ -331,26 +391,34 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     // 6. Send Email Notification
                     if (targetEmail) {
-                        const loginLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/login`;
-                        const defaultMsg = `You have been added as an administrator for the new organization <strong>${input.name}</strong> on GRCompliance.`;
+                        const loginLink = `${appOrigin()}/login`;
+                        const orgName = escapeHtml(input.name);
+                        const messageHtml = input.welcomeMessage
+                            ? escapeHtml(input.welcomeMessage).replace(/\n/g, "<br/>")
+                            : `You have been added as an administrator for the new organization <strong>${orgName}</strong> on GRCompliance.`;
+                        const resetHtml = isNewUser
+                            ? (resetUrl
+                                ? `<p>Your account has been created. Set a password before you sign in. This link expires in 24 hours.</p><p><a href="${escapeHtml(resetUrl)}">Set your password</a></p>`
+                                : `<p>Your account has been created. Use "Forgot Password" on the sign-in page to set your password.</p>`)
+                            : "";
 
                         await sendEmail({
                             to: targetEmail,
-                            subject: `Welcome to ${input.name} on GRCompliance`,
+                            subject: `Welcome to ${String(input.name).replace(/[\r\n]/g, " ").slice(0, 180)} on GRCompliance`,
                             html: `
                                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                                     <h2 style="color: #1a1a1a;">Welcome to GRCompliance</h2>
-                                    <p>${input.welcomeMessage ? input.welcomeMessage.replace(/\n/g, '<br/>') : defaultMsg}</p>
+                                    <p>${messageHtml}</p>
                                     
                                     <div style="margin: 24px 0; background-color: #f9f9f9; padding: 16px; border-radius: 4px;">
-                                        <strong>Organization:</strong> ${input.name}<br/>
+                                        <strong>Organization:</strong> ${orgName}<br/>
                                         <strong>Role:</strong> Owner
                                     </div>
 
-                                    ${isNewUser ? `<p>Your account has been created. Please use the "Forgot Password" function to set your password.</p>` : ''}
+                                    ${resetHtml}
                                     
                                     <div style="margin: 24px 0;">
-                                        <a href="${loginLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Access Dashboard</a>
+                                        <a href="${escapeHtml(loginLink)}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Access Dashboard</a>
                                     </div>
                                     
                                     <p style="color: #666; font-size: 14px;">If you didn't expect this, please contact support.</p>
@@ -385,35 +453,12 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     const d = await db.getDb();
                     const fullUser = await db.getUserById(ctx.user.id);
 
-                    // Check Limits
-                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
-                        .from(schema.userClients)
-                        .where(and(
-                            eq(schema.userClients.userId, ctx.user.id),
-                            eq(schema.userClients.role, 'owner')
-                        ));
-
-                    const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
-
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
-
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations.`
-                            });
-                        }
-                    }
+                    assertCanOwnAnotherWorkspace({
+                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
+                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
+                        maxClients: limit,
+                    });
 
                     // Transactional Onboarding
                     const result = await db.onboardClient({
@@ -452,34 +497,12 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     const d = await db.getDb();
                     const fullUser = await db.getUserById(ctx.user.id);
-                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
-                        .from(schema.userClients)
-                        .where(and(
-                            eq(schema.userClients.userId, ctx.user.id),
-                            eq(schema.userClients.role, 'owner')
-                        ));
-
-                    const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
-
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
-
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
-                            });
-                        }
-                    }
+                    assertCanOwnAnotherWorkspace({
+                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
+                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
+                        maxClients: limit,
+                    });
 
                     const selectedFrameworks = Array.isArray(input.frameworks)
                         ? input.frameworks.filter((f: any) => typeof f === 'string' && f.trim().length > 0)
@@ -517,7 +540,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     try {
                         // Skip duplicate "DEMO" org creation in Community Edition to save the slot
-                        if (process.env.VITE_ENABLE_PREMIUM !== 'false') {
+                        if (isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
                             await db.seedSampleData(ctx.user.id, {
                                 name: `${input.name} DEMO`,
                                 industry: input.industry
@@ -578,42 +601,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 }
             }),
         update: publicProcedure.use(isAuthed).use(requiresMFA)
-            .input(z.object({
-                id: z.number(),
-                name: z.string().optional(),
-                description: z.string().optional(),
-                industry: z.string().optional(),
-                size: z.string().optional(),
-                status: z.string().optional(),
-                notes: z.string().optional(),
-                primaryContactName: z.string().optional(),
-                primaryContactEmail: z.string().optional(),
-                primaryContactPhone: z.string().optional(),
-                cisoName: z.string().optional(),
-                dpoName: z.string().optional(),
-                headquarters: z.string().optional(),
-                mainServiceRegion: z.string().optional(),
-                deploymentType: z.string().optional(),
-                region: z.string().optional(),
-                clientTier: z.string().optional(),
-                logoUrl: z.string().nullable().optional(),
-                policyLanguage: z.string().optional(),
-                legalEntityName: z.string().optional(),
-                regulatoryJurisdictions: z.array(z.string()).optional(),
-                defaultDocumentClassification: z.string().optional(),
-                // New Plan/Module Fields
-                planTier: z.string().optional(),
-                activeModules: z.array(z.string()).optional(),
-                // Branding
-                brandPrimaryColor: z.string().optional().nullable(),
-                brandSecondaryColor: z.string().optional().nullable(),
-                sidebarBg: z.string().optional().nullable(),
-                sidebarFg: z.string().optional().nullable(),
-                headingFont: z.string().optional().nullable(),
-                bodyFont: z.string().optional().nullable(),
-                portalTitle: z.string().optional().nullable(),
-                requireMfa: z.boolean().optional(),
-            }))
+            .input(clientUpdateSchema)
             .mutation(async ({ input, ctx }: any) => {
                 const { id, ...data } = input;
 
@@ -669,6 +657,14 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         name: input.email.split('@')[0],
                     });
                 }
+                if (input.role === "owner") {
+                    await requireWorkspaceRole({
+                        user: ctx.user,
+                        clientId: input.clientId,
+                        minRole: "owner",
+                    });
+                }
+
                 if (user) {
                     const existing = await db.isUserAllowedForClient(user.id, input.clientId);
                     if (!existing) {
@@ -693,23 +689,21 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
         grantSelfAccess: publicProcedure.use(isAuthed).use(requiresMFA)
             .input(z.object({ clientId: z.number(), role: z.enum(['owner', 'admin', 'editor']).default('owner') }))
             .mutation(async ({ input, ctx }: any) => {
-                const d = await db.getDb();
                 const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
                 if (hasAccess) return { success: true, message: 'Already a member' };
-                const owners = await d.select().from(schema.userClients)
-                    .where(and(eq(schema.userClients.clientId, input.clientId), eq(schema.userClients.role, 'owner')));
-                if (owners.length === 0 || ctx.user.role === 'admin' || ctx.user.role === 'super_admin') {
-                    await db.assignUserToClient(ctx.user.id, input.clientId, input.role as any);
-                    return { success: true, message: 'Access granted' };
+                if (!isPlatformAdmin(ctx.user?.role)) {
+                    throw new TRPCError({
+                        code: 'FORBIDDEN',
+                        message: 'Only platform administrators can grant themselves workspace access.'
+                    });
                 }
-                throw new TRPCError({
-                    code: 'FORBIDDEN',
-                    message: 'An owner already exists for this workspace. Only admins can add themselves.'
-                });
+                await db.assignUserToClient(ctx.user.id, input.clientId, input.role as any);
+                return { success: true, message: 'Access granted' };
             }),
         stats: publicProcedure
             .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 return await db.getClientStats(input.clientId);
             }),
         removeLogo: adminProcedure.use(requiresMFA)

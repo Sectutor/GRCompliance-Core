@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and } from "drizzle-orm";
+import { requireWorkspaceRole } from "../recordAccess";
 
 export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
     // Unified List
@@ -251,7 +252,8 @@ export const createActionsRouter = (t: any, clientProcedure: any) => t.router({
             id: z.string(), // "task-123" or "project-123"
             clientId: z.number()
         }))
-        .mutation(async ({ input }: any) => {
+        .mutation(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
             const db = await getDb();
             const [type, idStr] = input.id.split('-');
             const id = parseInt(idStr);

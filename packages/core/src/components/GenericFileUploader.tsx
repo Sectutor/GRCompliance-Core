@@ -8,6 +8,7 @@ import { authedFetch } from "@/lib/authedFetch";
 interface GenericFileUploaderProps {
     onUploadComplete: (file: { name: string; url: string; key: string }) => void;
     folder?: string;
+    clientId?: number;
     accept?: string[];
     maxSizeMB?: number;
     multiple?: boolean;
@@ -37,6 +38,7 @@ const DEFAULT_ALLOWED_TYPES = [
 export default function GenericFileUploader({
     onUploadComplete,
     folder = 'uploads',
+    clientId,
     accept = DEFAULT_ALLOWED_TYPES,
     maxSizeMB = 10,
     multiple = false
@@ -111,7 +113,8 @@ export default function GenericFileUploader({
                                     filename: file.name,
                                     data: base64Data,
                                     contentType: file.type,
-                                    folder
+                                    folder,
+                                    clientId,
                                 }),
                             });
 

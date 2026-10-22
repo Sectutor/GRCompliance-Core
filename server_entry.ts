@@ -44,6 +44,7 @@ import { getDb, resetDb } from './packages/core/src/db';
 import { sql } from 'drizzle-orm';
 import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
+import { authorizeUploadDownload } from './packages/core/src/server/uploadAccess';
 import { aiRouter } from './packages/core/src/server/routers/ai';
 import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroad';
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
@@ -52,7 +53,7 @@ import * as policyReviewScheduler from './packages/core/src/server/services/poli
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
-import { localLoginHandler } from './packages/core/src/server/localAuth';
+import { localForgotPasswordHandler, localLoginHandler, localResetPasswordHandler } from './packages/core/src/server/localAuth';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -63,6 +64,12 @@ export const app = express();
 // Health Check - Moving to top to bypass potential middleware issues
 app.post('/api/auth/login', express.json({ limit: '32kb' }), (req, res) => {
     void localLoginHandler(req, res);
+});
+app.post('/api/auth/forgot-password', express.json({ limit: '32kb' }), (req, res) => {
+    void localForgotPasswordHandler(req, res);
+});
+app.post('/api/auth/reset-password', express.json({ limit: '32kb' }), (req, res) => {
+    void localResetPasswordHandler(req, res);
 });
 
 app.get(['/health', '/api/health'], async (req, res) => {
@@ -109,7 +116,7 @@ console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(process.env.AUTH_MODE === 'local'
     ? '- AUTH_MODE: local (Supabase is not used)'
     : `- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
-console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'false' ? 'CORE (Open Source)' : 'PREMIUM (Full Access)'}`);
+console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'true' ? 'PREMIUM (Full Access)' : 'CORE (Open Source)'}`);
 console.log(`- REDIS: ${process.env.REDIS_HOST ? 'Configured' : 'Disabled'}`);
 
 
@@ -184,34 +191,11 @@ if (process.env.RATE_LIMITING_ENABLED === 'true') {
 // Apply Authentication Middleware to populate req.user
 app.use(authMiddleware);
 
-// Secure static uploads - must be after authMiddleware
-app.use('/uploads', (req: any, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required for media access' });
-    }
-    // Optional: Check client_id in path if we structure uploads by client
-    next();
+// Secure static uploads - must be after authMiddleware.
+// Keys are clients/<workspaceId>/... and the caller must be able to read that workspace.
+app.use('/uploads', (req, res, next) => {
+    void authorizeUploadDownload(req, res, next);
 }, express.static(path.join(process.cwd(), 'uploads')));
-
-
-
-// Production Diagnostics Endpoint - Restricted to Admins
-// Diagnostic endpoint to check polyfills
-app.get(['/debug/globals', '/api/debug/globals'], (req: express.Request, res: express.Response) => {
-    const g = global as any;
-    res.json({
-        DOMMatrix: typeof g.DOMMatrix,
-        window: typeof g.window,
-        document: typeof g.document,
-        location: typeof g.location,
-        location_type: Object.prototype.toString.call(g.location),
-        location_href: g.location?.href,
-        navigator: typeof g.navigator,
-        userAgent: g.navigator?.userAgent,
-        process_env_NETLIFY: !!process.env.NETLIFY,
-        process_env_NODE_ENV: process.env.NODE_ENV,
-    });
-});
 
 app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) => {
     if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {

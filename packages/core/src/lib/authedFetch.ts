@@ -32,6 +32,11 @@ export async function authedFetch(input: RequestInfo | URL, init?: RequestInit):
         console.warn('[authedFetch] No active session token — request will be sent unauthenticated.');
     }
 
+    const selectedClientId = typeof window !== 'undefined' ? window.localStorage.getItem('selectedClientId') : null;
+    if (selectedClientId && !headers.has('x-client-id')) {
+        headers.set('x-client-id', selectedClientId);
+    }
+
     return fetch(input, {
         ...init,
         credentials: 'include',

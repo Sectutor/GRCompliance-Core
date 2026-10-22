@@ -1,44 +1,8 @@
-import { Router } from 'express';
-import { storagePut } from '../../storage';
-import { logger } from '../../lib/logger';
+import { Router } from "express";
+import { handleUpload } from "../uploadAccess";
 
 export const uploadRouter = Router();
 
-uploadRouter.post('/', async (req: any, res) => {
-    try {
-        // Authentication check
-        if (!req.user) {
-            return res.status(401).json({ error: 'Authentication required for uploads' });
-        }
-
-        const { filename, data, contentType, folder = 'uploads' } = req.body;
-
-        if (!filename || !data) {
-            return res.status(400).json({ error: 'Missing filename or data' });
-        }
-
-        // Folder validation - prevent path traversal
-        if (folder.includes('..') || folder.startsWith('/') || folder.includes(':')) {
-            return res.status(400).json({ error: 'Invalid folder path' });
-        }
-
-        // Decode base64
-        const buffer = Buffer.from(data, 'base64');
-
-        // Sanitize filename and create path
-        const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const key = `${folder}/${Date.now()}-${safeFilename}`;
-
-        // Upload
-        const result = await storagePut(key, buffer, contentType || 'application/octet-stream');
-
-        res.json({
-            success: true,
-            url: result.url,
-            key: result.key
-        });
-    } catch (error) {
-        logger.error('Upload failed:', error);
-        res.status(500).json({ error: 'Upload failed: ' + (error as Error).message });
-    }
+uploadRouter.post("/", (req, res) => {
+    void handleUpload(req, res);
 });

@@ -32,6 +32,7 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { authedFetch } from "@/lib/authedFetch";
+import { OpenEvidenceRequests } from "@/components/OpenEvidenceRequests";
 
 export default function Evidence() {
   const { id } = useParams<{ id: string }>();
@@ -297,7 +298,8 @@ export default function Evidence() {
                     filename: generatedFilename,
                     data: base64,
                     contentType: file.type,
-                    folder: 'evidence'
+                    folder: 'evidence',
+                    clientId,
                   })
                 });
 
@@ -723,6 +725,8 @@ export default function Evidence() {
             </CardContent>
           </Card>
         </div>
+
+        <OpenEvidenceRequests clientId={clientId} />
 
         {/* Main Content - Categories */}
         {

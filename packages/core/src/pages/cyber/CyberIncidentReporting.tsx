@@ -141,7 +141,7 @@ export default function CyberIncidentReporting() {
                         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Detailed at (UTC)</Label>
+                                    <Label className="text-sm font-bold text-slate-700">Detected at (UTC)</Label>
                                     <Input
                                         type="datetime-local"
                                         className="h-12 rounded-xl border-slate-200 focus:border-[#3ABEF9] focus:ring-[#3ABEF9]/20"

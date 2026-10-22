@@ -4406,7 +4406,8 @@ CREATE TABLE public.evidence_requests (
     client_id integer NOT NULL,
     client_control_id integer NOT NULL,
     requester_id integer NOT NULL,
-    assignee_id integer NOT NULL,
+    assignee_id integer,
+    assignee_employee_id integer,
     status character varying(50) DEFAULT 'open'::character varying,
     due_date timestamp without time zone,
     description text,
@@ -15813,6 +15814,13 @@ CREATE INDEX idx_emb_doctype ON public.embeddings USING btree (doc_type);
 --
 
 CREATE INDEX idx_er_assignee ON public.evidence_requests USING btree (assignee_id);
+
+
+--
+-- Name: idx_er_assignee_employee; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_er_assignee_employee ON public.evidence_requests USING btree (assignee_employee_id);
 
 
 --

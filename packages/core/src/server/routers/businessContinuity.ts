@@ -3,6 +3,7 @@ import * as db from "../../db";
 import * as schema from "../../schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { requireWorkspaceRole } from "../recordAccess";
 
 import { router, publicProcedure, clientProcedure } from "../trpc";
 
@@ -229,7 +230,8 @@ export const businessContinuitySubRouter = router({
         delete: clientProcedure.input(z.object({
             id: z.number(),
             clientId: z.number()
-        })).mutation(async ({ input }: any) => {
+        })).mutation(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
             const process = await db.getBusinessProcessById(input.id);
             if (!process || process.clientId !== input.clientId) throw new TRPCError({ code: "FORBIDDEN" });
             await db.deleteBusinessProcess(input.id);
@@ -361,7 +363,16 @@ export const businessContinuitySubRouter = router({
             })).mutation(async ({ input }: any) => {
                 return await db.createBiaSeasonalEvent(input);
             }),
-            delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }: any) => {
+            delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }: any) => {
+                const dbConn = await db.getDb();
+                const [event] = await dbConn.select().from(schema.biaSeasonalEvents)
+                    .where(eq(schema.biaSeasonalEvents.id, input.id)).limit(1);
+                if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+                const [bia] = await dbConn.select({ clientId: schema.businessImpactAnalyses.clientId })
+                    .from(schema.businessImpactAnalyses)
+                    .where(eq(schema.businessImpactAnalyses.id, event.biaId)).limit(1);
+                if (!bia) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+                await requireWorkspaceRole({ user: ctx.user, clientId: bia.clientId, minRole: "editor" });
                 return await db.deleteBiaSeasonalEvent(input.id);
             }),
         }),
@@ -380,7 +391,16 @@ export const businessContinuitySubRouter = router({
             })).mutation(async ({ input }: any) => {
                 return await db.createBiaVitalRecord(input);
             }),
-            delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }: any) => {
+            delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }: any) => {
+                const dbConn = await db.getDb();
+                const [record] = await dbConn.select().from(schema.biaVitalRecords)
+                    .where(eq(schema.biaVitalRecords.id, input.id)).limit(1);
+                if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+                const [bia] = await dbConn.select({ clientId: schema.businessImpactAnalyses.clientId })
+                    .from(schema.businessImpactAnalyses)
+                    .where(eq(schema.businessImpactAnalyses.id, record.biaId)).limit(1);
+                if (!bia) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+                await requireWorkspaceRole({ user: ctx.user, clientId: bia.clientId, minRole: "editor" });
                 return await db.deleteBiaVitalRecord(input.id);
             }),
         }),
@@ -426,7 +446,13 @@ export const businessContinuitySubRouter = router({
         })).mutation(async ({ input }: any) => {
             return await db.createDisruptiveScenario(input);
         }),
-        delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }: any) => {
+        delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }: any) => {
+            const dbConn = await db.getDb();
+            const [scenario] = await dbConn.select({ clientId: schema.disruptiveScenarios.clientId })
+                .from(schema.disruptiveScenarios)
+                .where(eq(schema.disruptiveScenarios.id, input.id)).limit(1);
+            if (!scenario) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+            await requireWorkspaceRole({ user: ctx.user, clientId: scenario.clientId, minRole: "editor" });
             return await db.deleteDisruptiveScenario(input.id);
         }),
         update: clientProcedure.input(z.object({
@@ -497,9 +523,17 @@ export const businessContinuitySubRouter = router({
             const { id, ...data } = input;
             return await dbConn.update(schema.bcStrategies).set(data).where(eq(schema.bcStrategies.id, id)).returning();
         }),
-        delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }: any) => {
+        delete: clientProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }: any) => {
             const dbConn = await db.getDb();
-            return await dbConn.delete(schema.bcStrategies).where(eq(schema.bcStrategies.id, input.id));
+            const [strategy] = await dbConn.select({ clientId: schema.bcStrategies.clientId })
+                .from(schema.bcStrategies)
+                .where(eq(schema.bcStrategies.id, input.id)).limit(1);
+            if (!strategy) throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+            await requireWorkspaceRole({ user: ctx.user, clientId: strategy.clientId, minRole: "editor" });
+            return await dbConn.delete(schema.bcStrategies).where(and(
+                eq(schema.bcStrategies.id, input.id),
+                eq(schema.bcStrategies.clientId, strategy.clientId),
+            ));
         }),
     }),
 
@@ -526,7 +560,8 @@ export const businessContinuitySubRouter = router({
                 if (!plan[0] || plan[0].clientId !== input.clientId) throw new TRPCError({ code: "FORBIDDEN" });
                 return await db.createPlanCommunicationChannel(input);
             }),
-            delete: clientProcedure.input(z.object({ id: z.number(), clientId: z.number() })).mutation(async ({ input }: any) => {
+            delete: clientProcedure.input(z.object({ id: z.number(), clientId: z.number() })).mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await db.getDb();
                 // Check ownership via join or lookup
                 // For simplicity, we can trust the ID + clientId pattern if we enforce it everywhere, 
@@ -562,7 +597,8 @@ export const businessContinuitySubRouter = router({
                 if (!plan[0] || plan[0].clientId !== input.clientId) throw new TRPCError({ code: "FORBIDDEN" });
                 return await db.createPlanLogistic(input);
             }),
-            delete: clientProcedure.input(z.object({ id: z.number(), clientId: z.number() })).mutation(async ({ input }: any) => {
+            delete: clientProcedure.input(z.object({ id: z.number(), clientId: z.number() })).mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await db.getDb();
                 const logistic = await dbConn.select().from(schema.bcPlanLogistics).where(eq(schema.bcPlanLogistics.id, input.id));
                 if (!logistic[0]) throw new TRPCError({ code: "NOT_FOUND" });
@@ -1080,7 +1116,8 @@ export const businessContinuitySubRouter = router({
             const { id, clientId, ...data } = input;
             return await dbConn.update(schema.planExercises).set(data).where(eq(schema.planExercises.id, id)).returning();
         }),
-        delete: clientProcedure.input(z.object({ id: z.number(), clientId: z.number() })).mutation(async ({ input }: any) => {
+        delete: clientProcedure.input(z.object({ id: z.number(), clientId: z.number() })).mutation(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
             const dbConn = await db.getDb();
             const exercise = await dbConn.select().from(schema.planExercises).where(eq(schema.planExercises.id, input.id));
             if (!exercise[0]) throw new TRPCError({ code: "NOT_FOUND" });

@@ -130,10 +130,20 @@ export const createNotificationsRouter = (t: any, clientProcedure: any, adminPro
                 return result[0]?.count || 0;
             }),
 
-        markAsRead: clientProcedure
+        markAsRead: protectedProcedure
             .input(z.object({ id: z.number() }))
             .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await db.getDb();
+                const [row] = await dbConn.select()
+                    .from(schema.notificationLog)
+                    .where(eq(schema.notificationLog.id, input.id))
+                    .limit(1);
+                if (!row) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Notification not found" });
+                }
+                if (row.userId !== ctx.user.id) {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Notification belongs to another user" });
+                }
                 await dbConn.update(schema.notificationLog)
                     .set({ readAt: new Date() })
                     .where(and(

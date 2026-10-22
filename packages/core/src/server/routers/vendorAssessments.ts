@@ -22,8 +22,9 @@ import crypto from "crypto";
 import * as dbHelpers from "../../db";
 import * as threatIntel from "../../lib/threatIntelligence";
 import { EmailService } from "../../lib/email/service";
+import { requireOwnedRow } from "../recordAccess";
 
-export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any, premiumClientProcedure: any, adminProcedure: any) => {
+export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any, premiumClientProcedure: any, adminProcedure: any, recordProcedure = clientProcedure) => {
     return t.router({
         // Template Management
         createTemplate: clientProcedure
@@ -400,7 +401,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
             }),
 
         // Alias for update (used by frontend)
-        update: clientProcedure
+        update: recordProcedure
             .input(z.object({
                 id: z.number(),
                 status: z.string().optional(),
@@ -409,21 +410,26 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 documentUrl: z.string().optional(),
                 completedDate: z.string().optional(),
             }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: vendorAssessments, id: input.id, minRole: "editor" });
                 const db = await getDb();
                 const { id, completedDate, ...data } = input;
                 const [assessment] = await db.update(vendorAssessments).set({
                     ...data,
                     completedDate: completedDate ? new Date(completedDate) : undefined
-                }).where(eq(vendorAssessments.id, id)).returning();
+                }).where(and(eq(vendorAssessments.id, id), eq(vendorAssessments.clientId, access.clientId))).returning();
                 return assessment;
             }),
 
         listAssessments: publicProcedure
             .input(z.object({ vendorId: z.number() }))
-            .query(async ({ input }: { input: any }) => {
+            .query(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: vendors, id: input.vendorId, minRole: "viewer" });
                 const db = await getDb();
-                return db.select().from(vendorAssessments).where(eq(vendorAssessments.vendorId, input.vendorId));
+                return db.select().from(vendorAssessments).where(and(
+                    eq(vendorAssessments.vendorId, input.vendorId),
+                    eq(vendorAssessments.clientId, access.clientId),
+                ));
             }),
 
         createAssessment: clientProcedure
@@ -450,7 +456,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return assessment;
             }),
 
-        updateAssessment: clientProcedure
+        updateAssessment: recordProcedure
             .input(z.object({
                 id: z.number(),
                 status: z.string().optional(),
@@ -465,33 +471,39 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 residualLikelihood: z.string().optional(),
                 residualRiskLevel: z.string().optional(),
             }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: vendorAssessments, id: input.id, minRole: "editor" });
                 const db = await getDb();
                 const { id, completedDate, ...data } = input;
                 const [assessment] = await db.update(vendorAssessments).set({
                     ...data,
                     completedDate: completedDate ? new Date(completedDate) : undefined
-                }).where(eq(vendorAssessments.id, id)).returning();
+                }).where(and(eq(vendorAssessments.id, id), eq(vendorAssessments.clientId, access.clientId))).returning();
                 return assessment;
             }),
 
         // Vendor Management Endpoints
-        get: clientProcedure
+        get: recordProcedure
             .input(z.object({ id: z.number() }))
-            .query(async ({ input }: { input: any }) => {
+            .query(async ({ input, ctx }: { input: any, ctx: any }) => {
+                await requireOwnedRow({ user: ctx.user, table: vendors, id: input.id, minRole: "viewer" });
                 const db = await getDb();
                 const [vendor] = await db.select().from(vendors).where(eq(vendors.id, input.id));
                 return vendor || null;
             }),
 
-        getLatestScan: clientProcedure
+        getLatestScan: recordProcedure
             .input(z.object({ vendorId: z.number() }))
-            .query(async ({ input }: { input: any }) => {
+            .query(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: vendors, id: input.vendorId, minRole: "viewer" });
                 const db = await getDb();
 
                 // Get ALL scans for this vendor, sorted by date descending
                 const scans = await db.select().from(vendorScans)
-                    .where(eq(vendorScans.vendorId, input.vendorId))
+                    .where(and(
+                        eq(vendorScans.vendorId, input.vendorId),
+                        eq(vendorScans.clientId, access.clientId),
+                    ))
                     .orderBy(desc(vendorScans.scanDate));
 
                 if (scans.length === 0) return null;
@@ -686,11 +698,15 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return contact;
             }),
 
-        deleteContact: clientProcedure
+        deleteContact: recordProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: vendorContacts, id: input.id, minRole: "editor" });
                 const db = await getDb();
-                await db.delete(vendorContacts).where(eq(vendorContacts.id, input.id));
+                await db.delete(vendorContacts).where(and(
+                    eq(vendorContacts.id, input.id),
+                    eq(vendorContacts.clientId, access.clientId),
+                ));
                 return { success: true };
             }),
 
@@ -958,11 +974,15 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return contract;
             }),
 
-        deleteContract: clientProcedure
+        deleteContract: recordProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: vendorContracts, id: input.id, minRole: "editor" });
                 const db = await getDb();
-                await db.delete(vendorContracts).where(eq(vendorContracts.id, input.id));
+                await db.delete(vendorContracts).where(and(
+                    eq(vendorContracts.id, input.id),
+                    eq(vendorContracts.clientId, access.clientId),
+                ));
                 return { success: true };
             }),
 
@@ -988,11 +1008,15 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return dpa;
             }),
 
-        deleteDpa: clientProcedure
+        deleteDpa: recordProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: any }) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: vendorDpas, id: input.id, minRole: "editor" });
                 const db = await getDb();
-                await db.delete(vendorDpas).where(eq(vendorDpas.id, input.id));
+                await db.delete(vendorDpas).where(and(
+                    eq(vendorDpas.id, input.id),
+                    eq(vendorDpas.clientId, access.clientId),
+                ));
                 return { success: true };
             }),
     });

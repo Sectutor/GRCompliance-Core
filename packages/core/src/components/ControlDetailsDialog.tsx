@@ -15,7 +15,8 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { decodeAssigneeChoice } from "@/lib/evidenceRequestAssignee";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 
 import { trpc } from "@/lib/trpc";
@@ -77,8 +78,9 @@ export default function ControlDetailsDialog({
 
   const utils = trpc.useUtils();
 
-  // Get workspace members
+  // Get workspace members and People & Org employees
   const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId });
+  const { data: people } = trpc.employees.list.useQuery({ clientId }, { enabled: clientId > 0 });
 
   // Get evidence for this control
   const { data: allEvidence, refetch: refetchEvidence } = trpc.evidence.list.useQuery({
@@ -165,19 +167,29 @@ export default function ControlDetailsDialog({
       toast.success("Request sent");
       setRequestFormOpen(false);
       setRequestAssignee("");
+      setRequestDueDate("");
       setRequestDescription("");
       refetchRequests();
     },
     onError: (e) => toast.error(e.message)
   });
 
+  const updateRequestStatus = trpc.evidenceRequests.updateStatus.useMutation({
+    onSuccess: () => {
+      toast.success("Request fulfilled");
+      refetchRequests();
+    },
+    onError: (e) => toast.error(e.message)
+  });
+
   const handleCreateRequest = () => {
-    if (!requestAssignee) return toast.error("Select an assignee");
+    const assignee = decodeAssigneeChoice(requestAssignee);
+    if (!assignee) return toast.error("Select an assignee");
     createRequestMutation.mutate({
       clientId,
       clientControlId: clientControl.id,
-      assigneeId: parseInt(requestAssignee),
-      dueDate: requestDueDate,
+      ...assignee,
+      dueDate: requestDueDate || undefined,
       description: requestDescription
     });
   };
@@ -537,14 +549,25 @@ export default function ControlDetailsDialog({
                       <Label>Assignee</Label>
                       <Select onValueChange={setRequestAssignee} value={requestAssignee}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select employee..." />
+                          <SelectValue placeholder="Select a person or user" />
                         </SelectTrigger>
                         <SelectContent>
-                          {workspaceMembers?.map(user => (
-                            <SelectItem key={user.id} value={user.id.toString()}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
+                          <SelectGroup>
+                            <SelectLabel>People</SelectLabel>
+                            {people?.map((person) => (
+                              <SelectItem key={`employee-${person.id}`} value={`employee:${person.id}`}>
+                                {person.firstName} {person.lastName} · Person
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                          <SelectGroup>
+                            <SelectLabel>Users</SelectLabel>
+                            {workspaceMembers?.map((user) => (
+                              <SelectItem key={`user-${user.id}`} value={`user:${user.id}`}>
+                                {user.name} · User
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                     </div>
@@ -573,14 +596,28 @@ export default function ControlDetailsDialog({
                 {evidenceRequests?.map(req => (
                   <div key={req.request.id} className="flex justify-between items-center p-2 bg-white rounded border text-sm">
                     <div>
-                      <div className="font-medium">{req.assignee?.firstName} {req.assignee?.lastName}</div>
+                      <div className="font-medium">
+                        {req.assignee ? `${req.assignee.name} · ${req.assignee.label}` : "Unassigned"}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {req.request.description} • Due: {req.request.dueDate ? new Date(req.request.dueDate).toLocaleDateString() : 'None'}
                       </div>
                     </div>
-                    <Badge variant={req.request.status === 'open' ? 'secondary' : 'outline'}>
-                      {req.request.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {(req.request.status === "open" || !req.request.status) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={updateRequestStatus.isPending}
+                          onClick={() => updateRequestStatus.mutate({ id: req.request.id, status: "fulfilled" })}
+                        >
+                          Mark fulfilled
+                        </Button>
+                      )}
+                      <Badge variant={req.request.status === 'open' ? 'secondary' : 'outline'}>
+                        {req.request.status || "open"}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
                 {(!evidenceRequests || evidenceRequests.length === 0) && (

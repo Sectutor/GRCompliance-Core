@@ -40,11 +40,14 @@ function labels(groups: EditionNavGroup[]): string[] {
 }
 
 describe("community navigation", () => {
-    it("treats VITE_ENABLE_PREMIUM=false as the community edition", () => {
+    it("treats only the exact premium flag as the commercial edition", () => {
         expect(isCommunityEdition("false")).toBe(true);
         expect(isCommunityEdition(false)).toBe(true);
         expect(isCommunityEdition("true")).toBe(false);
-        expect(isCommunityEdition(undefined)).toBe(false);
+        expect(isCommunityEdition(true)).toBe(false);
+        expect(isCommunityEdition(undefined)).toBe(true);
+        expect(isCommunityEdition("TRUE")).toBe(true);
+        expect(isCommunityEdition("")).toBe(true);
     });
 
     it("hides premium-only items and keeps community items such as Controls", () => {

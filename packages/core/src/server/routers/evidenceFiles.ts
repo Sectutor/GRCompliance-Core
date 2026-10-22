@@ -1,8 +1,35 @@
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, like } from "drizzle-orm";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
+import { uploadKeyBelongsToWorkspace } from "../uploadAccess";
+
+function requireEvidenceFile(user: any, fileId: number, minRole: "viewer" | "editor") {
+    return requireRecordWorkspace({
+        user,
+        loadRow: async () => {
+            const file = await loadRowById<{ evidenceId: number }>(schema.evidenceFiles, schema.evidenceFiles.id, fileId);
+            if (!file) return null;
+            const parent = await loadRowById<{ clientId: number }>(schema.evidence, schema.evidence.id, file.evidenceId);
+            if (!parent) return null;
+            return { ...file, clientId: parent.clientId };
+        },
+        workspaceId: (row) => row.clientId,
+        minRole,
+    });
+}
+
+function requireParentEvidence(user: any, evidenceId: number, minRole: "viewer" | "editor") {
+    return requireRecordWorkspace({
+        user,
+        loadRow: () => loadRowById<{ clientId: number }>(schema.evidence, schema.evidence.id, evidenceId),
+        workspaceId: (row) => row.clientId,
+        minRole,
+    });
+}
 
 export const createEvidenceFilesRouter = (
     t: any,
@@ -14,7 +41,8 @@ export const createEvidenceFilesRouter = (
             .input(z.object({
                 evidenceId: z.number()
             }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireParentEvidence(ctx?.user, input.evidenceId, "viewer");
                 const dbConn = await getDb();
                 return dbConn.select().from(schema.evidenceFiles)
                     .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId))
@@ -51,7 +79,8 @@ export const createEvidenceFilesRouter = (
                 clientId: z.number(),
                 search: z.string().optional()
             }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 const dbConn = await getDb();
                 // We need to join with evidence table to filter by client
                 // Assuming simple join is supported or filter manually if easier, 
@@ -132,7 +161,8 @@ export const createEvidenceFilesRouter = (
 
         delete: publicProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireEvidenceFile(ctx?.user, input.id, "editor");
                 const dbConn = await getDb();
                 await dbConn.delete(schema.evidenceFiles)
                     .where(eq(schema.evidenceFiles.id, input.id));
@@ -150,6 +180,13 @@ export const createEvidenceFilesRouter = (
                 size: z.number().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "editor" });
+                if (!uploadKeyBelongsToWorkspace(input.fileKey, input.clientId)) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "File key is outside this workspace",
+                    });
+                }
                 const dbConn = await getDb();
 
                 // 1. Create a generic evidence container

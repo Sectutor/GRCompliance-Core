@@ -5,6 +5,8 @@ import * as schema from "../../schema";
 import { policyTemplates, clientPolicies } from "../../schema";
 import { getDb } from "../../db";
 import { eq, desc, or, and, sql, inArray } from "drizzle-orm";
+import { authorizeWorkspace } from "../workspaceAccess";
+import { assertTemplateReadable } from "../templateAccess";
 
 // Configurable concurrency limit for policy generation to avoid overwhelming the LLM API
 const CONCURRENCY_LIMIT = Number(process.env.POLICY_GENERATION_CONCURRENCY) || 3;
@@ -19,16 +21,18 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
             }).optional())
             .query(async ({ input, ctx }: any) => {
                 const db = await getDb();
+                if (input?.clientId != null) {
+                    await authorizeWorkspace(ctx, input.clientId);
+                }
 
-                const baseConditions = [
-                    or(
-                        eq(policyTemplates.isPublic, true),
-                        eq(policyTemplates.ownerId, ctx.user.id),
-                        input?.clientId ? eq(policyTemplates.clientId, input.clientId) : undefined
-                    )
-                ].filter(Boolean);
-
-                const whereClause = and(...baseConditions as any);
+                const visibleToCaller = [
+                    eq(policyTemplates.isPublic, true),
+                    eq(policyTemplates.ownerId, ctx.user.id),
+                ];
+                if (input?.clientId != null) {
+                    visibleToCaller.push(eq(policyTemplates.clientId, input.clientId));
+                }
+                const whereClause = or(...visibleToCaller);
 
                 // If framework filter is provided and not 'all', filter by framework
                 // frameworks is a JSON array, so we check if it contains the framework
@@ -86,6 +90,9 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const db = await getDb();
+                if (input.clientId != null) {
+                    await authorizeWorkspace(ctx, input.clientId);
+                }
                 const templateId = `tpl_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
                 const [template] = await db.insert(policyTemplates).values({
@@ -325,8 +332,12 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 instruction: z.string().optional(),
                 answers: z.record(z.any()).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const { policyGenerator } = await import("../../lib/policy/policy-generation");
+                await authorizeWorkspace(ctx, input.clientId);
+                if (input.templateId) {
+                    await assertTemplateReadable(ctx, input.templateId);
+                }
 
                 let content = "";
                 if (input.templateId) {

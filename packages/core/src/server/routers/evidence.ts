@@ -6,8 +6,21 @@ import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
-import { llmService } from "../../lib/llm/service";
+import { openEvidenceRequestLink } from "../../lib/openEvidenceRequestLink";
 import { recalculateRiskScore } from "../services/riskService";
+import { authorizeEvidenceLink } from "../linkEvidence";
+import { requireWorkspaceMember } from "../requireWorkspaceMember";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
+
+function requireEvidenceRow(user: any, id: number, minRole: "viewer" | "editor", suppliedClientId?: unknown) {
+    return requireRecordWorkspace({
+        user,
+        loadRow: () => loadRowById<{ clientId: number }>(schema.evidence, schema.evidence.id, id),
+        workspaceId: (row) => row.clientId,
+        suppliedClientId,
+        minRole,
+    });
+}
 
 // Shared Framework Seed Data
 export const FRAMEWORK_SEEDS: Record<string, any[]> = {
@@ -105,9 +118,15 @@ export const createEvidenceRouter = (
                     name: name
                 }));
             }),
-        list: publicProcedure
+        list: protectedProcedure
             .input(z.object({ clientId: z.number(), systemId: z.string().optional() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
+                await requireWorkspaceMember({
+                    userId: ctx.user?.id,
+                    clientId: input.clientId,
+                    canView: (userId, clientId) => db.isUserAllowedForClient(userId, clientId),
+                });
                 const results = await db.getEvidence(input.clientId, input.systemId);
                 // Flatten structure for report consumption
                 return results.map((r: any) => ({
@@ -115,6 +134,7 @@ export const createEvidenceRouter = (
                     evidenceId: r.evidenceId,
                     description: r.description,
                     status: r.status,
+                    dueDate: r.dueDate ?? null,
                     lastVerified: r.lastVerified,
                     control: r.control,
                     fileCount: r.fileCount,
@@ -131,7 +151,8 @@ export const createEvidenceRouter = (
                 clientId: z.number(),
                 framework: z.string().optional()
             }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 const dbConn = await getDb();
 
                 // Fetch pending evidence requests
@@ -173,14 +194,23 @@ export const createEvidenceRouter = (
 
         getByControl: publicProcedure
             .input(z.object({ clientControlId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                const access = await requireRecordWorkspace({
+                    user: ctx?.user,
+                    loadRow: () => loadRowById<{ clientId: number }>(schema.clientControls, schema.clientControls.id, input.clientControlId),
+                    workspaceId: (row) => row.clientId,
+                    minRole: "viewer",
+                });
                 const dbConn = await getDb();
                 return await dbConn.select().from(schema.evidence)
-                    .where(eq(schema.evidence.clientControlId, input.clientControlId))
+                    .where(and(
+                        eq(schema.evidence.clientControlId, input.clientControlId),
+                        eq(schema.evidence.clientId, access.clientId),
+                    ))
                     .orderBy(desc(schema.evidence.createdAt));
             }),
 
-        create: publicProcedure
+        create: protectedProcedure
             .input(z.object({
                 clientId: z.number(),
                 clientControlId: z.number(),
@@ -190,23 +220,59 @@ export const createEvidenceRouter = (
                 status: z.string().optional(),
                 owner: z.string().nullable().optional(),
                 location: z.string().optional(),
+                dueDate: z.string().nullable().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const fields = { ...input };
+                const dueDate = fields.dueDate;
+                delete fields.dueDate;
+                delete fields.clientId;
+                const linked = await authorizeEvidenceLink({
+                    userId: ctx.user?.id,
+                    clientControlId: input.clientControlId,
+                    dueDate,
+                    loadControl: async (id) => {
+                        const [row] = await dbConn.select({
+                            id: schema.clientControls.id,
+                            clientId: schema.clientControls.clientId,
+                        }).from(schema.clientControls).where(eq(schema.clientControls.id, id)).limit(1);
+                        return row ?? null;
+                    },
+                    canEdit: (userId, workspaceId) => db.isUserAllowedForClient(userId, workspaceId, "editor"),
+                });
                 const [newEvidence] = await dbConn.insert(schema.evidence).values({
-                    ...input,
+                    ...fields,
+                    clientId: linked.clientId,
+                    clientControlId: linked.clientControlId,
+                    dueDate: linked.dueDate,
                     createdAt: new Date(),
                     updatedAt: new Date()
                 } as any).returning();
+
+                if (newEvidence?.id) {
+                    const target = openEvidenceRequestLink({
+                        clientId: linked.clientId,
+                        clientControlId: linked.clientControlId,
+                    });
+                    await dbConn.update(schema.evidenceRequests)
+                        .set({ status: "fulfilled", evidenceId: newEvidence.id, updatedAt: new Date() })
+                        .where(and(
+                            eq(schema.evidenceRequests.clientId, target.clientId),
+                            eq(schema.evidenceRequests.clientControlId, target.clientControlId),
+                            eq(schema.evidenceRequests.status, target.status),
+                        ));
+                }
                 return newEvidence;
             }),
 
         delete: publicProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.id, "editor");
                 const dbConn = await getDb();
                 await dbConn.delete(schema.evidence)
-                    .where(eq(schema.evidence.id, input.id));
+                    .where(and(eq(schema.evidence.id, input.id), eq(schema.evidence.clientId, access.clientId)));
                 return { success: true };
             }),
 
@@ -220,7 +286,8 @@ export const createEvidenceRouter = (
                 owner: z.string().nullable().optional(),
                 location: z.string().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.id, "editor");
                 const dbConn = await getDb();
                 const { id, ...data } = input;
 
@@ -232,7 +299,7 @@ export const createEvidenceRouter = (
 
                 await dbConn.update(schema.evidence)
                     .set(updateData)
-                    .where(eq(schema.evidence.id, id));
+                    .where(and(eq(schema.evidence.id, id), eq(schema.evidence.clientId, access.clientId)));
                 return { success: true };
             }),
 
@@ -241,7 +308,8 @@ export const createEvidenceRouter = (
                 evidenceId: z.number(),
                 status: z.enum(['verified', 'rejected', 'collected', 'pending', 'expired', 'not_applicable'])
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.evidenceId, "editor");
                 const dbConn = await getDb();
 
                 // 1. Update Evidence Status
@@ -251,7 +319,7 @@ export const createEvidenceRouter = (
                         lastVerified: input.status === 'verified' ? new Date() : null,
                         updatedAt: new Date()
                     } as any)
-                    .where(eq(schema.evidence.id, input.evidenceId));
+                    .where(and(eq(schema.evidence.id, input.evidenceId), eq(schema.evidence.clientId, access.clientId)));
 
                 // 2. "Live Wire": Propagate to Control and Risk
                 if (input.status === 'verified') {
@@ -311,7 +379,8 @@ export const createEvidenceRouter = (
                 resourceId: z.string(), // e.g. PR URL, S3 ARN
                 metadata: z.record(z.any()).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireEvidenceRow(ctx?.user, input.evidenceId, "editor");
                 const dbConn = await getDb();
 
                 // Update evidence to point to integration
@@ -324,7 +393,7 @@ export const createEvidenceRouter = (
                         status: 'collected', // Automatically mark as collected
                         updatedAt: new Date()
                     } as any)
-                    .where(eq(schema.evidence.id, input.evidenceId));
+                    .where(and(eq(schema.evidence.id, input.evidenceId), eq(schema.evidence.clientId, access.clientId)));
 
                 // In a real implementation: Trigger a fetch/verify job for this resource
 
@@ -333,125 +402,12 @@ export const createEvidenceRouter = (
 
         getFiles: publicProcedure
             .input(z.object({ evidenceId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireEvidenceRow(ctx?.user, input.evidenceId, "viewer");
                 const dbConn = await getDb();
                 return dbConn.select().from(schema.evidenceFiles)
                     .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId));
             }),
-
-        analyze: publicProcedure
-            .input(z.object({
-                evidenceId: z.number(),
-                controlName: z.string().optional(),
-                controlDescription: z.string().nullable().optional(), // Allow null
-            }))
-            .mutation(async ({ input }: any) => {
-                const dbConn = await getDb();
-
-                // Get the evidence item to check for existing content
-                const [evidenceItem] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
-
-                if (!evidenceItem) throw new Error("Evidence not found");
-
-                // Check for attached files
-                const files = await dbConn.select().from(schema.evidenceFiles)
-                    .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId))
-                    .orderBy(desc(schema.evidenceFiles.createdAt))
-                    .limit(1);
-
-                let content = "";
-
-                if (files.length > 0) {
-                    const file = files[0];
-                    content = `File Name: ${file.filename}\nContent Type: ${file.contentType}\nFile Size: ${file.fileSize} bytes\n`;
-
-                    // In a real implementation: Fetch file content from S3/Storage and extract text (PDF/DOCX)
-                    // For now, we simulate extraction based on file metadata and description
-                    content += `(Simulated Extraction): This document appears to be a ${file.filename.split('.').pop()} file related to ${input.controlName || 'compliance'}.`;
-                } else if (evidenceItem.description && evidenceItem.description.length > 20) {
-                    content = evidenceItem.description;
-                } else {
-                    content = "No file attached and description is too short.";
-                }
-
-                if (content.includes("No file attached")) {
-                    return {
-                        analysis: {
-                            isCompliant: false,
-                            reasoning: "No evidence file attached or description provided.",
-                            keyFindings: ["Missing documentation"],
-                            confidence: "HIGH"
-                        },
-                        provider: "System",
-                        model: "Validation"
-                    };
-                }
-
-                const systemPrompt = "You are an expert compliance auditor. Analyze the provided evidence content against the control requirements. Be strict but fair.";
-                const userPrompt = `
-Control Name: ${input.controlName || 'Unknown'}
-Control Description: ${input.controlDescription || 'No description provided'}
-
-Evidence Content/Description:
-${content.substring(0, 5000)}
-
-Analyze if this evidence satisfies the control requirements.
-Provide a structured JSON response:
-{
-  "isCompliant": boolean (true if sufficient, false if gaps exist),
-  "reasoning": "Concise summary of why it complies or fails",
-  "keyFindings": ["List of specific observations", "Positive or negative points"],
-  "confidence": "HIGH" | "MEDIUM" | "LOW"
-}
-`;
-
-                try {
-                    const response = await llmService.generate({
-                        systemPrompt,
-                        userPrompt,
-                        temperature: 0.2,
-                        jsonMode: true,
-                        feature: "evidence_analysis"
-                    });
-
-                    let analysis;
-                    try {
-                        analysis = JSON.parse(response.text);
-                    } catch (e) {
-                        // Fallback if JSON parsing fails
-                        analysis = {
-                            isCompliant: false,
-                            reasoning: "Failed to parse AI response. " + response.text.substring(0, 100),
-                            keyFindings: ["AI Analysis Error"],
-                            confidence: "LOW"
-                        };
-                    }
-
-                    // Save analysis result to evidence (using existing description or metadata if available, but schema doesn't have JSON column yet)
-                    // We'll just return it for UI display for now.
-
-                    return {
-                        analysis,
-                        provider: response.provider,
-                        model: response.model
-                    };
-                } catch (error: any) {
-                    console.error("Evidence analysis failed:", error);
-                    // Return a mock failure response instead of crashing
-                    return {
-                        analysis: {
-                            isCompliant: false,
-                            reasoning: "AI Service unavailable or failed. Please try again later.",
-                            keyFindings: ["Analysis failed"],
-                            confidence: "LOW"
-                        },
-                        provider: "System",
-                        model: "Error"
-                    };
-                }
-            } // Close async function
-
-            ), // Close mutation
 
         seed: protectedProcedure
             .input(z.object({
@@ -459,6 +415,7 @@ Provide a structured JSON response:
                 framework: z.string().optional().default('ISO 27001')
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await getDb();
                 const framework = input.framework;
                 console.log(`[Evidence Seed] Called for Client ID: ${input.clientId}, Framework: ${framework}`);
@@ -704,6 +661,7 @@ Provide a structured JSON response:
             evidenceId: z.number(),
             content: z.string()
         })).mutation(async ({ input, ctx }: any) => {
+            await requireEvidenceRow(ctx?.user, input.evidenceId, "editor");
             const dbConn = await getDb();
             const [comment] = await dbConn.insert(schema.evidenceComments).values({
                 evidenceId: input.evidenceId,
@@ -715,7 +673,8 @@ Provide a structured JSON response:
 
         getComments: protectedProcedure.input(z.object({
             evidenceId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireEvidenceRow(ctx?.user, input.evidenceId, "viewer");
             const dbConn = await getDb();
             const comments = await dbConn.select({
                 id: schema.evidenceComments.id,
@@ -733,6 +692,7 @@ Provide a structured JSON response:
         }),
 
         getAllComments: protectedProcedure.input(z.object({ clientId: z.number() })).query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const dbConn = await getDb();
 
             // Get all evidence IDs for this client
