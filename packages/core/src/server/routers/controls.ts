@@ -6,11 +6,8 @@ import * as schema from "../../schema";
 import * as db from "../../db";
 import { eq, ilike, and, desc, sql, or, isNull } from "drizzle-orm";
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
-<<<<<<< HEAD
 import { checkPremiumAccess } from "../trpc";
-=======
 import { requireWorkspaceRole } from "../recordAccess";
->>>>>>> origin/cursor/close-unauthenticated-reads-1683
 
 // Helper for history
 const logControlHistory = async (dbConn: any, controlId: number, userId: number, changeNote: string, version: number) => {

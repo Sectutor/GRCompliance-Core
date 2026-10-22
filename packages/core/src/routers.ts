@@ -64,7 +64,6 @@ import {
   isAuthed,
   isAdmin,
   requiresMFA,
-  recordProcedure,
   bindRecordWorkspace,
   authorizeWorkspace,
 } from "./server/trpc";
@@ -121,6 +120,7 @@ import { createTrustCenterRouter } from "./server/routers/trustCenter";
 import { createIso27001Router } from "./server/routers/iso27001";
 import { createAiSystemsRouter } from "./server/routers/aiSystems";
 import { createCommentsRouter } from "./server/routers/comments";
+import { enforceExistingPremium, requireOwnedRow } from "./server/recordAccess";
 import { createOnboardingRouter } from "./server/routers/onboarding";
 import { createTrainingRouter } from "./server/routers/training";
 import { magicLinksRouter } from "./server/routers/magicLinks";
@@ -145,6 +145,9 @@ import { createAuditorsRouter } from "./server/routers/auditors";
 import { createRequirementsRouter } from "./server/routers/complianceRequirements";
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
 
+/** Login and MFA, without treating `id` as a workspace id. */
+const recordProcedure = protectedProcedure.use(requiresMFA);
+
 export const appRouter = router({
   programGuides: createProgramGuidesRouter(t, clientProcedure),
   evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
@@ -167,8 +170,8 @@ export const appRouter = router({
   requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
   autopilot: createAutopilotRouter(t, clientProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
-  gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
-  federal: createFederalRouter(t, clientProcedure.use(requirePremiumEdition)),
+  gapAnalysis: createGapAnalysisRouter(t, clientProcedure, recordProcedure),
+  federal: createFederalRouter(t, clientProcedure.use(requirePremiumEdition), recordProcedure),
   nist80030: createNist80030Router(t, clientProcedure),
   readiness: createReadinessRouter(t, clientProcedure),
   samm: createSammRouter(t, clientProcedure),
@@ -176,7 +179,7 @@ export const appRouter = router({
   essentialEight: createEssentialEightRouter(t, clientProcedure),
   asvs: createAsvsRouter(t, clientProcedure),
   calendar: createCalendarRouter(t, clientProcedure),
-  intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
+  intake: createIntakeRouter(t, clientProcedure, protectedProcedure, recordProcedure),
   iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
 
 
@@ -192,15 +195,15 @@ export const appRouter = router({
   metrics: createMetricsRouter(t, clientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),
   projects: createProjectsRouter(t, clientProcedure),
-  threatModels: createThreatModelsRouter(t, clientProcedure.use(requirePremiumEdition)),
+  threatModels: createThreatModelsRouter(t, clientProcedure.use(requirePremiumEdition), recordProcedure.use(requirePremiumEdition)),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
   adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
-  vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
+  vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure, recordProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
-  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
+  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure, recordProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
-  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
+  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure, recordProcedure),
 
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
@@ -226,8 +229,8 @@ export const appRouter = router({
   learning: createLearningRouter(t, publicProcedure, adminProcedure),
   onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
   training: createTrainingRouter(t, clientProcedure, clientEditorProcedure),
-  knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
-  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure),
+  knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure, recordProcedure),
+  questionnaire: createQuestionnaireRouter(t, clientProcedure, premiumClientProcedure, publicProcedure, recordProcedure),
   taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
   subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed),
@@ -1004,11 +1007,16 @@ export const appRouter = router({
         const [contact] = await db.update(schema.vendorContacts).set(data).where(eq(schema.vendorContacts.id, id)).returning();
         return contact;
       }),
-    delete: premiumClientProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.vendorContacts, id: input.id, minRole: "editor" });
+        await enforceExistingPremium(access.clientId, ctx.user, access.clientRole);
         const db = await getDb();
-        await db.delete(schema.vendorContacts).where(eq(schema.vendorContacts.id, input.id));
+        await db.delete(schema.vendorContacts).where(and(
+          eq(schema.vendorContacts.id, input.id),
+          eq(schema.vendorContacts.clientId, access.clientId),
+        ));
         return true;
       }),
   }),
@@ -2421,12 +2429,16 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: clientProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: controlPolicyMappings, id: input.id, minRole: "editor" });
         const dbConn = await db.getDb();
 
-        await dbConn.delete(controlPolicyMappings).where(eq(controlPolicyMappings.id, input.id));
+        await dbConn.delete(controlPolicyMappings).where(and(
+          eq(controlPolicyMappings.id, input.id),
+          eq(controlPolicyMappings.clientId, access.clientId),
+        ));
         return { success: true };
       }),
   }),
@@ -2676,7 +2688,7 @@ export const appRouter = router({
         return newTask;
       }),
 
-    update: clientProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -2686,7 +2698,8 @@ export const appRouter = router({
         assigneeId: z.number().nullable().optional(),
         dueDate: z.string().nullable().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: projectTasks, id: input.id, minRole: "editor" });
         const dbConn = await db.getDb();
 
         const updateData: any = {};
@@ -2700,20 +2713,26 @@ export const appRouter = router({
 
         await dbConn.update(projectTasks)
           .set(updateData)
-          .where(eq(projectTasks.id, input.id));
+          .where(and(eq(projectTasks.id, input.id), eq(projectTasks.clientId, access.clientId)));
 
         return { success: true };
       }),
 
-    updatePosition: clientProcedure
+    updatePosition: recordProcedure
       .input(z.object({
         id: z.number(), // This is the ID of the entity
         sourceType: z.string().optional().default('project_task'), // New field to identify type
         status: z.enum(['todo', 'in_progress', 'review', 'done']),
         position: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
+          const sourceTable = input.sourceType === "remediation" ? remediationTasks
+            : input.sourceType === "control" ? clientControls
+              : input.sourceType === "policy" ? clientPolicies
+                : input.sourceType === "risk_treatment" ? riskTreatments
+                  : projectTasks;
+          const access = await requireOwnedRow({ user: ctx.user, table: sourceTable, id: input.id, minRole: "editor" });
           const dbConn = await db.getDb();
 
           const { id, status, sourceType } = input;
@@ -2726,7 +2745,7 @@ export const appRouter = router({
                 position: input.position || 0,
                 updatedAt: new Date()
               })
-              .where(eq(projectTasks.id, id));
+              .where(and(eq(projectTasks.id, id), eq(projectTasks.clientId, access.clientId)));
           } else if (sourceType === 'remediation') {
             // Map Kanban status back to Remediation ID
             const revRemMap: Record<string, string> = { 'todo': 'open', 'in_progress': 'in_progress', 'review': 'resolved', 'done': 'closed' };
@@ -2734,7 +2753,7 @@ export const appRouter = router({
 
             await dbConn.update(remediationTasks)
               .set({ status: newStatus, updatedAt: new Date() })
-              .where(eq(remediationTasks.id, id));
+              .where(and(eq(remediationTasks.id, id), eq(remediationTasks.clientId, access.clientId)));
           } else if (sourceType === 'risk_treatment') {
             // Map Kanban status back to Risk Treatment
             const revRiskMap: Record<string, string> = { 'todo': 'planned', 'in_progress': 'in_progress', 'review': 'implemented', 'done': 'verified' };
@@ -2742,7 +2761,7 @@ export const appRouter = router({
 
             await dbConn.update(riskTreatments)
               .set({ status: newStatus }) // riskTreatments might not have updatedAt
-              .where(eq(riskTreatments.id, id));
+              .where(and(eq(riskTreatments.id, id), eq(riskTreatments.clientId, access.clientId)));
           } else if (sourceType === 'control') {
             // Map Kanban status back to Client Control
             // 'not_implemented', 'in_progress', 'implemented', 'not_applicable'
@@ -2756,7 +2775,7 @@ export const appRouter = router({
 
             await dbConn.update(clientControls)
               .set({ status: newStatus as any, updatedAt: new Date() })
-              .where(eq(clientControls.id, id));
+              .where(and(eq(clientControls.id, id), eq(clientControls.clientId, access.clientId)));
           } else if (sourceType === 'policy') {
             // Map Kanban status back to Policy
             // 'draft', 'review', 'approved', 'archived'
@@ -2770,24 +2789,29 @@ export const appRouter = router({
 
             await dbConn.update(clientPolicies)
               .set({ status: newStatus as any, updatedAt: new Date() })
-              .where(eq(clientPolicies.id, id));
+              .where(and(eq(clientPolicies.id, id), eq(clientPolicies.clientId, access.clientId)));
           }
 
           return { success: true };
         } catch (error) {
+          if (error instanceof TRPCError) throw error;
           console.error("Error in projectTasks.updatePosition:", error);
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: String(error) });
         }
       }),
 
-    delete: clientProcedure
+    delete: recordProcedure
       .input(z.object({
         id: z.number(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: projectTasks, id: input.id, minRole: "editor" });
         const dbConn = await db.getDb();
 
-        await dbConn.delete(projectTasks).where(eq(projectTasks.id, input.id));
+        await dbConn.delete(projectTasks).where(and(
+          eq(projectTasks.id, input.id),
+          eq(projectTasks.clientId, access.clientId),
+        ));
         return { success: true };
       }),
   }),
@@ -3416,9 +3440,10 @@ export const appRouter = router({
           .orderBy(desc(schema.processingActivities.createdAt));
       }),
 
-    get: clientProcedure
+    get: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const [activity] = await dbConn.select()
           .from(schema.processingActivities)
@@ -3482,7 +3507,7 @@ export const appRouter = router({
         return activity;
       }),
 
-    update: clientEditorProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         activityName: z.string().optional(),
@@ -3501,12 +3526,16 @@ export const appRouter = router({
         organizationalMeasures: z.array(z.string()).optional(),
         status: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "editor" });
         const { id, ...updates } = input;
         const dbConn = await getDb();
         const [activity] = await dbConn.update(schema.processingActivities)
           .set({ ...updates, updatedAt: new Date() })
-          .where(eq(schema.processingActivities.id, id))
+          .where(and(
+            eq(schema.processingActivities.id, id),
+            eq(schema.processingActivities.clientId, access.clientId),
+          ))
           .returning();
         return activity;
       }),
@@ -3539,12 +3568,13 @@ export const appRouter = router({
       }),
 
     // Phase 3: Compliance Automation
-    scheduleReview: clientEditorProcedure
+    scheduleReview: recordProcedure
       .input(z.object({
         id: z.number(),
         reviewIntervalMonths: z.number().default(12)
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         const now = new Date();
         const nextReview = new Date(now);
@@ -3556,7 +3586,10 @@ export const appRouter = router({
             nextReviewDate: nextReview,
             updatedAt: now
           })
-          .where(eq(schema.processingActivities.id, input.id))
+          .where(and(
+            eq(schema.processingActivities.id, input.id),
+            eq(schema.processingActivities.clientId, access.clientId),
+          ))
           .returning();
 
         return activity;
@@ -3628,9 +3661,10 @@ export const appRouter = router({
         };
       }),
 
-    getCompletenessScore: clientProcedure
+    getCompletenessScore: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.processingActivities, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const [activity] = await dbConn.select()
           .from(schema.processingActivities)
@@ -3791,9 +3825,10 @@ export const appRouter = router({
           .orderBy(desc(schema.dataProtImpactAssessments.createdAt));
       }),
 
-    get: clientProcedure
+    get: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const results = await dbConn
           .select()
@@ -3826,7 +3861,7 @@ export const appRouter = router({
         return result;
       }),
 
-    update: clientEditorProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         activityId: z.number().optional(),
@@ -3839,7 +3874,8 @@ export const appRouter = router({
         assignedTo: z.number().optional(),
         lastReviewDate: z.date().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "editor" });
         const { id, ...data } = input;
         const dbConn = await getDb();
         const [result] = await dbConn
@@ -3848,28 +3884,36 @@ export const appRouter = router({
             ...data,
             updatedAt: new Date(),
           })
-          .where(eq(schema.dataProtImpactAssessments.id, id))
+          .where(and(
+            eq(schema.dataProtImpactAssessments.id, id),
+            eq(schema.dataProtImpactAssessments.clientId, access.clientId),
+          ))
           .returning();
         return result;
       }),
 
-    delete: clientEditorProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         await dbConn
           .delete(schema.dataProtImpactAssessments)
-          .where(eq(schema.dataProtImpactAssessments.id, input.id));
+          .where(and(
+            eq(schema.dataProtImpactAssessments.id, input.id),
+            eq(schema.dataProtImpactAssessments.clientId, access.clientId),
+          ));
         return { success: true };
       }),
 
-    saveResponses: clientEditorProcedure
+    saveResponses: recordProcedure
       .input(z.object({
         id: z.number(),
         responses: z.any(), // JSON data for sections
         status: z.enum(["draft", "in_progress", "under_review", "completed"]).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.dataProtImpactAssessments, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         const [result] = await dbConn
           .update(schema.dataProtImpactAssessments)
@@ -3878,7 +3922,10 @@ export const appRouter = router({
             status: input.status,
             updatedAt: new Date(),
           })
-          .where(eq(schema.dataProtImpactAssessments.id, input.id))
+          .where(and(
+            eq(schema.dataProtImpactAssessments.id, input.id),
+            eq(schema.dataProtImpactAssessments.clientId, access.clientId),
+          ))
           .returning();
         return result;
       }),
@@ -3897,9 +3944,10 @@ export const appRouter = router({
           .orderBy(desc(schema.internationalTransfers.createdAt));
       }),
 
-    get: clientProcedure
+    get: recordProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireOwnedRow({ user: ctx.user, table: schema.internationalTransfers, id: input.id, minRole: "viewer" });
         const dbConn = await getDb();
         const [transfer] = await dbConn
           .select()
@@ -3940,7 +3988,7 @@ export const appRouter = router({
         return result;
       }),
 
-    update: clientEditorProcedure
+    update: recordProcedure
       .input(z.object({
         id: z.number(),
         clientId: z.number().optional(),
@@ -3953,24 +4001,38 @@ export const appRouter = router({
         sccModule: z.enum(["c2c", "c2p", "p2p", "p2c"]).optional().nullable(),
         nextReviewDate: z.date().optional().nullable(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({
+          user: ctx.user,
+          table: schema.internationalTransfers,
+          id: input.id,
+          suppliedClientId: input.clientId,
+          minRole: "editor",
+        });
         const dbConn = await getDb();
-        const { id, clientId, ...data } = input;
+        const { id, clientId: _clientId, ...data } = input;
         const [result] = await dbConn
           .update(schema.internationalTransfers)
           .set({ ...data, updatedAt: new Date() })
-          .where(eq(schema.internationalTransfers.id, id))
+          .where(and(
+            eq(schema.internationalTransfers.id, id),
+            eq(schema.internationalTransfers.clientId, access.clientId),
+          ))
           .returning();
         return result;
       }),
 
-    delete: clientEditorProcedure
+    delete: recordProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const access = await requireOwnedRow({ user: ctx.user, table: schema.internationalTransfers, id: input.id, minRole: "editor" });
         const dbConn = await getDb();
         await dbConn
           .delete(schema.internationalTransfers)
-          .where(eq(schema.internationalTransfers.id, input.id));
+          .where(and(
+            eq(schema.internationalTransfers.id, input.id),
+            eq(schema.internationalTransfers.clientId, access.clientId),
+          ));
         return { success: true };
       }),
 

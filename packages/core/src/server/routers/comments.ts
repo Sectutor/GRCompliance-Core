@@ -4,6 +4,7 @@ import { comments, users } from "../../schema";
 import { eq, and, desc } from "drizzle-orm";
 import * as db from "../../db";
 import { logActivity } from "../../lib/audit";
+import { requireOwnedRow, roleSatisfies } from "../recordAccess";
 
 export const createCommentsRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -100,25 +101,23 @@ export const createCommentsRouter = (t: any, clientProcedure: any) => {
                 id: z.number()
             }))
             .mutation(async ({ input, ctx }: any) => {
-                const dbConn = await db.getDb();
-
-                // Get comment to check ownership
-                const [comment] = await dbConn.select().from(comments).where(eq(comments.id, input.id));
-
-                if (!comment) {
-                    throw new TRPCError({ code: "NOT_FOUND" });
-                }
-
-                // Check permission: Owner of comment OR Admin
-                const isOwner = comment.userId === ctx.user.id;
-                const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin'; // Global admin/owner/super_admin
-                const isClientAdmin = ctx.clientRole === 'admin' || ctx.clientRole === 'owner'; // Client admin/owner
-
-                if (!isOwner && !isAdmin && !isClientAdmin) {
+                const access = await requireOwnedRow({
+                    user: ctx.user,
+                    table: comments,
+                    id: input.id,
+                    suppliedClientId: input.clientId,
+                    minRole: "viewer",
+                });
+                const isAuthor = access.row.userId === ctx.user.id;
+                if (!isAuthor && !roleSatisfies(access.clientRole, "editor")) {
                     throw new TRPCError({ code: "FORBIDDEN", message: "You can only delete your own comments." });
                 }
 
-                await dbConn.delete(comments).where(eq(comments.id, input.id));
+                const dbConn = await db.getDb();
+                await dbConn.delete(comments).where(and(
+                    eq(comments.id, input.id),
+                    eq(comments.clientId, access.clientId),
+                ));
                 return { success: true };
             }),
     });

@@ -5,8 +5,9 @@ import * as db from "../../db";
 import { intakeItems, evidence, clients, clientPolicies, evidenceFiles, clientControls, controls, userClients } from "../../schema";
 import { eq, desc, and, or, sql, getTableColumns } from "drizzle-orm";
 import { classifyIntakeItem } from "../../lib/ai/intake-triage";
+import { requireOwnedRow } from "../recordAccess";
 
-export const createIntakeRouter = (t: any, clientProcedure: any, protectedProcedure: any) => {
+export const createIntakeRouter = (t: any, clientProcedure: any, protectedProcedure: any, recordProcedure = protectedProcedure) => {
     return t.router({
         list: clientProcedure
             .input(z.object({
@@ -126,13 +127,14 @@ export const createIntakeRouter = (t: any, clientProcedure: any, protectedProced
                 }
             }),
 
-        triage: clientProcedure
+        triage: recordProcedure
             .input(z.object({
                 id: z.number(),
                 classification: z.string(),
                 details: z.any().optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: intakeItems, id: input.id, minRole: "editor" });
                 const d = await db.getDb();
                 const [item] = await d.update(intakeItems)
                     .set({
@@ -141,7 +143,10 @@ export const createIntakeRouter = (t: any, clientProcedure: any, protectedProced
                         status: 'classified',
                         updatedAt: new Date()
                     })
-                    .where(eq(intakeItems.id, input.id))
+                    .where(and(
+                        eq(intakeItems.id, input.id),
+                        eq(intakeItems.clientId, access.clientId),
+                    ))
                     .returning();
                 return item;
             }),
@@ -285,13 +290,17 @@ export const createIntakeRouter = (t: any, clientProcedure: any, protectedProced
                 return item;
             }),
 
-        delete: clientProcedure
+        delete: recordProcedure
             .input(z.object({
                 id: z.number()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: intakeItems, id: input.id, minRole: "editor" });
                 const d = await db.getDb();
-                await d.delete(intakeItems).where(eq(intakeItems.id, input.id));
+                await d.delete(intakeItems).where(and(
+                    eq(intakeItems.id, input.id),
+                    eq(intakeItems.clientId, access.clientId),
+                ));
                 return { success: true };
             })
     });

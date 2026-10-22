@@ -5,12 +5,13 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { requireOwnedRow } from "../recordAccess";
 // import { generateGapAnalysisDocx } from "../lib/reporting/gapAnalysisReport";
 // import { llmService } from "../../lib/llm/service";
 
 
 
-export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
+export const createGapAnalysisRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) => {
     return t.router({
         list: clientProcedure
             .input(z.object({ clientId: z.number() }))
@@ -22,9 +23,10 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
                 return results;
             }),
 
-        get: clientProcedure
+        get: recordProcedure
             .input(z.object({ id: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireOwnedRow({ user: ctx.user, table: schema.gapAssessments, id: input.id, minRole: "viewer" });
                 const dbConn = await getDb();
                 const [assessment] = await dbConn.select().from(schema.gapAssessments).where(eq(schema.gapAssessments.id, input.id));
                 if (!assessment) throw new TRPCError({ code: "NOT_FOUND" });
@@ -99,13 +101,17 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
                 return { success: true };
             }),
 
-        complete: clientProcedure
+        complete: recordProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                const access = await requireOwnedRow({ user: ctx.user, table: schema.gapAssessments, id: input.id, minRole: "editor" });
                 const dbConn = await getDb();
                 await dbConn.update(schema.gapAssessments)
                     .set({ status: 'completed', updatedAt: new Date() })
-                    .where(eq(schema.gapAssessments.id, input.id));
+                    .where(and(
+                        eq(schema.gapAssessments.id, input.id),
+                        eq(schema.gapAssessments.clientId, access.clientId),
+                    ));
                 return { success: true };
             }),
 
