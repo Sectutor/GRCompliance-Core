@@ -59,7 +59,10 @@ import {
   checkPremiumAccess,
   isAuthed,
   isAdmin,
-  requiresMFA
+  requiresMFA,
+  recordProcedure,
+  bindRecordWorkspace,
+  authorizeWorkspace,
 } from "./server/trpc";
 import { createCrmRouter } from './lib/modules/crm/router';
 import { createSalesRouter } from './lib/modules/crm/sales-router';
@@ -3478,16 +3481,22 @@ ONLY return the JSON. No Markdown formatting.
   }),
 
   gapQuestionnaire: router({
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         assessmentId: z.number(),
         controlIds: z.array(z.number()),
         recipientEmail: z.string().email(),
         message: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        const token = crypto.randomUUID();
+        const [assessment] = await db.select({ clientId: schema.gapAssessments.clientId })
+          .from(schema.gapAssessments)
+          .where(eq(schema.gapAssessments.id, input.assessmentId))
+          .limit(1);
+        if (!assessment) throw new TRPCError({ code: "NOT_FOUND", message: "Assessment not found" });
+        await authorizeWorkspace(ctx, assessment.clientId);
+        const token = crypto.randomBytes(32).toString("base64url");
 
         // Store controlIds as JSON (array of strings)
         const [request] = await db.insert(schema.gapQuestionnaireRequests).values({
@@ -3504,7 +3513,7 @@ ONLY return the JSON. No Markdown formatting.
         return { success: true, token, link };
       }),
 
-    sendEmail: publicProcedure
+    sendEmail: protectedProcedure
       .input(z.object({
         email: z.string().email(),
         link: z.string(),
@@ -3512,7 +3521,6 @@ ONLY return the JSON. No Markdown formatting.
       }))
       .mutation(async ({ input }) => {
         console.log(`[gapQuestionnaire] Sending email to ${input.email}`);
-        console.log(`[gapQuestionnaire] Link: ${input.link}`);
         // Real email sending would go here (using user's SMTP if set, or system default)
         return { success: true };
       }),
@@ -3734,7 +3742,28 @@ ONLY return the JSON. No Markdown formatting.
       }),
 
     // Update Task (Universal)
-    update: clientProcedure
+    update: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.id);
+        const type = String(raw?.type || "");
+        if (!Number.isInteger(id) || id <= 0) return null;
+        const dbConn = await db.getDb();
+        if (type === "project_tasks" || type === "general") {
+          const [row] = await dbConn.select({ clientId: projectTasks.clientId })
+            .from(projectTasks)
+            .where(eq(projectTasks.id, id))
+            .limit(1);
+          return row?.clientId ?? null;
+        }
+        if (type === "remediation_tasks" || type === "remediation") {
+          const [row] = await dbConn.select({ clientId: remediationTasks.clientId })
+            .from(remediationTasks)
+            .where(eq(remediationTasks.id, id))
+            .limit(1);
+          return row?.clientId ?? null;
+        }
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown task type for update" });
+      }))
       .input(z.object({
         id: z.number(),
         type: z.string(), // 'project_tasks' or 'remediation_tasks' (origin) OR 'remediation', 'general' (type) - Let's use 'origin' from listAll
@@ -3756,9 +3785,9 @@ ONLY return the JSON. No Markdown formatting.
         if (updates.assigneeId) data.assigneeId = updates.assigneeId;
 
         if (type === 'project_tasks' || type === 'general') {
-          await dbConn.update(projectTasks).set(data).where(eq(projectTasks.id, id));
+          await dbConn.update(projectTasks).set(data).where(and(eq(projectTasks.id, id), eq(projectTasks.clientId, ctx.clientId as number)));
         } else if (type === 'remediation_tasks' || type === 'remediation') {
-          await dbConn.update(remediationTasks).set(data).where(eq(remediationTasks.id, id));
+          await dbConn.update(remediationTasks).set(data).where(and(eq(remediationTasks.id, id), eq(remediationTasks.clientId, ctx.clientId as number)));
         } else {
           // Fallback or Error?
           // Maybe it's a 'project_task' with source type... treat as project_task if id matches?

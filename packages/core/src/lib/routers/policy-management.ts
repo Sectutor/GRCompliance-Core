@@ -4,6 +4,25 @@ import { z } from "zod";
 import * as db from "../../db";
 import { eq, and, desc, inArray, or, sql } from "drizzle-orm";
 import { policyAssignments, policyExceptions, clientPolicies, employees, employeeTrainingRecords, users, userClients, complianceRequirements } from "../../schema";
+import { authorizeWorkspace, bindRecordWorkspace } from "../../server/workspaceAccess";
+import { recordProcedure } from "../../server/trpc";
+
+async function policyClientId(policyId: number): Promise<number | null> {
+    if (!Number.isInteger(policyId) || policyId <= 0) return null;
+    const row = await db.getClientPolicyById(policyId);
+    return row?.clientPolicy?.clientId ?? null;
+}
+
+async function assignmentClientId(assignmentId: number): Promise<number | null> {
+    if (!Number.isInteger(assignmentId) || assignmentId <= 0) return null;
+    const dbConn = await db.getDb();
+    const [row] = await dbConn.select({ clientId: clientPolicies.clientId })
+        .from(policyAssignments)
+        .innerJoin(clientPolicies, eq(policyAssignments.policyId, clientPolicies.id))
+        .where(eq(policyAssignments.id, assignmentId))
+        .limit(1);
+    return row?.clientId ?? null;
+}
 // import { Context } from "../../routers";
 
 // Define local context to avoid circular dependency
@@ -36,6 +55,21 @@ export const createPolicyManagementRouter = (
             .mutation(async ({ input, ctx }: { input: any, ctx: Context }) => {
                 try {
                     const dbConn = await db.getDb();
+                    const ownerId = await policyClientId(input.policyId);
+                    if (ownerId == null || ownerId !== input.clientId) {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this workspace" });
+                    }
+                    if (input.employeeIds.length > 0) {
+                        const rows = await dbConn.select({ id: employees.id })
+                            .from(employees)
+                            .where(and(
+                                eq(employees.clientId, input.clientId),
+                                inArray(employees.id, input.employeeIds),
+                            ));
+                        if (rows.length !== new Set(input.employeeIds).size) {
+                            throw new TRPCError({ code: "FORBIDDEN", message: "One or more employees are not in this workspace" });
+                        }
+                    }
 
                     // Filter out existing assignments to avoid duplicates
                     const existing = await dbConn.select().from(policyAssignments)
@@ -61,6 +95,7 @@ export const createPolicyManagementRouter = (
 
                     return { success: true, count: newIds.length };
                 } catch (error: any) {
+                    if (error instanceof TRPCError) throw error;
                     console.error("assignPolicy Error:", error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
@@ -71,11 +106,12 @@ export const createPolicyManagementRouter = (
             }),
 
         // Get assignments for a policy (Admin view)
-        getAssignments: clientProcedure
+        getAssignments: recordProcedure
+            .use(bindRecordWorkspace(async (raw) => policyClientId(Number(raw?.policyId))))
             .input(z.object({
                 policyId: z.number()
             }))
-            .query(async ({ input }: { input: any }) => {
+            .query(async ({ input, ctx }: { input: any, ctx: Context }) => {
                 const dbConn = await db.getDb();
 
                 const assignments = await dbConn.select({
@@ -90,20 +126,37 @@ export const createPolicyManagementRouter = (
                     jobTitle: employees.jobTitle
                 })
                     .from(policyAssignments)
-                    .leftJoin(employees, eq(policyAssignments.employeeId, employees.id))
-                    .where(eq(policyAssignments.policyId, input.policyId));
+                    .innerJoin(clientPolicies, eq(policyAssignments.policyId, clientPolicies.id))
+                    .leftJoin(employees, and(
+                        eq(policyAssignments.employeeId, employees.id),
+                        eq(employees.clientId, ctx.clientId as number),
+                    ))
+                    .where(and(
+                        eq(policyAssignments.policyId, input.policyId),
+                        eq(clientPolicies.clientId, ctx.clientId as number),
+                    ));
 
                 return assignments;
             }),
 
         // Mark as viewed
-        viewPolicy: clientProcedure
+        viewPolicy: recordProcedure
+            .use(bindRecordWorkspace(async (raw) => assignmentClientId(Number(raw?.assignmentId))))
             .input(z.object({
                 assignmentId: z.number()
             }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: Context }) => {
                 const dbConn = await db.getDb();
-
+                const [current] = await dbConn.select({ id: policyAssignments.id })
+                    .from(policyAssignments)
+                    .innerJoin(clientPolicies, eq(policyAssignments.policyId, clientPolicies.id))
+                    .where(and(
+                        eq(policyAssignments.id, input.assignmentId),
+                        eq(clientPolicies.clientId, ctx.clientId as number),
+                    ));
+                if (!current) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Assignment not found" });
+                }
                 await dbConn.update(policyAssignments)
                     .set({
                         status: "attested",
@@ -114,15 +167,25 @@ export const createPolicyManagementRouter = (
                 return { success: true };
             }),
 
-        // Mark as viewed
-        viewPolicy: clientProcedure
+        // Mark as viewed. This key replaces the attest handler above until that duplicate is renamed.
+        viewPolicy: recordProcedure
+            .use(bindRecordWorkspace(async (raw) => assignmentClientId(Number(raw?.assignmentId))))
             .input(z.object({
                 assignmentId: z.number()
             }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: Context }) => {
                 const dbConn = await db.getDb();
-                // Only update if currently pending
-                const [current] = await dbConn.select().from(policyAssignments).where(eq(policyAssignments.id, input.assignmentId));
+                const [current] = await dbConn.select({
+                    id: policyAssignments.id,
+                    status: policyAssignments.status,
+                    clientId: clientPolicies.clientId,
+                })
+                    .from(policyAssignments)
+                    .innerJoin(clientPolicies, eq(policyAssignments.policyId, clientPolicies.id))
+                    .where(and(
+                        eq(policyAssignments.id, input.assignmentId),
+                        eq(clientPolicies.clientId, ctx.clientId as number),
+                    ));
                 if (current && current.status === 'pending') {
                     await dbConn.update(policyAssignments)
                         .set({
@@ -137,7 +200,21 @@ export const createPolicyManagementRouter = (
         // --- Exceptions ---
 
         // Request an exception
-        requestException: clientProcedure
+        requestException: recordProcedure
+            .use(bindRecordWorkspace(async (raw) => {
+                if (raw?.policyType !== "document" && raw?.policyId != null) {
+                    return policyClientId(Number(raw.policyId));
+                }
+                if (raw?.requirementId != null) {
+                    const dbConn = await db.getDb();
+                    const [requirement] = await dbConn.select({ clientId: complianceRequirements.clientId })
+                        .from(complianceRequirements)
+                        .where(eq(complianceRequirements.id, Number(raw.requirementId)))
+                        .limit(1);
+                    return requirement?.clientId ?? null;
+                }
+                return null;
+            }))
             .input(z.object({
                 policyId: z.number().optional(),
                 requirementId: z.number().optional(),
@@ -146,8 +223,15 @@ export const createPolicyManagementRouter = (
                 reason: z.string(),
                 expirationDate: z.string().optional() // ISO date string
             }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any, ctx: Context }) => {
                 const dbConn = await db.getDb();
+                const [employee] = await dbConn.select({ clientId: employees.clientId })
+                    .from(employees)
+                    .where(eq(employees.id, input.employeeId))
+                    .limit(1);
+                if (!employee || employee.clientId !== ctx.clientId) {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Employee does not belong to this workspace" });
+                }
 
                 await dbConn.insert(policyExceptions).values({
                     policyId: input.policyId || null,
@@ -239,7 +323,20 @@ export const createPolicyManagementRouter = (
             }),
 
         // Review exception (Approve/Reject)
-        reviewException: clientEditorProcedure
+        reviewException: recordProcedure
+            .use(bindRecordWorkspace(async (raw) => {
+                const exceptionId = Number(raw?.exceptionId);
+                if (!Number.isInteger(exceptionId) || exceptionId <= 0) return null;
+                const dbConn = await db.getDb();
+                const [exception] = await dbConn.select().from(policyExceptions).where(eq(policyExceptions.id, exceptionId)).limit(1);
+                if (!exception) return null;
+                if (exception.policyId) return policyClientId(exception.policyId);
+                const [employee] = await dbConn.select({ clientId: employees.clientId })
+                    .from(employees)
+                    .where(eq(employees.id, exception.employeeId))
+                    .limit(1);
+                return employee?.clientId ?? null;
+            }, { minRole: "editor" }))
             .input(z.object({
                 exceptionId: z.number(),
                 status: z.enum(["approved", "rejected"]),
@@ -264,7 +361,11 @@ export const createPolicyManagementRouter = (
                         .from(policyExceptions)
                         .innerJoin(employees, eq(policyExceptions.employeeId, employees.id))
                         .innerJoin(clientPolicies, eq(policyExceptions.policyId, clientPolicies.id))
-                        .where(eq(policyExceptions.id, input.exceptionId));
+                        .where(and(
+                            eq(policyExceptions.id, input.exceptionId),
+                            eq(clientPolicies.clientId, ctx.clientId as number),
+                            eq(employees.clientId, ctx.clientId as number),
+                        ));
                 } else {
                     // Document exception or fallback - just get employee info
                     [details] = await dbConn.select({
@@ -275,6 +376,10 @@ export const createPolicyManagementRouter = (
                     })
                         .from(employees)
                         .where(eq(employees.id, ex.employeeId));
+                }
+
+                if (!details || details.clientId !== ctx.clientId) {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Exception does not belong to this workspace" });
                 }
 
                 await dbConn.update(policyExceptions)
@@ -321,24 +426,34 @@ export const createPolicyManagementRouter = (
             }),
 
         // Get exceptions for a policy OR client
-        getExceptions: clientProcedure
+        getExceptions: recordProcedure
             .input(z.object({
                 policyId: z.number().optional(),
                 clientId: z.number().optional()
             }))
-            .query(async ({ input }: { input: any }) => {
+            .query(async ({ input, ctx }: { input: any, ctx: Context }) => {
                 const dbConn = await db.getDb();
 
                 if (!input.policyId && !input.clientId) return [];
 
+                let ownerId = input.clientId as number | undefined;
+                if (input.policyId) {
+                    const policyOwner = await policyClientId(input.policyId);
+                    if (policyOwner == null) {
+                        throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found" });
+                    }
+                    if (input.clientId != null && input.clientId !== policyOwner) {
+                        throw new TRPCError({ code: "FORBIDDEN", message: "Policy does not belong to this workspace" });
+                    }
+                    ownerId = policyOwner;
+                }
+                await authorizeWorkspace(ctx, ownerId as number);
+
                 // Build conditions - use employees.clientId instead of clientPolicies.clientId
                 // so we capture ALL exceptions for this client, not just ones linked to policies
-                const conditions = [];
+                const conditions = [eq(employees.clientId, ownerId as number)];
                 if (input.policyId) {
                     conditions.push(eq(policyExceptions.policyId, input.policyId));
-                }
-                if (input.clientId) {
-                    conditions.push(eq(employees.clientId, input.clientId));
                 }
 
                 const exceptions = await dbConn.select({
@@ -375,6 +490,13 @@ export const createPolicyManagementRouter = (
             }))
             .query(async ({ input }: { input: any }) => {
                 const dbConn = await db.getDb();
+                const [employee] = await dbConn.select({ clientId: employees.clientId })
+                    .from(employees)
+                    .where(eq(employees.id, input.employeeId))
+                    .limit(1);
+                if (!employee || employee.clientId !== input.clientId) {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Employee does not belong to this workspace" });
+                }
 
                 // Get policy assignments
                 const myAssignments = await dbConn.select({
@@ -388,7 +510,10 @@ export const createPolicyManagementRouter = (
                 })
                     .from(policyAssignments)
                     .innerJoin(clientPolicies, eq(policyAssignments.policyId, clientPolicies.id))
-                    .where(eq(policyAssignments.employeeId, input.employeeId));
+                    .where(and(
+                        eq(policyAssignments.employeeId, input.employeeId),
+                        eq(clientPolicies.clientId, input.clientId),
+                    ));
 
                 // Get active exceptions
                 const myExceptions = await dbConn.select()
