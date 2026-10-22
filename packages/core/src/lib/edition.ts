@@ -1,8 +1,10 @@
 /**
- * Edition switch for the Community build.
+ * Client navigation switch for the Community build.
  *
- * Premium is on only when the flag is the exact string "true" (or boolean true
- * in tests). Unset, "false", "TRUE", and any other value are the Community edition.
+ * `isPremiumEditionEnabled` is true only when the flag is the exact string
+ * "true" (or boolean true in tests). That flag may show or hide premium
+ * navigation. It does not authorize server procedures. Premium APIs stay
+ * forbidden until the paid edition registers a server entitlement provider.
  * Role and planTier are not an edition.
  */
 

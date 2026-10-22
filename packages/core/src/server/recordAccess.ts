@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db";
-import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, communityWorkspaceAllows, isPremiumEditionEnabled } from "../lib/edition";
+import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, communityWorkspaceAllows } from "../lib/edition";
+import { assertPremiumEntitled } from "./premiumEntitlement";
 import { escapeHtml as escapeHtmlText } from "../lib/security/escapeHtml";
 import { clients, userClients } from "../schema";
 
@@ -275,18 +276,16 @@ export async function requireOwnedRow<T extends { clientId?: number | null }>(ar
 }
 
 /**
- * Premium procedure gate. This still reads VITE_ENABLE_PREMIUM.
- * That env switch is reported rather than removed: the commercial server
- * scripts document it as the edition switch for feature routers. It does
- * not raise the Community workspace cap.
+ * Same fail-closed gate as requirePremiumEdition. Role, plan tier, and
+ * public env vars do not unlock premium. The workspace cap is separate
+ * and stays in force for Community.
  */
-export async function enforceExistingPremium(_clientId: number, _user: AccessUser, _clientRole?: string | null): Promise<void> {
-    if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Premium features are not included in the Community edition.",
-        });
-    }
+export async function enforceExistingPremium(clientId: number, user: AccessUser, clientRole?: string | null): Promise<void> {
+    await assertPremiumEntitled({
+        user: user?.id ? { id: user.id, role: user.role ?? null } : null,
+        clientId,
+        clientRole: clientRole ?? null,
+    });
 }
 /** Workspaces the caller may read. Platform admins may read every workspace. */
 export async function listAuthorizedClientIds(args: {

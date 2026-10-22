@@ -34,6 +34,7 @@ Before deploying the app, you need a hosted PostgreSQL database.
     -   Go to **Site Settings > Environment Variables**.
     -   Add all variables from your local `.env` file (e.g., `DATABASE_URL`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`).
     -   **Important:** Ensure `DATABASE_URL` points to your production database.
+    -   `VITE_ENABLE_PREMIUM` only affects which navigation a client bundle shows. It does not turn on premium APIs. Those require the paid edition.
 
 4.  **Deploy:**
     -   Click "Deploy Site".

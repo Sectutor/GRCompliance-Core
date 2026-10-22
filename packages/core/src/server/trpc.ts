@@ -3,8 +3,8 @@ import * as db from "../db";
 import * as schema from "../schema";
 import { eq } from "drizzle-orm";
 import { rateLimiter } from "../lib/redis";
-import { isPremiumEditionEnabled } from "../lib/edition";
 import { router, publicProcedure, middleware, t } from "./trpc-base";
+import { assertPremiumEntitled } from "./premiumEntitlement";
 import {
     authorizeWorkspace,
     bindRecordWorkspace,
@@ -162,19 +162,23 @@ export const checkClientEditor = middleware(({ ctx, next }) => {
 });
 
 /**
- * Premium procedure gate. Platform admin, workspace owner, and client admin
- * do not unlock premium. This still honors VITE_ENABLE_PREMIUM === "true".
- * That server env switch is intentionally left in place and called out in
- * the pull request: it unlocks premium routers, not the workspace cap.
- * Workspace capacity does not consult this flag.
+ * Premium procedure gate. Platform admin, workspace owner, client admin,
+ * plan tier, and every public env var (including VITE_ENABLE_PREMIUM) do
+ * not unlock premium. The paid edition must register a server entitlement
+ * provider at boot. Workspace capacity does not consult this gate.
  */
-export const requirePremiumEdition = middleware(async ({ ctx, next }) => {
-    if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
-        throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Premium features are not included in the Community edition.'
-        });
-    }
+export const requirePremiumEdition = middleware(async ({ ctx, next, path, type }) => {
+    const clientId = (ctx as { clientId?: unknown }).clientId;
+    const clientRole = (ctx as { clientRole?: unknown }).clientRole;
+    await assertPremiumEntitled({
+        user: ctx.user
+            ? { id: ctx.user.id, role: ctx.user.role, email: ctx.user.email }
+            : null,
+        clientId: typeof clientId === "number" ? clientId : null,
+        clientRole: typeof clientRole === "string" ? clientRole : null,
+        path,
+        type,
+    });
 
     return next({ ctx: { ...ctx, isPremium: true } });
 });

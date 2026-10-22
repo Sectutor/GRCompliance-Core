@@ -14,6 +14,10 @@ GRCompliance is a comprehensive Governance, Risk, and Compliance (GRC) platform 
 -   **Routing:** Wouter (Lightweight router)
 -   **Language:** TypeScript
 
+### Edition
+
+Community is the server default. Premium tRPC procedures call `assertPremiumEntitled`. That helper allows the call only when the paid edition has registered a provider with `registerPremiumEntitlement`. No provider, a provider error, and any decision other than `{ allowed: true }` are forbidden. The helper does not read `VITE_*` or other environment variables. Client navigation may still use `VITE_ENABLE_PREMIUM`. The Community workspace cap is separate and does not open when a provider is registered.
+
 ### Backend
 -   **Runtime:** Node.js
 -   **Server:** Express.js

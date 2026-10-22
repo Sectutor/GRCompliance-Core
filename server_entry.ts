@@ -54,6 +54,7 @@ import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
 import { localForgotPasswordHandler, localLoginHandler, localResetPasswordHandler } from './packages/core/src/server/localAuth';
+import { hasPremiumEntitlementProvider } from './packages/core/src/server/premiumEntitlement';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -116,7 +117,11 @@ console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(process.env.AUTH_MODE === 'local'
     ? '- AUTH_MODE: local (Supabase is not used)'
     : `- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
-console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'true' ? 'PREMIUM (Full Access)' : 'CORE (Open Source)'}`);
+console.log('- EDITION: Community. Premium procedures stay forbidden until the paid edition registers a server entitlement.');
+console.log(`- PREMIUM PROVIDER: ${hasPremiumEntitlementProvider() ? 'registered' : 'absent'}`);
+if (process.env.VITE_ENABLE_PREMIUM === 'true') {
+    console.log('- VITE_ENABLE_PREMIUM is set. It can change browser navigation only. It does not authorize premium APIs.');
+}
 console.log(`- REDIS: ${process.env.REDIS_HOST ? 'Configured' : 'Disabled'}`);
 
 

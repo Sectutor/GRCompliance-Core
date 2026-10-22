@@ -3,7 +3,7 @@ import http from "node:http";
 import type { Server } from "node:http";
 import path from "node:path";
 import express from "express";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
     canCreateAnotherWorkspace,
     communityWorkspaceAllows,
@@ -20,6 +20,7 @@ vi.mock("../db", () => ({
     },
 }));
 
+import { clearPremiumEntitlementProvider, registerPremiumEntitlement } from "./premiumEntitlement";
 import { requirePremiumEdition } from "./trpc";
 
 const guard = (requirePremiumEdition as unknown as {
@@ -53,6 +54,10 @@ async function expectForbidden(role: string, clientRole: string, flag: string | 
 }
 
 describe("premium edition gate", () => {
+    afterEach(() => {
+        clearPremiumEntitlementProvider();
+    });
+
     it("forbids the seeded admin when the flag is false or unset", async () => {
         await expectForbidden("admin", "owner", "false");
         await expectForbidden("admin", "owner", undefined);
@@ -68,9 +73,44 @@ describe("premium edition gate", () => {
         await expectForbidden("member", "admin", undefined);
     });
 
-    it("allows the procedure only for the exact flag, ignoring role and plan", async () => {
+    it("forbids the procedure when the flag is true and no provider is registered", async () => {
         const previous = process.env.VITE_ENABLE_PREMIUM;
+        const previousTier = process.env.INSTANCE_LICENSE_TIER;
+        const previousBuild = process.env.BUILD_TYPE;
         process.env.VITE_ENABLE_PREMIUM = "true";
+        process.env.INSTANCE_LICENSE_TIER = "enterprise";
+        process.env.BUILD_TYPE = "COMMERCIAL";
+        try {
+            await expect(guard({
+                ctx: {
+                    user: { id: 1, role: "admin", email: "admin@example.com" },
+                    clientRole: "owner",
+                    clientId: 1,
+                    req: {},
+                    res: {},
+                },
+                rawInput: { clientId: 1 },
+                path: "adversaryIntel.getSecurityFeeds",
+                type: "query",
+                next: () => ({ ok: true }),
+            })).rejects.toMatchObject({
+                code: "FORBIDDEN",
+                message: "Premium features are not included in the Community edition.",
+            });
+        } finally {
+            if (previous === undefined) delete process.env.VITE_ENABLE_PREMIUM;
+            else process.env.VITE_ENABLE_PREMIUM = previous;
+            if (previousTier === undefined) delete process.env.INSTANCE_LICENSE_TIER;
+            else process.env.INSTANCE_LICENSE_TIER = previousTier;
+            if (previousBuild === undefined) delete process.env.BUILD_TYPE;
+            else process.env.BUILD_TYPE = previousBuild;
+        }
+    });
+
+    it("allows the procedure when a test provider is registered", async () => {
+        const previous = process.env.VITE_ENABLE_PREMIUM;
+        delete process.env.VITE_ENABLE_PREMIUM;
+        registerPremiumEntitlement(async () => ({ allowed: true }));
         try {
             const result = await guard({
                 ctx: {
@@ -87,6 +127,7 @@ describe("premium edition gate", () => {
             });
             expect(result).toEqual({ ok: true });
         } finally {
+            clearPremiumEntitlementProvider();
             if (previous === undefined) delete process.env.VITE_ENABLE_PREMIUM;
             else process.env.VITE_ENABLE_PREMIUM = previous;
         }

@@ -2538,7 +2538,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                 />
                                 {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
                                     <div className="text-xs text-muted-foreground px-2 py-1">
-                                        Enable Premium (VITE_ENABLE_PREMIUM=true) to use AI rewrite
+                                        AI rewrite is part of the paid edition.
                                     </div>
                                 )}
                                 <div className="space-y-1">
