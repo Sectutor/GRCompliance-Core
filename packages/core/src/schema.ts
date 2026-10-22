@@ -2840,11 +2840,15 @@ export const evidenceRequests = pgTable("evidence_requests", {
 
 
 
-  assigneeId: integer("assignee_id").notNull(), // Employee ID
+  assigneeId: integer("assignee_id"), // Platform user. Null when the assignee is an employee.
 
 
 
-  status: varchar("status", { length: 50 }).default("open"), // open, submitted, verified, rejected
+  assigneeEmployeeId: integer("assignee_employee_id"), // People & Org employee. Null for a user assignment.
+
+
+
+  status: varchar("status", { length: 50 }).default("open"), // open, submitted, verified, rejected, fulfilled
 
 
 
@@ -2873,6 +2877,8 @@ export const evidenceRequests = pgTable("evidence_requests", {
     clientStatusIdx: index("idx_er_client_status").on(table.clientId, table.status),
 
     assigneeIdx: index("idx_er_assignee").on(table.assigneeId),
+
+    assigneeEmployeeIdx: index("idx_er_assignee_employee").on(table.assigneeEmployeeId),
 
     controlIdx: index("idx_er_control").on(table.clientControlId),
 

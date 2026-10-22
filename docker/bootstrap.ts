@@ -32,6 +32,18 @@ async function applySchema(databaseUrl: string) {
     }
 }
 
+/**
+ * evidence_requests.assignee_id stays the platform user. assignee_employee_id is the
+ * People & Org person. Drizzle migrations do not run at boot, so existing databases
+ * get the nullable column here. Fresh installs already have it from schema.sql.
+ */
+async function ensureEvidenceRequestAssignees() {
+    const db = await getDb();
+    await db.execute(sql`ALTER TABLE evidence_requests ADD COLUMN IF NOT EXISTS assignee_employee_id integer`);
+    await db.execute(sql`ALTER TABLE evidence_requests ALTER COLUMN assignee_id DROP NOT NULL`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_er_assignee_employee ON evidence_requests (assignee_employee_id)`);
+}
+
 async function ensureLocalCredentialsTable() {
     const db = await getDb();
     await db.execute(sql`
@@ -98,6 +110,7 @@ async function main() {
         throw new Error('DATABASE_URL is required');
     }
     await applySchema(databaseUrl);
+    await ensureEvidenceRequestAssignees();
     await ensureDefaultDataSeeded();
     await ensureLocalCredentialsTable();
     if (process.env.AUTH_MODE === 'local') {

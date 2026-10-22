@@ -7,7 +7,10 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
+import { openEvidenceRequestLink } from "../../lib/openEvidenceRequestLink";
 import { recalculateRiskScore } from "../services/riskService";
+import { authorizeEvidenceLink } from "../linkEvidence";
+import { requireWorkspaceMember } from "../requireWorkspaceMember";
 
 // Shared Framework Seed Data
 export const FRAMEWORK_SEEDS: Record<string, any[]> = {
@@ -105,9 +108,14 @@ export const createEvidenceRouter = (
                     name: name
                 }));
             }),
-        list: publicProcedure
+        list: protectedProcedure
             .input(z.object({ clientId: z.number(), systemId: z.string().optional() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceMember({
+                    userId: ctx.user?.id,
+                    clientId: input.clientId,
+                    canView: (userId, clientId) => db.isUserAllowedForClient(userId, clientId),
+                });
                 const results = await db.getEvidence(input.clientId, input.systemId);
                 // Flatten structure for report consumption
                 return results.map((r: any) => ({
@@ -115,6 +123,7 @@ export const createEvidenceRouter = (
                     evidenceId: r.evidenceId,
                     description: r.description,
                     status: r.status,
+                    dueDate: r.dueDate ?? null,
                     lastVerified: r.lastVerified,
                     control: r.control,
                     fileCount: r.fileCount,
@@ -180,7 +189,7 @@ export const createEvidenceRouter = (
                     .orderBy(desc(schema.evidence.createdAt));
             }),
 
-        create: publicProcedure
+        create: protectedProcedure
             .input(z.object({
                 clientId: z.number(),
                 clientControlId: z.number(),
@@ -190,14 +199,49 @@ export const createEvidenceRouter = (
                 status: z.string().optional(),
                 owner: z.string().nullable().optional(),
                 location: z.string().optional(),
+                dueDate: z.string().nullable().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const fields = { ...input };
+                const dueDate = fields.dueDate;
+                delete fields.dueDate;
+                delete fields.clientId;
+                const linked = await authorizeEvidenceLink({
+                    userId: ctx.user?.id,
+                    clientControlId: input.clientControlId,
+                    dueDate,
+                    loadControl: async (id) => {
+                        const [row] = await dbConn.select({
+                            id: schema.clientControls.id,
+                            clientId: schema.clientControls.clientId,
+                        }).from(schema.clientControls).where(eq(schema.clientControls.id, id)).limit(1);
+                        return row ?? null;
+                    },
+                    canEdit: (userId, workspaceId) => db.isUserAllowedForClient(userId, workspaceId, "editor"),
+                });
                 const [newEvidence] = await dbConn.insert(schema.evidence).values({
-                    ...input,
+                    ...fields,
+                    clientId: linked.clientId,
+                    clientControlId: linked.clientControlId,
+                    dueDate: linked.dueDate,
                     createdAt: new Date(),
                     updatedAt: new Date()
                 } as any).returning();
+
+                if (newEvidence?.id) {
+                    const target = openEvidenceRequestLink({
+                        clientId: linked.clientId,
+                        clientControlId: linked.clientControlId,
+                    });
+                    await dbConn.update(schema.evidenceRequests)
+                        .set({ status: "fulfilled", evidenceId: newEvidence.id, updatedAt: new Date() })
+                        .where(and(
+                            eq(schema.evidenceRequests.clientId, target.clientId),
+                            eq(schema.evidenceRequests.clientControlId, target.clientControlId),
+                            eq(schema.evidenceRequests.status, target.status),
+                        ));
+                }
                 return newEvidence;
             }),
 
