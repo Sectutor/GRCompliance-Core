@@ -146,9 +146,8 @@ export const checkClientAccess = middleware(async (opts) => {
         return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
     }
 
-    // authorizeWorkspace applies the fail-closed Community limit, including
-    // for platform admins. A paid plan tier does not open another workspace
-    // unless VITE_ENABLE_PREMIUM is exactly "true".
+    // authorizeWorkspace applies the Community workspace cap. The cap does
+    // not read VITE_ENABLE_PREMIUM, planTier, or a client-supplied flag.
     const { clientRole } = await authorizeWorkspace(ctx, clientId);
     debugLog('[DEBUG checkClientAccess] Access granted with role:', clientRole);
     return next({ ctx: { ...ctx, clientId, clientRole } });
@@ -163,8 +162,11 @@ export const checkClientEditor = middleware(({ ctx, next }) => {
 });
 
 /**
- * Community is the default. Platform admin, workspace owner, and client admin
- * do not unlock premium. Only the exact flag VITE_ENABLE_PREMIUM=true does.
+ * Premium procedure gate. Platform admin, workspace owner, and client admin
+ * do not unlock premium. This still honors VITE_ENABLE_PREMIUM === "true".
+ * That server env switch is intentionally left in place and called out in
+ * the pull request: it unlocks premium routers, not the workspace cap.
+ * Workspace capacity does not consult this flag.
  */
 export const requirePremiumEdition = middleware(async ({ ctx, next }) => {
     if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {

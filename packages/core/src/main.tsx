@@ -9,6 +9,8 @@ import App from "./App";
 import MFAChallengeModal from "@/components/auth/MFAChallengeModal";
 import { useEffect, useState } from "react";
 import { getLoginUrl } from "./const";
+import { isCommunityWorkspaceLimitMessage } from "@/lib/edition";
+import { COMMUNITY_WORKSPACE_LIMIT_EVENT } from "@/components/license/UpgradePrompt";
 import { registerDefaults } from "@/registry/defaults";
 import { registerPremium } from "@/registry/premium";
 import "./index.css";
@@ -38,6 +40,16 @@ if (licenseValidator.isEnterpriseEdition() || licenseValidator.isTrialEdition())
 }
 
 const queryClient = new QueryClient();
+
+const notifyCommunityWorkspaceLimit = (error: unknown) => {
+  if (!(error instanceof TRPCClientError)) return;
+  if (error.data?.code !== "FORBIDDEN") return;
+  if (!isCommunityWorkspaceLimitMessage(error.message)) return;
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(COMMUNITY_WORKSPACE_LIMIT_EVENT, {
+    detail: { message: error.message },
+  }));
+};
 
 const redirectToLoginIfUnauthorized = async (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
@@ -112,6 +124,7 @@ queryClient.getQueryCache().subscribe((event: any) => {
 
     if (error instanceof TRPCClientError && error.message === "NOT_FOUND") return;
 
+    notifyCommunityWorkspaceLimit(error);
     console.error("[API Query Error]", error);
   }
 });
@@ -143,6 +156,7 @@ queryClient.getMutationCache().subscribe((event: any) => {
       window.dispatchEvent(new CustomEvent('require-mfa'));
     }
 
+    notifyCommunityWorkspaceLimit(error);
     console.error("[API Mutation Error]", error);
   }
 });
