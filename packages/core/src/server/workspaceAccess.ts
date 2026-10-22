@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import * as db from "../db";
-import { communityWorkspaceAllows, isPremiumEditionEnabled } from "../lib/edition";
+import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, communityWorkspaceAllows } from "../lib/edition";
 import * as schema from "../schema";
 import { userClients } from "../schema";
 import { middleware } from "./trpc-base";
@@ -173,11 +173,10 @@ export function canEditWorkspace(clientRole: string | null | undefined): boolean
 
 /**
  * Login is enforced by the caller. This checks that `clientId` is a
- * workspace the user may use. Community is the default: the limit applies
- * unless VITE_ENABLE_PREMIUM is exactly "true", including for platform
- * admins, and a paid plan tier does not open another workspace. Platform
- * admins may still enter a workspace they have no membership row for when
- * that workspace is inside the edition limit.
+ * workspace the user may use. Core always applies the Community cap: Latore
+ * plus the earliest other workspace. The client build flag, planTier, and
+ * maxClients do not open another workspace. Platform admins may still enter
+ * a workspace they have no membership row for. Existing rows are not deleted.
  */
 export async function authorizeWorkspace(
     ctx: { user?: { id: number; role?: string | null } | null },
@@ -212,32 +211,19 @@ export async function authorizeWorkspace(
         });
     }
 
-    if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
-        const allMemberships = await dir.listMemberships(ctx.user.id);
-        if (allMemberships.length > 0) {
-            const named = allMemberships.every((row) => typeof row.name === "string");
-            const allowed = named
-                ? communityWorkspaceAllows(
-                    allMemberships.map((row) => ({ clientId: row.clientId, name: row.name as string })),
-                    clientId,
-                )
-                : allMemberships[0].clientId === clientId;
-            if (!allowed) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message:
-                        "Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.",
-                });
-            }
-        }
-    } else if (membership?.role === "owner") {
-        const fullUser = await dir.getUser(ctx.user.id);
-        const maxClients = fullUser?.maxClients || 2;
-        const allowedClientIds = (await dir.listOwnedClientIds(ctx.user.id)).slice(0, maxClients);
-        if (!allowedClientIds.includes(clientId)) {
+    const allMemberships = await dir.listMemberships(ctx.user.id);
+    if (allMemberships.length > 0) {
+        const named = allMemberships.every((row) => typeof row.name === "string");
+        const allowed = named
+            ? communityWorkspaceAllows(
+                allMemberships.map((row) => ({ clientId: row.clientId, name: row.name as string })),
+                clientId,
+            )
+            : allMemberships[0].clientId === clientId;
+        if (!allowed) {
             throw new TRPCError({
                 code: "FORBIDDEN",
-                message: `This workspace exceeds your plan limit of ${maxClients} organizations. Please upgrade or remove excess workspaces.`,
+                message: COMMUNITY_WORKSPACE_LIMIT_MESSAGE,
             });
         }
     }

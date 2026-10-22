@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { LATORE_DEMO_NAME } from "../lib/edition";
 import { requireRecordWorkspace, requireWorkspaceRole, type Membership, type WorkspaceDirectory } from "./recordAccess";
 
 function directory(rows: Membership[]): WorkspaceDirectory {
@@ -107,6 +108,51 @@ describe("requireRecordWorkspace", () => {
         });
         expect(access.clientId).toBe(9);
         expect(access.clientRole).toBe("owner");
+    });
+
+    it("keeps read access to Latore and the first real workspace when the client claims premium", async () => {
+        const previous = process.env.VITE_ENABLE_PREMIUM;
+        process.env.VITE_ENABLE_PREMIUM = "true";
+        const rows: Membership[] = [
+            { clientId: 1, role: "owner", name: LATORE_DEMO_NAME },
+            { clientId: 2, role: "owner", name: "Acme" },
+            { clientId: 3, role: "editor", name: "Beta" },
+        ];
+        try {
+            const latore = await requireRecordWorkspace({
+                user: member,
+                loadRow: async () => ({ id: 11, clientId: 1 }),
+                workspaceId: (row) => row.clientId,
+                directory: directory(rows),
+            });
+            const acme = await requireRecordWorkspace({
+                user: { id: 4, role: "admin" },
+                loadRow: async () => ({ id: 12, clientId: 2 }),
+                workspaceId: (row) => row.clientId,
+                directory: directory(rows),
+            });
+            expect(latore.clientId).toBe(1);
+            expect(acme.clientId).toBe(2);
+            await expect(requireRecordWorkspace({
+                user: member,
+                loadRow: async () => ({ id: 13, clientId: 3 }),
+                workspaceId: (row) => row.clientId,
+                directory: directory(rows),
+            })).rejects.toMatchObject({
+                code: "FORBIDDEN",
+                message: expect.stringContaining("Community Edition is limited to a single workspace"),
+            });
+            const stillThere = await requireRecordWorkspace({
+                user: member,
+                loadRow: async () => ({ id: 12, clientId: 2 }),
+                workspaceId: (row) => row.clientId,
+                directory: directory(rows),
+            });
+            expect(stillThere.clientId).toBe(2);
+        } finally {
+            if (previous === undefined) delete process.env.VITE_ENABLE_PREMIUM;
+            else process.env.VITE_ENABLE_PREMIUM = previous;
+        }
     });
 
     it("returns not found when the row does not exist", async () => {

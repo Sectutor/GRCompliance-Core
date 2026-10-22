@@ -7,40 +7,19 @@ import * as db from "../../db";
 import * as schema from "../../schema";
 import { clients, userClients } from "../../schema";
 import { eq, desc, and, sql, inArray, ne } from "drizzle-orm";
-import { canCreateAnotherWorkspace, isPremiumEditionEnabled } from "../../lib/edition";
+import { assertCommunityWorkspaceCapacity, loadOwnedWorkspaceNames } from "../communityLimits";
 import { policyCoverage, postureScore } from "../../lib/postureScore";
 import { generateGapAnalysisReport } from "../../lib/reporting";
 import { sendEmail } from "../../lib/email/transporter";
 import { appOrigin, createPasswordResetToken, upsertLocalCredential } from "../localAuth";
 import { escapeHtml, isPlatformAdmin, requireWorkspaceRole } from "../recordAccess";
 
-function assertCanOwnAnotherWorkspace(opts: {
-    premiumFlag: string | undefined;
-    ownedNames: string[];
-    maxClients: number;
-}) {
-    if (canCreateAnotherWorkspace(opts)) return;
-    if (!isPremiumEditionEnabled(opts.premiumFlag)) {
-        throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-        });
-    }
-    throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: `Organization Limit Reached: Your current plan allows for ${opts.maxClients} organizations. Please upgrade to add more.`
-    });
-}
-
-async function ownedWorkspaceNames(dbConn: any, userId: number): Promise<string[]> {
-    const owned = await dbConn.select({ name: schema.clients.name })
-        .from(schema.userClients)
-        .innerJoin(schema.clients, eq(schema.userClients.clientId, schema.clients.id))
-        .where(and(
-            eq(schema.userClients.userId, userId),
-            eq(schema.userClients.role, 'owner')
-        ));
-    return owned.map((row: { name: string }) => row.name);
+/**
+ * One real workspace beside Latore. Ignores a premium flag, plan tier, and
+ * maxClients, including values supplied by the caller.
+ */
+function assertCanOwnAnotherWorkspace(ownedNames: string[]) {
+    assertCommunityWorkspaceCapacity(ownedNames);
 }
 
 const rejectedLicenseWrite = (field: string) =>
@@ -327,16 +306,11 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             .mutation(async ({ input, ctx }: any) => {
                 try {
                     console.log(`[Clients] Creating client (Enhanced): ${input.name} (Admin: ${ctx.user?.id})`);
-                    const fullUser = await db.getUserById(ctx.user.id);
 
-                    // 1. Workspace capacity applies to every role, including administrators.
+                    // Workspace capacity applies to every role, including administrators.
+                    // A client premium claim and the client build flag are not consulted.
                     const d = await db.getDb();
-                    const limit = fullUser?.maxClients || 2;
-                    assertCanOwnAnotherWorkspace({
-                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
-                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
-                        maxClients: limit,
-                    });
+                    assertCanOwnAnotherWorkspace(await loadOwnedWorkspaceNames(d, ctx.user.id));
 
                     // 2. Determine Owner User (Create if needed)
                     let ownerUserId = ctx.user.id;
@@ -451,14 +425,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 try {
                     console.log(`[Clients] Onboarding client: ${input.name} (User: ${ctx.user?.id})`);
                     const d = await db.getDb();
-                    const fullUser = await db.getUserById(ctx.user.id);
-
-                    const limit = fullUser?.maxClients || 2;
-                    assertCanOwnAnotherWorkspace({
-                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
-                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
-                        maxClients: limit,
-                    });
+                    assertCanOwnAnotherWorkspace(await loadOwnedWorkspaceNames(d, ctx.user.id));
 
                     // Transactional Onboarding
                     const result = await db.onboardClient({
@@ -496,13 +463,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     }
 
                     const d = await db.getDb();
-                    const fullUser = await db.getUserById(ctx.user.id);
-                    const limit = fullUser?.maxClients || 2;
-                    assertCanOwnAnotherWorkspace({
-                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
-                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
-                        maxClients: limit,
-                    });
+                    assertCanOwnAnotherWorkspace(await loadOwnedWorkspaceNames(d, ctx.user.id));
 
                     const selectedFrameworks = Array.isArray(input.frameworks)
                         ? input.frameworks.filter((f: any) => typeof f === 'string' && f.trim().length > 0)
@@ -538,18 +499,9 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         companyName: input.name
                     });
 
-                    try {
-                        // Skip duplicate "DEMO" org creation in Community Edition to save the slot
-                        if (isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
-                            await db.seedSampleData(ctx.user.id, {
-                                name: `${input.name} DEMO`,
-                                industry: input.industry
-                            });
-                        }
-                    } catch (err) {
-                        console.error("Failed to create secondary demo organization:", err);
-                    }
-
+                    // Core does not create a second demo organization. That workspace
+                    // would consume the one real slot, and the client build flag
+                    // must not turn it back on.
                     return client;
                 } catch (error: any) {
                     console.error('[Clients] AutoSetup Error:', error);
@@ -569,6 +521,8 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 if (!ctx.user) {
                     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'You must be logged in to create sample data' });
                 }
+                const d = await db.getDb();
+                assertCanOwnAnotherWorkspace(await loadOwnedWorkspaceNames(d, ctx.user.id));
                 return await db.seedSampleData(ctx.user.id, {
                     name: input.name,
                     industry: input.industry

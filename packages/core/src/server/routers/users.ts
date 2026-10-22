@@ -12,6 +12,7 @@ import { supabaseAdmin } from "../lib/supabaseAdmin";
 import { createLocalAccount, generateLocalPassword, isLocalAuthMode, signLocalToken, upsertLocalCredential } from "../localAuth";
 
 import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure, protectedProcedure } from "../trpc";
+import { communityAllowsAnotherWorkspace, loadOwnedWorkspaceNames } from "../communityLimits";
 
 export const usersSubRouter = router({
     acceptInviteAndSignup: publicProcedure
@@ -156,10 +157,15 @@ export const usersSubRouter = router({
                         companyName: orgName
                     });
                     try {
-                        await db.seedSampleData(newUser.id, {
-                            name: `${orgName} DEMO`,
-                            industry
-                        });
+                        // A second DEMO organization would be another real workspace.
+                        // Community capacity ignores VITE_ENABLE_PREMIUM. Skip instead of deleting anything.
+                        const ownedNames = await loadOwnedWorkspaceNames(d2, newUser.id);
+                        if (communityAllowsAnotherWorkspace(ownedNames)) {
+                            await db.seedSampleData(newUser.id, {
+                                name: `${orgName} DEMO`,
+                                industry
+                            });
+                        }
                     } catch (se) { }
                 } catch (e) {
                     console.error("[acceptInviteAndSignup] OnboardClient failed for waitlist link:", e);
@@ -846,10 +852,13 @@ export const usersSubRouter = router({
                             companyName: orgName
                         });
                         try {
-                            await db.seedSampleData(ctx.user.id, {
-                                name: `${orgName} DEMO`,
-                                industry
-                            });
+                            const ownedNames = await loadOwnedWorkspaceNames(d2, ctx.user.id);
+                            if (communityAllowsAnotherWorkspace(ownedNames)) {
+                                await db.seedSampleData(ctx.user.id, {
+                                    name: `${orgName} DEMO`,
+                                    industry
+                                });
+                            }
                         } catch (se) { }
                     } catch (e) {
                         // If onboarding fails, still proceed with account updates, but without global role elevation

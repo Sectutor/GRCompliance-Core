@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TRPCError } from "@trpc/server";
+import { LATORE_DEMO_NAME } from "../lib/edition";
 import {
     accessRecordWorkspace,
     authorizeWorkspace,
@@ -10,7 +11,7 @@ import {
 const user = { id: 10, role: "user" };
 
 function directory(options: {
-    memberships?: Array<{ clientId: number; role: string; accessExpiresAt?: Date | null }>;
+    memberships?: Array<{ clientId: number; role: string; name?: string | null; accessExpiresAt?: Date | null }>;
     maxClients?: number;
     owned?: number[];
 }): WorkspaceAccessDirectory {
@@ -20,7 +21,7 @@ function directory(options: {
             return memberships.find((row) => row.clientId === clientId) ?? null;
         },
         async listMemberships() {
-            return memberships.map(({ clientId, role }) => ({ clientId, role }));
+            return memberships.map(({ clientId, role, name }) => ({ clientId, role, name }));
         },
         async getUser() {
             return { maxClients: options.maxClients ?? 5 };
@@ -157,6 +158,32 @@ describe("authorizeWorkspace", () => {
         try {
             await expect(authorizeWorkspace({ user }, 1, dir)).resolves.toMatchObject({ clientRole: "editor" });
             await expect(authorizeWorkspace({ user }, 2, dir)).rejects.toMatchObject({ code: "FORBIDDEN" });
+        } finally {
+            if (previous === undefined) delete process.env.VITE_ENABLE_PREMIUM;
+            else process.env.VITE_ENABLE_PREMIUM = previous;
+        }
+    });
+
+    it("keeps Latore and the first real workspace readable when the premium flag is set", async () => {
+        const previous = process.env.VITE_ENABLE_PREMIUM;
+        process.env.VITE_ENABLE_PREMIUM = "true";
+        const dir = directory({
+            maxClients: 50,
+            owned: [1, 2, 3],
+            memberships: [
+                { clientId: 1, role: "owner", name: LATORE_DEMO_NAME },
+                { clientId: 2, role: "owner", name: "Acme" },
+                { clientId: 3, role: "owner", name: "Beta" },
+            ],
+        });
+        try {
+            await expect(authorizeWorkspace({ user: { id: 10, role: "admin" } }, 1, dir)).resolves.toMatchObject({ clientRole: "owner" });
+            await expect(authorizeWorkspace({ user }, 2, dir)).resolves.toMatchObject({ clientRole: "owner" });
+            await expect(authorizeWorkspace({ user }, 3, dir)).rejects.toMatchObject({
+                code: "FORBIDDEN",
+                message: expect.stringContaining("Community Edition is limited to a single workspace"),
+            });
+            await expect(authorizeWorkspace({ user }, 2, dir)).resolves.toMatchObject({ clientRole: "owner" });
         } finally {
             if (previous === undefined) delete process.env.VITE_ENABLE_PREMIUM;
             else process.env.VITE_ENABLE_PREMIUM = previous;

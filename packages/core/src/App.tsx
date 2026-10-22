@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SystemFeedbackModal } from "@/components/SystemFeedbackModal";
+import { CommunityWorkspaceLimitHost } from "@/components/license/UpgradePrompt";
 
 import { lazy, Suspense, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -2017,6 +2018,7 @@ function App() {
               <ThemeProvider defaultTheme="light">
                 <TooltipProvider>
                   <Toaster />
+                  <CommunityWorkspaceLimitHost />
                   <SystemFeedbackModal />
                   <GDPRBanner />
                   <Router />

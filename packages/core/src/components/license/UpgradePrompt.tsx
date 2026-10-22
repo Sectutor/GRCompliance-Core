@@ -4,7 +4,7 @@
  * Various ways to prompt users to upgrade from Community to Enterprise edition
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,9 @@ import {
   Rocket,
 } from 'lucide-react';
 import { useLicense } from '@/lib/license/index';
+import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, isCommunityWorkspaceLimitMessage } from '@/lib/edition';
+
+export const COMMUNITY_WORKSPACE_LIMIT_EVENT = "grc-community-workspace-limit";
 
 interface UpgradePromptProps {
   trigger?: React.ReactNode;
@@ -39,6 +42,9 @@ interface UpgradePromptProps {
   featureDescription?: string;
   showTrialOption?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  /** When set, the dialog is controlled by the caller (used for server FORBIDDEN responses). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -51,8 +57,15 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   featureDescription = 'This feature requires an Enterprise license',
   showTrialOption = true,
   size = 'md',
+  open: openProp,
+  onOpenChange,
 }) => {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = openProp ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const { isCommunityEdition, isTrialEdition } = useLicense();
 
   const isCommunity = isCommunityEdition();
@@ -382,3 +395,35 @@ export const FeatureTeaser: React.FC<{
  *      icon={<Zap className="w-6 h-6" />}
  *    />
  */
+
+/**
+ * Opens the existing upgrade dialog when a query or mutation reports the
+ * Community workspace cap. Mounted once at the app root so a FORBIDDEN
+ * response shows this prompt instead of an unhandled error.
+ */
+export function CommunityWorkspaceLimitHost() {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState(COMMUNITY_WORKSPACE_LIMIT_MESSAGE);
+
+  useEffect(() => {
+    const onLimit = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      if (!isCommunityWorkspaceLimitMessage(detail?.message)) return;
+      setMessage(detail?.message || COMMUNITY_WORKSPACE_LIMIT_MESSAGE);
+      setOpen(true);
+    };
+    window.addEventListener(COMMUNITY_WORKSPACE_LIMIT_EVENT, onLimit);
+    return () => window.removeEventListener(COMMUNITY_WORKSPACE_LIMIT_EVENT, onLimit);
+  }, []);
+
+  return (
+    <UpgradePrompt
+      open={open}
+      onOpenChange={setOpen}
+      featureId="enterprise.workspaces"
+      featureName="Additional workspaces"
+      featureDescription={message}
+      showTrialOption={false}
+    />
+  );
+}

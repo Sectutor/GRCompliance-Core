@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db";
-import { communityWorkspaceAllows, isPremiumEditionEnabled } from "../lib/edition";
+import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, communityWorkspaceAllows, isPremiumEditionEnabled } from "../lib/edition";
 import { escapeHtml as escapeHtmlText } from "../lib/security/escapeHtml";
 import { clients, userClients } from "../schema";
 
@@ -75,16 +75,46 @@ async function defaultDirectory(): Promise<WorkspaceDirectory> {
     const dbConn = await getDb();
     return {
         async listMemberships(userId) {
+            // Membership reads stay select/from/where. A join breaks upload
+            // mocks that only implement that chain. Names are loaded with a
+            // second query so Latore-plus-one can apply when the clients
+            // table is present. Missing names fall back to the earliest workspace.
             const rows = await dbConn
                 .select()
                 .from(userClients)
                 .where(eq(userClients.userId, userId))
                 .orderBy(asc(userClients.joinedAt));
-            return rows.map((row) => ({
+            const memberships = rows.map((row: {
+                clientId: number;
+                role: string;
+                joinedAt?: Date | string | null;
+                accessExpiresAt?: Date | string | null;
+            }) => ({
                 clientId: row.clientId,
                 role: row.role,
                 joinedAt: row.joinedAt,
                 accessExpiresAt: row.accessExpiresAt,
+            }));
+            if (memberships.length === 0) return memberships;
+            const names = new Map<number, string>();
+            try {
+                const nameRows = await dbConn
+                    .select({ id: clients.id, name: clients.name })
+                    .from(clients)
+                    .where(inArray(clients.id, memberships.map((row: { clientId: number }) => row.clientId)));
+                if (Array.isArray(nameRows)) {
+                    for (const row of nameRows) {
+                        if (row && typeof row.id === "number" && typeof row.name === "string") {
+                            names.set(row.id, row.name);
+                        }
+                    }
+                }
+            } catch {
+                // Unnamed rows fall back to the earliest workspace.
+            }
+            return memberships.map((row: { clientId: number; role: string; joinedAt?: Date | string | null; accessExpiresAt?: Date | string | null }) => ({
+                ...row,
+                name: names.get(row.clientId),
             }));
         },
         async listAllClientIds() {
@@ -109,48 +139,47 @@ async function membershipFor(
     directory: WorkspaceDirectory,
     minRole: "viewer" | "editor" | "owner",
 ): Promise<string> {
-    if (isPlatformAdmin(user.role)) return "owner";
-
     const memberships = await directory.listMemberships(user.id);
-    const membership = memberships.find((row) => row.clientId === clientId) ?? null;
-    if (!membership) {
+    const ordered = [...memberships].sort((a, b) => {
+        const aTime = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+        const bTime = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+        return aTime - bTime;
+    });
+    const membership = ordered.find((row) => row.clientId === clientId) ?? null;
+    if (!membership && !isPlatformAdmin(user.role)) {
         throw new TRPCError({
             code: "FORBIDDEN",
             message: "No access to this client workspace. Membership required.",
         });
     }
 
-    if (membership.accessExpiresAt && new Date() > new Date(membership.accessExpiresAt)) {
+    if (membership?.accessExpiresAt && new Date() > new Date(membership.accessExpiresAt)) {
         throw new TRPCError({
             code: "FORBIDDEN",
             message: "Your access to this workspace has expired.",
         });
     }
 
-    // Community is the default. A paid plan does not open a second workspace
-    // unless VITE_ENABLE_PREMIUM is exactly "true".
-    if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
-        const ordered = [...memberships].sort((a, b) => {
-            const aTime = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
-            const bTime = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
-            return aTime - bTime;
+    // Core always applies the Community cap. The Vite flag does not open
+    // another workspace, and this check does not delete existing rows.
+    // A platform admin with no memberships can still read a workspace.
+    if (ordered.length > 0 && !communityMembershipAllows(ordered, clientId)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: COMMUNITY_WORKSPACE_LIMIT_MESSAGE,
         });
-        if (ordered.length > 0 && !communityMembershipAllows(ordered, clientId)) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.",
-            });
-        }
     }
 
-    if (!roleSatisfies(membership.role, minRole)) {
+    if (isPlatformAdmin(user.role)) return "owner";
+
+    if (!roleSatisfies(membership!.role, minRole)) {
         throw new TRPCError({
             code: "FORBIDDEN",
             message: minRole === "owner" ? "Owner access required" : "Read-only access",
         });
     }
 
-    return membership.role;
+    return membership!.role;
 }
 
 /**
@@ -246,8 +275,10 @@ export async function requireOwnedRow<T extends { clientId?: number | null }>(ar
 }
 
 /**
- * Same fail-closed gate as requirePremiumEdition. Role and plan tier do not
- * unlock premium. Unset, "false", and any value other than exact "true" deny.
+ * Premium procedure gate. This still reads VITE_ENABLE_PREMIUM.
+ * That env switch is reported rather than removed: the commercial server
+ * scripts document it as the edition switch for feature routers. It does
+ * not raise the Community workspace cap.
  */
 export async function enforceExistingPremium(_clientId: number, _user: AccessUser, _clientRole?: string | null): Promise<void> {
     if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
@@ -269,15 +300,12 @@ export async function listAuthorizedClientIds(args: {
     }
     const memberships = await directory.listMemberships(args.user.id);
     const active = memberships.filter((row) => !row.accessExpiresAt || new Date() <= new Date(row.accessExpiresAt));
-    if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
-        const ordered = [...active].sort((a, b) => {
-            const aTime = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
-            const bTime = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
-            return aTime - bTime;
-        });
-        return ordered
-            .filter((row) => communityMembershipAllows(ordered, row.clientId))
-            .map((row) => row.clientId);
-    }
-    return active.map((row) => row.clientId);
+    const ordered = [...active].sort((a, b) => {
+        const aTime = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+        const bTime = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+        return aTime - bTime;
+    });
+    return ordered
+        .filter((row) => communityMembershipAllows(ordered, row.clientId))
+        .map((row) => row.clientId);
 }
