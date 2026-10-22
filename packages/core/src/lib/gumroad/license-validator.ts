@@ -4,13 +4,36 @@
  * Integrates Gumroad license validation with the existing license system
  */
 
-import { LicenseInfo, LicenseType, LicenseStatus, FEATURES } from '../license/index';
-import { 
-  GumroadClient, 
-  GumroadValidationResponse, 
-  mapGumroadProductToLicenseType, 
-  getFeaturesForProduct 
+import { LicenseInfo, LicenseStatus } from '../license/index';
+import {
+  GumroadClient,
+  mapGumroadProductToLicenseType,
+  getFeaturesForProduct
 } from './index';
+
+const PAID_LICENSE_TYPES = new Set(["enterprise", "trial"]);
+
+/**
+ * Map a Gumroad purchase to a plan tier. Anything short of a verified paid
+ * purchase throws, so activation cannot invent a community or env license.
+ */
+export function tierFromVerifiedPurchase(licenseInfo: {
+  type?: string;
+  status?: string;
+  metadata?: { gumroad?: { saleId?: string; purchaseId?: string } };
+}): "pro" | "enterprise" {
+  const gumroad = licenseInfo.metadata?.gumroad;
+  const saleId = typeof gumroad?.saleId === "string" ? gumroad.saleId.trim() : "";
+  const purchaseId = typeof gumroad?.purchaseId === "string" ? gumroad.purchaseId.trim() : "";
+  const paid = licenseInfo.status === "valid"
+    && saleId.length > 0
+    && purchaseId.length > 0
+    && PAID_LICENSE_TYPES.has(String(licenseInfo.type));
+  if (!paid) {
+    throw new Error("License purchase could not be verified");
+  }
+  return licenseInfo.type === "trial" ? "pro" : "enterprise";
+}
 
 export interface GumroadLicenseCache {
   licenseKey: string;
@@ -94,10 +117,8 @@ export class GumroadLicenseValidator {
       });
       
       return licenseInfo;
-      
     } catch (error) {
-      // If validation fails, return a community license
-      return this.getCommunityLicense();
+      throw error instanceof Error ? error : new Error("License purchase could not be verified");
     }
   }
   
@@ -187,23 +208,6 @@ export class GumroadLicenseValidator {
   }
   
   /**
-   * Get community license (fallback)
-   */
-  private getCommunityLicense(): LicenseInfo {
-    return {
-      type: 'community',
-      status: 'valid',
-      issuedTo: 'Community User',
-      issuedAt: new Date(),
-      features: [],
-      metadata: {
-        license: 'AGPLv3',
-        source: 'community-fallback'
-      }
-    };
-  }
-  
-  /**
    * Clear cache for a specific license
    */
   clearLicenseCache(licenseKey: string, productPermalink?: string): void {
@@ -246,89 +250,18 @@ export class EnhancedLicenseValidator {
   }
   
   /**
-   * Validate license using Gumroad or fallback to environment variables
+   * Validate a license with Gumroad. Missing configuration and API failures throw.
    */
   async validateLicense(licenseKey?: string): Promise<LicenseInfo> {
-    // If no license key, check environment variables
-    if (!licenseKey) {
-      return this.validateFromEnvironment();
+    if (!licenseKey || !licenseKey.trim()) {
+      throw new Error("License purchase could not be verified");
     }
-    
-    // If Gumroad is configured, use it
-    if (this.useGumroad) {
-      try {
-        return await this.gumroadValidator.validateGumroadLicense(licenseKey);
-      } catch (error) {
-        console.warn('Gumroad validation failed, falling back to environment:', error);
-        return this.validateFromEnvironment();
-      }
+    if (!this.useGumroad) {
+      throw new Error("License purchase could not be verified");
     }
-    
-    // Fallback to environment variable validation
-    return this.validateFromEnvironment();
-  }
-  
-  /**
-   * Validate license from environment variables (backward compatibility)
-   */
-  private validateFromEnvironment(): LicenseInfo {
-    const isPremiumBuild = process.env.VITE_ENABLE_PREMIUM === 'true';
-    const licenseKey = process.env.VITE_LICENSE_KEY;
-    
-    if (isPremiumBuild && licenseKey) {
-      // Simulate enterprise license (as before)
-      return {
-        type: 'enterprise',
-        status: 'valid',
-        issuedTo: 'Demo Enterprise',
-        issuedAt: new Date(),
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        maxUsers: 100,
-        maxClients: 50,
-        features: Object.values(FEATURES),
-        metadata: {
-          plan: 'enterprise',
-          version: '1.0.0',
-          source: 'environment-variables'
-        }
-      };
-    } else if (isPremiumBuild) {
-      // Trial license
-      return {
-        type: 'trial',
-        status: 'valid',
-        issuedTo: 'Trial User',
-        issuedAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        maxUsers: 10,
-        maxClients: 5,
-        features: [
-          FEATURES.AI_EVIDENCE_ANALYSIS,
-          FEATURES.AI_RISK_TRIAGE,
-          FEATURES.AI_POLICY_DRAFTING,
-          FEATURES.ADVISOR_WORKBENCH,
-          FEATURES.WHITE_LABEL_BRANDING,
-        ],
-        metadata: {
-          plan: 'trial',
-          trialDays: 30,
-          source: 'environment-variables'
-        }
-      };
-    } else {
-      // Community license
-      return {
-        type: 'community',
-        status: 'valid',
-        issuedTo: 'Community User',
-        issuedAt: new Date(),
-        features: [],
-        metadata: {
-          license: 'AGPLv3',
-          source: 'environment-variables'
-        }
-      };
-    }
+    const licenseInfo = await this.gumroadValidator.validateGumroadLicense(licenseKey);
+    tierFromVerifiedPurchase(licenseInfo);
+    return licenseInfo;
   }
   
   /**

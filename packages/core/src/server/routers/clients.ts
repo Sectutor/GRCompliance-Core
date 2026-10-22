@@ -40,6 +40,51 @@ async function ownedWorkspaceNames(dbConn: any, userId: number): Promise<string[
     return owned.map((row: { name: string }) => row.name);
 }
 
+const rejectedLicenseWrite = (field: string) =>
+    z.any().optional().superRefine((value, ctx) => {
+        if (value !== undefined) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `${field} cannot be changed through clients.update`,
+            });
+        }
+    });
+
+export const clientUpdateSchema = z.object({
+    id: z.number(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    industry: z.string().optional(),
+    size: z.string().optional(),
+    status: z.string().optional(),
+    notes: z.string().optional(),
+    primaryContactName: z.string().optional(),
+    primaryContactEmail: z.string().optional(),
+    primaryContactPhone: z.string().optional(),
+    cisoName: z.string().optional(),
+    dpoName: z.string().optional(),
+    headquarters: z.string().optional(),
+    mainServiceRegion: z.string().optional(),
+    deploymentType: z.string().optional(),
+    region: z.string().optional(),
+    clientTier: z.string().optional(),
+    logoUrl: z.string().nullable().optional(),
+    policyLanguage: z.string().optional(),
+    legalEntityName: z.string().optional(),
+    regulatoryJurisdictions: z.array(z.string()).optional(),
+    defaultDocumentClassification: z.string().optional(),
+    planTier: rejectedLicenseWrite("planTier"),
+    activeModules: rejectedLicenseWrite("activeModules"),
+    brandPrimaryColor: rejectedLicenseWrite("brandPrimaryColor"),
+    brandSecondaryColor: rejectedLicenseWrite("brandSecondaryColor"),
+    sidebarBg: rejectedLicenseWrite("sidebarBg"),
+    sidebarFg: rejectedLicenseWrite("sidebarFg"),
+    headingFont: rejectedLicenseWrite("headingFont"),
+    bodyFont: rejectedLicenseWrite("bodyFont"),
+    portalTitle: rejectedLicenseWrite("portalTitle"),
+    requireMfa: z.boolean().optional(),
+});
+
 export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure: any, clientEditorProcedure: any, publicProcedure: any, isAuthed: any, requiresMFA: any) => {
     return t.router({
         list: publicProcedure
@@ -540,42 +585,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 }
             }),
         update: publicProcedure.use(isAuthed).use(requiresMFA)
-            .input(z.object({
-                id: z.number(),
-                name: z.string().optional(),
-                description: z.string().optional(),
-                industry: z.string().optional(),
-                size: z.string().optional(),
-                status: z.string().optional(),
-                notes: z.string().optional(),
-                primaryContactName: z.string().optional(),
-                primaryContactEmail: z.string().optional(),
-                primaryContactPhone: z.string().optional(),
-                cisoName: z.string().optional(),
-                dpoName: z.string().optional(),
-                headquarters: z.string().optional(),
-                mainServiceRegion: z.string().optional(),
-                deploymentType: z.string().optional(),
-                region: z.string().optional(),
-                clientTier: z.string().optional(),
-                logoUrl: z.string().nullable().optional(),
-                policyLanguage: z.string().optional(),
-                legalEntityName: z.string().optional(),
-                regulatoryJurisdictions: z.array(z.string()).optional(),
-                defaultDocumentClassification: z.string().optional(),
-                // New Plan/Module Fields
-                planTier: z.string().optional(),
-                activeModules: z.array(z.string()).optional(),
-                // Branding
-                brandPrimaryColor: z.string().optional().nullable(),
-                brandSecondaryColor: z.string().optional().nullable(),
-                sidebarBg: z.string().optional().nullable(),
-                sidebarFg: z.string().optional().nullable(),
-                headingFont: z.string().optional().nullable(),
-                bodyFont: z.string().optional().nullable(),
-                portalTitle: z.string().optional().nullable(),
-                requireMfa: z.boolean().optional(),
-            }))
+            .input(clientUpdateSchema)
             .mutation(async ({ input, ctx }: any) => {
                 const { id, ...data } = input;
 

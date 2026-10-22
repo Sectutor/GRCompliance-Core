@@ -143,9 +143,11 @@ Restore the SQL file with `psql` inside the `db` container, and extract the uplo
 
 ## Community edition
 
-The image is built with premium features off (`VITE_ENABLE_PREMIUM=false`). Premium-only navigation entries, such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench, are omitted. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge. A commercial build can still show those entries with a Pro badge.
+Community is the default. Premium APIs and navigation run only when `VITE_ENABLE_PREMIUM` is exactly `true`. An unset flag, any other value, and the published image are Community. A platform administrator, workspace owner, or client admin is not a bypass.
 
-A community instance includes one workspace you create plus the free **Latore LTD** demo workspace. The seeded administrator can own both. Additional workspaces need a commercial license from [grcompliance.com](https://grcompliance.com/).
+The image omits premium navigation such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge. A commercial build can still show those entries with a Pro badge.
+
+A community instance can keep the seeded **Latore LTD** demo plus one other workspace. Latore does not consume that one real workspace, and administrators are counted the same way as every other owner. Another real workspace needs a commercial license from [grcompliance.com](https://grcompliance.com/). Putting a license key in the environment, or writing `planTier`, modules, or branding through the client update API, does not upgrade the workspace. The plan changes only after Gumroad verifies a purchase.
 
 The first page does not show a cookie or advertising consent dialog. GRCompliance does not load third-party tracking, analytics, or advertising scripts. Sign-in uses strictly necessary session storage. Set `GRC_COOKIE_CONSENT=1` only if you want an optional notice that records a browser preference and still loads no third-party scripts.
 

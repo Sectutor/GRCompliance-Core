@@ -120,39 +120,17 @@ export const FEATURES = {
 - No license key required
 
 ### Enterprise Edition (Commercial)
-- All premium features
-- Requires license key
-- Commercial use rights
-- Professional support
+- Premium features after a verified Gumroad purchase
+- `VITE_ENABLE_PREMIUM` must be exactly `true`
+- A license key string on its own does not change the plan
 
 ### Trial Edition
-- Limited premium features
-- Time-limited (typically 30 days)
-- Requires license key
-- Upgrade prompt shown
+- A verified Gumroad trial purchase
+- Does not start because the premium flag is set or a key is typed into the app
 
 ## Environment Configuration
 
-### Development
-```bash
-# Community edition (default)
-VITE_ENABLE_PREMIUM=false
-
-# Enterprise edition (with mock license)
-VITE_ENABLE_PREMIUM=true
-VITE_LICENSE_KEY=example-enterprise-license
-```
-
-### Production
-```bash
-# Community edition
-VITE_ENABLE_PREMIUM=false
-
-# Enterprise edition (real license)
-VITE_ENABLE_PREMIUM=true
-VITE_LICENSE_KEY=<customer-license-key>
-VITE_LICENSE_SERVER=https://license.example.com
-```
+Community is the default. Leave `VITE_ENABLE_PREMIUM` unset or set it to `false`. Premium behavior requires the exact value `true` plus a purchase Gumroad has verified. Do not put a license key in the client, and do not treat an example string as a working key. There is no mock license server.
 
 ## Server Integration
 
@@ -172,17 +150,7 @@ const result = await client.activateLicense({
 });
 ```
 
-### Mock Server (Development)
-```typescript
-import { getMockLicenseServerClient } from '@/lib/license/server';
-
-const mockClient = getMockLicenseServerClient();
-
-// Use mock licenses:
-// - example-enterprise-license (enterprise)
-// - TRIAL-123456-7890 (trial)
-// - EXPIRED-123456-7890 (expired)
-```
+Calling this client does not change a workspace plan. Gumroad has to verify the purchase first.
 
 ## Adding New Premium Features
 
@@ -232,17 +200,8 @@ test('community edition has no premium features', () => {
 ```
 
 ### Integration Tests
-```typescript
-// Test license server integration
-test('activate valid license', async () => {
-  const client = getMockLicenseServerClient();
-  const result = await client.activateLicense({
-    licenseKey: 'example-enterprise-license'
-  });
-  expect(result.success).toBe(true);
-  expect(result.license?.type).toBe('enterprise');
-});
-```
+
+Activation is covered by the license-boundary tests. A `planTier` write is rejected, and a purchase that Gumroad did not verify does not change the plan.
 
 ## Security Considerations
 
