@@ -6,7 +6,6 @@ import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
-import { llmService } from "../../lib/llm/service";
 import { openEvidenceRequestLink } from "../../lib/openEvidenceRequestLink";
 import { recalculateRiskScore } from "../services/riskService";
 import { authorizeEvidenceLink } from "../linkEvidence";
@@ -382,120 +381,6 @@ export const createEvidenceRouter = (
                 return dbConn.select().from(schema.evidenceFiles)
                     .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId));
             }),
-
-        analyze: publicProcedure
-            .input(z.object({
-                evidenceId: z.number(),
-                controlName: z.string().optional(),
-                controlDescription: z.string().nullable().optional(), // Allow null
-            }))
-            .mutation(async ({ input }: any) => {
-                const dbConn = await getDb();
-
-                // Get the evidence item to check for existing content
-                const [evidenceItem] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
-
-                if (!evidenceItem) throw new Error("Evidence not found");
-
-                // Check for attached files
-                const files = await dbConn.select().from(schema.evidenceFiles)
-                    .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId))
-                    .orderBy(desc(schema.evidenceFiles.createdAt))
-                    .limit(1);
-
-                let content = "";
-
-                if (files.length > 0) {
-                    const file = files[0];
-                    content = `File Name: ${file.filename}\nContent Type: ${file.contentType}\nFile Size: ${file.fileSize} bytes\n`;
-
-                    // In a real implementation: Fetch file content from S3/Storage and extract text (PDF/DOCX)
-                    // For now, we simulate extraction based on file metadata and description
-                    content += `(Simulated Extraction): This document appears to be a ${file.filename.split('.').pop()} file related to ${input.controlName || 'compliance'}.`;
-                } else if (evidenceItem.description && evidenceItem.description.length > 20) {
-                    content = evidenceItem.description;
-                } else {
-                    content = "No file attached and description is too short.";
-                }
-
-                if (content.includes("No file attached")) {
-                    return {
-                        analysis: {
-                            isCompliant: false,
-                            reasoning: "No evidence file attached or description provided.",
-                            keyFindings: ["Missing documentation"],
-                            confidence: "HIGH"
-                        },
-                        provider: "System",
-                        model: "Validation"
-                    };
-                }
-
-                const systemPrompt = "You are an expert compliance auditor. Analyze the provided evidence content against the control requirements. Be strict but fair.";
-                const userPrompt = `
-Control Name: ${input.controlName || 'Unknown'}
-Control Description: ${input.controlDescription || 'No description provided'}
-
-Evidence Content/Description:
-${content.substring(0, 5000)}
-
-Analyze if this evidence satisfies the control requirements.
-Provide a structured JSON response:
-{
-  "isCompliant": boolean (true if sufficient, false if gaps exist),
-  "reasoning": "Concise summary of why it complies or fails",
-  "keyFindings": ["List of specific observations", "Positive or negative points"],
-  "confidence": "HIGH" | "MEDIUM" | "LOW"
-}
-`;
-
-                try {
-                    const response = await llmService.generate({
-                        systemPrompt,
-                        userPrompt,
-                        temperature: 0.2,
-                        jsonMode: true,
-                        feature: "evidence_analysis"
-                    });
-
-                    let analysis;
-                    try {
-                        analysis = JSON.parse(response.text);
-                    } catch (e) {
-                        // Fallback if JSON parsing fails
-                        analysis = {
-                            isCompliant: false,
-                            reasoning: "Failed to parse AI response. " + response.text.substring(0, 100),
-                            keyFindings: ["AI Analysis Error"],
-                            confidence: "LOW"
-                        };
-                    }
-
-                    // Save analysis result to evidence (using existing description or metadata if available, but schema doesn't have JSON column yet)
-                    // We'll just return it for UI display for now.
-
-                    return {
-                        analysis,
-                        provider: response.provider,
-                        model: response.model
-                    };
-                } catch (error: any) {
-                    console.error("Evidence analysis failed:", error);
-                    // Return a mock failure response instead of crashing
-                    return {
-                        analysis: {
-                            isCompliant: false,
-                            reasoning: "AI Service unavailable or failed. Please try again later.",
-                            keyFindings: ["Analysis failed"],
-                            confidence: "LOW"
-                        },
-                        provider: "System",
-                        model: "Error"
-                    };
-                }
-            } // Close async function
-
-            ), // Close mutation
 
         seed: protectedProcedure
             .input(z.object({

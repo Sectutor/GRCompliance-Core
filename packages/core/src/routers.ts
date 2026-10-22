@@ -41,7 +41,6 @@ import {
   sendDailyDigest,
   sendWeeklyDigest
 } from "./emailNotification";
-import { llmService } from "./lib/llm/service";
 import { generateGapAnalysisReport } from "./lib/reporting";
 import { suggestControlsForTreatment } from "./lib/ai/controlSuggestions";
 // cleaned up unused imports
@@ -60,6 +59,7 @@ import {
   premiumClientProcedure,
   checkClientAccess,
   checkPremiumAccess,
+  requirePremiumEdition,
   isAuthed,
   isAdmin,
   requiresMFA,
@@ -140,48 +140,6 @@ import { createKrisRouter } from "./server/routers/kris";
 // Procedures and Middleware are now imported from ./server/trpc
 
 
-const STANDARD_CONTROLS_CONTEXT = `
-AC-1: Access Control Policy and Procedures
-AC-2: Account Management
-AC-3: Access Enforcement
-AC-4: Information Flow Enforcement
-AC-5: Separation of Duties
-AC-6: Least Privilege
-AT-1: Security Awareness and Training Policy
-AT-2: Security Awareness Training
-AT-3: Role-Based Security Training
-AU-1: Audit and Accountability Policy
-AU-2: Audit Events
-AU-3: Content of Audit Records
-AU-6: Audit Review, Analysis, and Reporting
-CM-1: Configuration Management Policy
-CM-2: Baseline Configuration
-CM-3: Configuration Change Control
-CP-1: Contingency Planning Policy
-CP-2: Contingency Plan
-IA-1: Identification and Authentication Policy
-IA-2: Identification and Authentication (Organizational Users)
-IA-5: Authenticator Management
-IR-1: Incident Response Policy
-IR-4: Incident Handling
-IR-6: Incident Reporting
-PE-1: Physical and Environmental Protection Policy
-PE-2: Physical Access Authorizations
-PE-3: Physical Access Control
-RA-1: Risk Assessment Policy
-RA-3: Risk Assessment
-SA-1: System and Services Acquisition Policy
-SC-1: System and Communications Protection Policy
-SC-7: Boundary Protection
-SC-8: Transmission Confidentiality and Integrity
-SI-1: System and Information Integrity Policy
-SI-2: Flaw Remediation
-SI-3: Malicious Code Protection
-SI-4: Information System Monitoring
-`;
-
-
-
 import { createAuditorsRouter } from "./server/routers/auditors";
 import { createRequirementsRouter } from "./server/routers/complianceRequirements";
 import { createProgramGuidesRouter } from "./server/routers/programGuides";
@@ -192,13 +150,13 @@ export const appRouter = router({
   actions: createActionsRouter(t, clientProcedure),
   auditors: createAuditorsRouter(t, adminProcedure, clientProcedure),
   clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
-  controls: createControlsRouter(t, adminProcedure, publicProcedure), // Restore missing router mapping
+  controls: createControlsRouter(t, adminProcedure, publicProcedure), // Community control library. AI guidance is gated inside the router.
   clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   users: usersSubRouter,
   employees: createEmployeesRouter(t, clientProcedure),
-  crm: createCrmRouter(t, clientProcedure),
-  sales: createSalesRouter(t, clientProcedure),
+  crm: createCrmRouter(t, clientProcedure.use(requirePremiumEdition)),
+  sales: createSalesRouter(t, clientProcedure.use(requirePremiumEdition)),
   businessContinuity: businessContinuitySubRouter,
   billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
   gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
@@ -209,7 +167,7 @@ export const appRouter = router({
   autopilot: createAutopilotRouter(t, clientProcedure),
   checklist: createChecklistRouter(t, clientProcedure),
   gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
-  federal: createFederalRouter(t, clientProcedure),
+  federal: createFederalRouter(t, clientProcedure.use(requirePremiumEdition)),
   nist80030: createNist80030Router(t, clientProcedure),
   readiness: createReadinessRouter(t, clientProcedure),
   samm: createSammRouter(t, clientProcedure),
@@ -227,13 +185,13 @@ export const appRouter = router({
   notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
 
   // Risk Management Module
-  risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
-  riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
+  risks: createRisksRouter(t, clientProcedure),
+  riskSettings: createRiskSettingsRouter(t, clientProcedure),
   kris: createKrisRouter(t, clientProcedure),
   metrics: createMetricsRouter(t, clientProcedure),
   devProjects: createDevProjectsRouter(t, clientProcedure),
   projects: createProjectsRouter(t, clientProcedure),
-  threatModels: createThreatModelsRouter(t, clientProcedure),
+  threatModels: createThreatModelsRouter(t, clientProcedure.use(requirePremiumEdition)),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
   adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
   vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
@@ -254,7 +212,7 @@ export const appRouter = router({
   emailTemplates: emailTemplatesRouter,
   emailTriggers: emailTriggersRouter,
 
-  globalCrm: createGlobalCrmRouter(t, adminProcedure),
+  globalCrm: createGlobalCrmRouter(t, adminProcedure.use(requirePremiumEdition)),
   privacy: createPrivacyRouter(t, clientProcedure),
   privacyEnhancements: createPrivacyEnhancementsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
   cyber: createCyberRouter(t, clientProcedure),
@@ -277,13 +235,13 @@ export const appRouter = router({
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
 
   ai: router({
-    systems: createAiSystemsRouter(t, clientProcedure),
+    systems: createAiSystemsRouter(t, clientProcedure.use(requirePremiumEdition)),
     // advisor: createAdvisorRouter(t, clientProcedure)
   }),
   feedback: feedbackRouter,
-  studio: createStudioRouter(t, protectedProcedure),
-  backupRestore: createBackupRestoreRouter(t, clientProcedure),
-  advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(({ ctx, next, path, input }) => {
+  studio: createStudioRouter(t, protectedProcedure.use(requirePremiumEdition)),
+  backupRestore: createBackupRestoreRouter(t, clientProcedure.use(requirePremiumEdition)),
+  advisor: createAdvisorRouter(t, clientProcedure.use(requirePremiumEdition).use(t.middleware(({ ctx, next, path, input }) => {
     const sig = ctx.req.headers["x-signature"] as string | undefined;
     const ts = ctx.req.headers["x-timestamp"] as string | undefined;
     const secret = process.env.TOOL_HMAC_SECRET as string | undefined;
@@ -1601,388 +1559,6 @@ export const appRouter = router({
       })
   }),
 
-  aiLegacy1: router({
-    suggestMismatch: publicProcedure
-      .input(z.object({
-        articleId: z.string(),
-        title: z.string(),
-        description: z.string()
-      }))
-      .mutation(async ({ input }) => {
-        console.log("AI Suggestion Request Started:", input.articleId);
-        try {
-          const prompt = `
-You are a Senior Compliance Officer.
-Your task is to map a "Regulation Article" to standard NIST 800-53 controls.
-
-Regulation Article:
-ID: ${input.articleId}
-Title: ${input.title}
-Text: "${input.description}"
-
-Available Standard Controls:
-${STANDARD_CONTROLS_CONTEXT}
-
-Instructions:
-1. Analyze the article text.
-2. Select 1 to 3 best matching controls from the list above.
-3. Return a JSON object in this format:
-{
-  "matches": [
-    { "controlId": "AC-1", "reason": "Article requires policy documentation." }
-  ],
-  "confidence": "High"
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-          console.log("Calling LLM Service...");
-          // Fallback if LLM fails (for debugging/demo purposes if no keys configured)
-          let response;
-          try {
-            response = await llmService.generate({
-              userPrompt: prompt,
-              systemPrompt: "You are a specialized JSON-only compliance scheduling API helper.",
-              temperature: 0.1
-            });
-          } catch (e: any) {
-            console.error("LLM Service Failed hard:", e);
-            // Return a mock success to prove the endpoint works
-            return {
-              matches: [
-                { controlId: "AC-1", reason: "(MOCK) System Access Control Policy - Fallback due to missing LLM Key" },
-                { controlId: "IA-2", reason: "(MOCK) User Identification - Fallback due to missing LLM Key" }
-              ],
-              confidence: "Low (Fallback)"
-            };
-          }
-
-          console.log("LLM Response received:", response.text.substring(0, 50) + "...");
-
-          // Clean response of potential markdown code blocks
-          // Clean response of potential markdown code blocks
-          const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-          if (!cleanJson) {
-            throw new Error("Empty response from LLM");
-          }
-
-          const parsed = JSON.parse(cleanJson);
-          return parsed;
-
-        } catch (error: any) {
-          console.error("AI Suggestion Logic Error:", error);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to generate AI suggestions: " + error.message
-          });
-        }
-      }),
-
-    // AI Advisor sub-router
-    advisor: router({
-      suggestTechnologies: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          vendorPreference: z.string().optional(),
-          budgetConstraint: z.enum(['low', 'medium', 'high']).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: suggestTechnologies called with:", input);
-          try {
-            const control = await db.getControlById(input.controlId);
-            if (!control) throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
-
-            const prompt = `
-You are an expert compliance technology advisor.
-Suggest 2-3 technology solutions for implementing the following control:
-
-Control ID: ${control.controlId}
-Control Name: ${control.name}
-Description: ${control.description || 'N/A'}
-Framework: ${control.framework}
-
-${input.vendorPreference ? `Vendor Preference: ${input.vendorPreference}` : ''}
-${input.budgetConstraint ? `Budget Constraint: ${input.budgetConstraint}` : ''}
-
-Return a JSON object with this structure:
-{
-  "suggestions": [
-    {
-      "techId": "unique-id",
-      "name": "Technology Name",
-      "vendor": "Vendor Name",
-      "description": "Brief description",
-      "pros": ["pro1", "pro2"],
-      "cons": ["con1", "con2"],
-      "effort": "low|medium|high",
-      "confidence": 0.8
-    }
-  ],
-  "contextSummary": "Brief summary of recommendations"
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance technology advisor.",
-                temperature: 0.3
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for suggestTechnologies:", e);
-              // Return mock data
-              return {
-                suggestions: [
-                  {
-                    techId: "mock-1",
-                    name: "Example IAM Solution",
-                    vendor: "Cloud Provider",
-                    description: "Identity and Access Management solution for control implementation",
-                    pros: ["Easy integration", "Scalable"],
-                    cons: ["Requires training"],
-                    effort: "medium" as const,
-                    sources: [],
-                    confidence: 0.7
-                  }
-                ],
-                contextSummary: "Mock suggestions provided due to LLM unavailability"
-              };
-            }
-          } catch (error: any) {
-            console.error("suggestTechnologies error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to suggest technologies: " + error.message
-            });
-          }
-        }),
-
-      implementationPlan: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          selectedTech: z.string().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: implementationPlan called with:", input);
-          try {
-            const control = await db.getControlById(input.controlId);
-            if (!control) throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
-
-            const prompt = `
-You are an expert compliance implementation consultant.
-Generate an implementation plan for the following control:
-
-Control ID: ${control.controlId}
-Control Name: ${control.name}
-Description: ${control.description || 'N/A'}
-Framework: ${control.framework}
-${input.selectedTech ? `Selected Technology: ${input.selectedTech}` : ''}
-
-Return a JSON object with this structure:
-{
-  "steps": [
-    {
-      "order": 1,
-      "title": "Step title",
-      "description": "Detailed description",
-      "owner": "Role responsible",
-      "estimatedDuration": "1 week"
-    }
-  ],
-  "prerequisites": ["prerequisite1", "prerequisite2"],
-  "estimatedDuration": "4 weeks",
-  "sources": []
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance implementation planner.",
-                temperature: 0.3
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for implementationPlan:", e);
-              return {
-                steps: [
-                  {
-                    order: 1,
-                    title: "Assess Current State",
-                    description: "Review existing controls and identify gaps",
-                    owner: "Compliance Team",
-                    estimatedDuration: "1 week"
-                  },
-                  {
-                    order: 2,
-                    title: "Implement Control",
-                    description: "Deploy necessary technical and procedural controls",
-                    owner: "IT Team",
-                    estimatedDuration: "2 weeks"
-                  },
-                  {
-                    order: 3,
-                    title: "Validate and Test",
-                    description: "Verify control effectiveness through testing",
-                    owner: "Audit Team",
-                    estimatedDuration: "1 week"
-                  }
-                ],
-                prerequisites: ["Management approval", "Budget allocation"],
-                estimatedDuration: "4 weeks",
-                sources: []
-              };
-            }
-          } catch (error: any) {
-            console.error("implementationPlan error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to generate implementation plan: " + error.message
-            });
-          }
-        }),
-
-      explainMapping: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          regulationId: z.string(),
-          articleId: z.string(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: explainMapping called with:", input);
-          try {
-            const prompt = `
-You are an expert compliance analyst.
-Explain how the following regulation article maps to controls:
-
-Regulation ID: ${input.regulationId}
-Article ID: ${input.articleId}
-
-Provide an explanation of the mapping, any related controls, evidence requirements, and gaps.
-
-Return a JSON object with this structure:
-{
-  "explanation": "Detailed explanation of the mapping",
-  "mappedControls": [
-    { "controlId": "AC-1", "controlName": "Access Control Policy", "status": "implemented" }
-  ],
-  "evidenceLinks": [
-    { "evidenceId": "E-001", "description": "Evidence description", "status": "collected" }
-  ],
-  "gaps": ["Gap 1", "Gap 2"],
-  "sources": []
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance mapping analyst.",
-                temperature: 0.3
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for explainMapping:", e);
-              return {
-                explanation: "This regulation article requires implementation of access control policies and procedures. Mock explanation provided.",
-                mappedControls: [
-                  { controlId: "AC-1", controlName: "Access Control Policy", status: "pending" }
-                ],
-                evidenceLinks: [],
-                gaps: ["Full LLM analysis unavailable"],
-                sources: []
-              };
-            }
-          } catch (error: any) {
-            console.error("explainMapping error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to explain mapping: " + error.message
-            });
-          }
-        }),
-
-      askQuestion: publicProcedure
-        .input(z.object({
-          clientId: z.number(),
-          question: z.string(),
-          context: z.object({
-            type: z.enum(['control', 'policy', 'evidence', 'regulation']),
-            id: z.string(),
-          }).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          console.log("AI Advisor: askQuestion called with:", input);
-          try {
-            let contextInfo = "";
-            if (input.context) {
-              contextInfo = `\nContext: ${input.context.type} with ID: ${input.context.id}`;
-            }
-
-            const prompt = `
-You are an expert compliance advisor for a GRC (Governance, Risk, Compliance) platform.
-Answer the following question from a compliance professional:
-
-Question: ${input.question}
-${contextInfo}
-
-Provide a helpful, accurate, and actionable answer. Include relevant sources or references where applicable.
-
-Return a JSON object with this structure:
-{
-  "answer": "Your detailed answer here",
-  "sources": [
-    { "type": "external", "title": "Source title", "url": "https://example.com" }
-  ]
-}
-ONLY return the JSON. No Markdown formatting.
-`;
-
-            let response;
-            try {
-              response = await llmService.generate({
-                userPrompt: prompt,
-                systemPrompt: "You are a specialized JSON-only compliance expert advisor.",
-                temperature: 0.5
-              });
-              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-              if (!cleanJson) throw new Error("Empty response from LLM");
-              return JSON.parse(cleanJson);
-            } catch (e: any) {
-              console.error("LLM failed for askQuestion:", e);
-              return {
-                answer: "I apologize, but I'm currently unable to process your question due to a service limitation. Please try again later or contact support for assistance.",
-                sources: []
-              };
-            }
-          } catch (error: any) {
-            console.error("askQuestion error:", error);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to answer question: " + error.message
-            });
-          }
-        }),
-    }),
-  }),
-
-
   orgRoles: router({
     list: publicProcedure
       .input(z.object({ clientId: z.number() }))
@@ -2832,80 +2408,6 @@ ONLY return the JSON. No Markdown formatting.
         }));
       }),
   }),
-
-  // AI Advisor Router - Phase 3
-  aiLegacy2: router({
-    advisor: router({
-      suggestTechnologies: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          vendorPreference: z.string().optional(),
-          budgetConstraint: z.enum(['low', 'medium', 'high']).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { suggestTechnologies } = await import('./lib/advisor/service');
-          return await suggestTechnologies(input);
-        }),
-
-      implementationPlan: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          controlId: z.number(),
-          selectedTech: z.string().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { generateImplementationPlan } = await import('./lib/advisor/service');
-          return await generateImplementationPlan(input);
-        }),
-
-      vendorMitigationPlan: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          vendorId: z.number(),
-          scanId: z.number().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { generateVendorMitigationPlan } = await import('./lib/advisor/service');
-          return await generateVendorMitigationPlan(input);
-        }),
-
-      explainMapping: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          regulationId: z.string(),
-          articleId: z.string(),
-        }))
-        .mutation(async ({ input }) => {
-          const { explainMapping } = await import('./lib/advisor/service');
-          return await explainMapping(input);
-        }),
-
-      askQuestion: publicProcedure
-        .use(isAuthed)
-        .input(z.object({
-          clientId: z.number(),
-          question: z.string(),
-          context: z.object({
-            type: z.enum(['control', 'policy', 'evidence', 'regulation']),
-            id: z.string(),
-          }).optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const { askQuestion } = await import('./lib/advisor/service');
-          return await askQuestion({
-            clientId: input.clientId,
-            question: input.question,
-            context: input.context as { type: 'control' | 'policy' | 'evidence' | 'regulation'; id: string } | undefined
-          });
-        }),
-    }),
-  }),
-
 
   mappings: router({
     list: clientProcedure

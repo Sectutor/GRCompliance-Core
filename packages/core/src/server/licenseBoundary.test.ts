@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
+import http from "node:http";
+import type { Server } from "node:http";
 import path from "node:path";
+import express from "express";
 import { describe, expect, it, vi } from "vitest";
 import {
     canCreateAnotherWorkspace,
@@ -159,5 +162,98 @@ describe("community seed stays non-destructive", () => {
         expect(db).toContain("export async function seedSampleData");
         const seeder = db.slice(db.indexOf("export async function ensureDefaultDataSeeded"));
         expect(seeder.slice(0, 800)).not.toMatch(/\.(delete|truncate)\(/);
+    });
+});
+
+describe("public AI entry points stay closed", () => {
+    it("returns 401 for an anonymous generate-stream call", async () => {
+        const { aiRouter } = await import("./routers/ai");
+        const app = express();
+        app.use("/api/ai", aiRouter);
+        const server: Server = await new Promise((resolve) => {
+            const listening = app.listen(0, "127.0.0.1", () => resolve(listening));
+        });
+        try {
+            const address = server.address();
+            if (!address || typeof address === "string") throw new Error("listener has no port");
+            const payload = JSON.stringify({ userPrompt: "draft a policy" });
+            const response = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+                const req = http.request({
+                    hostname: "127.0.0.1",
+                    port: address.port,
+                    path: "/api/ai/generate-stream",
+                    method: "POST",
+                    headers: {
+                        "content-type": "application/json",
+                        "content-length": Buffer.byteLength(payload),
+                    },
+                }, (res) => {
+                    const chunks: Buffer[] = [];
+                    res.on("data", (chunk) => chunks.push(chunk));
+                    res.on("end", () => resolve({
+                        status: res.statusCode ?? 0,
+                        body: Buffer.concat(chunks).toString("utf8"),
+                    }));
+                });
+                req.on("error", reject);
+                req.end(payload);
+            });
+            expect(response.status).toBe(401);
+            expect(JSON.parse(response.body)).toEqual({ error: "Unauthorized" });
+        } finally {
+            await new Promise((resolve) => server.close(resolve));
+        }
+    });
+
+    it("removes the public legacy generators", () => {
+        const routers = readFileSync(path.join(repoRoot, "packages/core/src/routers.ts"), "utf8");
+        const evidence = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/evidence.ts"), "utf8");
+        const ai = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/ai.ts"), "utf8");
+        expect(routers).not.toContain("aiLegacy1");
+        expect(routers).not.toContain("aiLegacy2");
+        expect(evidence).not.toContain("analyze: publicProcedure");
+        expect(evidence).not.toContain("llmService");
+        expect(ai).not.toContain("llmService");
+        expect(ai).toContain("status(401)");
+    });
+});
+
+describe("premium product routers use the fail-closed gate", () => {
+    it("wraps the named premium routers and leaves community procedures open", () => {
+        const routers = readFileSync(path.join(repoRoot, "packages/core/src/routers.ts"), "utf8");
+        const gated = [
+            "crm: createCrmRouter(t, clientProcedure.use(requirePremiumEdition))",
+            "sales: createSalesRouter(t, clientProcedure.use(requirePremiumEdition))",
+            "federal: createFederalRouter(t, clientProcedure.use(requirePremiumEdition))",
+            "threatModels: createThreatModelsRouter(t, clientProcedure.use(requirePremiumEdition))",
+            "globalCrm: createGlobalCrmRouter(t, adminProcedure.use(requirePremiumEdition))",
+            "systems: createAiSystemsRouter(t, clientProcedure.use(requirePremiumEdition))",
+            "studio: createStudioRouter(t, protectedProcedure.use(requirePremiumEdition))",
+            "backupRestore: createBackupRestoreRouter(t, clientProcedure.use(requirePremiumEdition))",
+            "advisor: createAdvisorRouter(t, clientProcedure.use(requirePremiumEdition)",
+        ];
+        for (const line of gated) expect(routers).toContain(line);
+        expect(routers).toContain("controls: createControlsRouter(t, adminProcedure, publicProcedure)");
+        expect(routers).toContain("clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure)");
+        expect(routers).toContain("evidence: createEvidenceRouter(t, adminProcedure, publicProcedure, protectedProcedure)");
+        expect(routers).toContain("risks: createRisksRouter(t, clientProcedure)");
+        expect(routers).toContain("riskSettings: createRiskSettingsRouter(t, clientProcedure)");
+
+        const policies = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/clientPolicies.ts"), "utf8");
+        const controls = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/controls.ts"), "utf8");
+        const implementation = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/implementation.ts"), "utf8");
+        const risks = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/risks.ts"), "utf8");
+        const settings = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/riskSettings.ts"), "utf8");
+        expect(policies).toContain("refine: clientEditorProcedure.use(checkPremiumAccess)");
+        expect(policies).toContain("list: clientProcedure");
+        expect(controls).toContain("generateGuidance: adminProcedure.use(checkPremiumAccess)");
+        expect(controls).toContain("list: publicProcedure");
+        expect(implementation).toContain("autoAssignPdca: adminProcedure.use(checkPremiumAccess)");
+        expect(implementation).toContain("generateSubtasks: adminProcedure.use(checkPremiumAccess)");
+        expect(implementation).toContain("generateSubtaskSolution: adminProcedure.use(checkPremiumAccess)");
+        expect(implementation).toContain("list: publicProcedure");
+        expect(risks).toContain("exportReport: procedure");
+        expect(risks).not.toContain("premiumClientProcedure");
+        expect(settings).not.toContain("premiumClientProcedure");
     });
 });

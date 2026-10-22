@@ -10,7 +10,7 @@ import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
 import { bindRecordWorkspace } from "../workspaceAccess";
-import { recordProcedure } from "../trpc";
+import { checkPremiumAccess, recordProcedure } from "../trpc";
 import { assertTemplateReadable } from "../templateAccess";
 
 
@@ -760,7 +760,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true };
       }),
 
-    refine: clientEditorProcedure
+    refine: clientEditorProcedure.use(checkPremiumAccess)
       .input(z.object({
         clientId: z.number(),
         content: z.string(),
