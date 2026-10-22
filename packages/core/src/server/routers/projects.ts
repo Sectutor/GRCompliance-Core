@@ -6,6 +6,7 @@ import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { logActivity } from "../../lib/audit";
 import * as schema from "../../schema";
 import { projects, riskScenarios, threatModels, projectComplianceMappings } from "../../schema";
+import { requireWorkspaceRole } from "../recordAccess";
 
 export const createProjectsRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -137,6 +138,7 @@ export const createProjectsRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const db = await getDb();
 
                 // Check dependencies or handle cascade in application logic if needed

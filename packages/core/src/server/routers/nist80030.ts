@@ -2,6 +2,7 @@ import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import * as schema from "../../schema";
 import { getDb } from "../../db";
+import { requireWorkspaceRole } from "../recordAccess";
 
 export function createNist80030Router(t: any, clientProcedure: any) {
     return t.router({
@@ -58,7 +59,8 @@ export function createNist80030Router(t: any, clientProcedure: any) {
 
         deleteThreatSource: clientProcedure
             .input(z.object({ clientId: z.number(), id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await getDb();
                 await dbConn.delete(schema.nist80030ThreatSources)
                     .where(and(
@@ -128,7 +130,8 @@ export function createNist80030Router(t: any, clientProcedure: any) {
 
         deleteThreatEvent: clientProcedure
             .input(z.object({ clientId: z.number(), id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await getDb();
                 await dbConn.delete(schema.nist80030ThreatEvents)
                     .where(and(
@@ -197,7 +200,8 @@ export function createNist80030Router(t: any, clientProcedure: any) {
 
         deleteImpactAssessment: clientProcedure
             .input(z.object({ clientId: z.number(), id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await getDb();
                 await dbConn.delete(schema.nist80030ImpactAssessments)
                     .where(and(

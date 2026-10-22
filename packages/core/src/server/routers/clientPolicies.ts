@@ -9,6 +9,7 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
+import { escapeHtml } from "../recordAccess";
 import { bindRecordWorkspace } from "../workspaceAccess";
 import { checkPremiumAccess, recordProcedure } from "../trpc";
 import { assertTemplateReadable } from "../templateAccess";
@@ -371,18 +372,23 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
             // 2. Email Notifications
             for (const reviewer of reviewerDetails) {
+              const safePolicyName = escapeHtml(policyName);
+              const safeReviewer = escapeHtml(reviewer.firstName || "");
+              const safeRequester = escapeHtml(ctx.user.name || "A team member");
+              const safeDue = dueDate ? escapeHtml(new Date(dueDate).toLocaleDateString()) : "";
+              const safeMessage = message ? escapeHtml(message) : "";
               await EmailService.send({
                 to: reviewer.email,
-                subject: `Review Requested: ${policyName}`,
+                subject: `Review Requested: ${String(policyName).replace(/[\r\n]/g, " ").slice(0, 180)}`,
                 html: `
                   <div style="font-family: sans-serif; color: #374151;">
                     <h2>Policy Review Requested</h2>
-                    <p>Hello ${reviewer.firstName},</p>
-                    <p><strong>${ctx.user.name || 'A team member'}</strong> has requested that you review the following policy:</p>
+                    <p>Hello ${safeReviewer},</p>
+                    <p><strong>${safeRequester}</strong> has requested that you review the following policy:</p>
                     <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                      <p><strong>Policy:</strong> ${policyName}</p>
-                      ${dueDate ? `<p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>` : ''}
-                      ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
+                      <p><strong>Policy:</strong> ${safePolicyName}</p>
+                      ${safeDue ? `<p><strong>Due Date:</strong> ${safeDue}</p>` : ''}
+                      ${safeMessage ? `<p><strong>Message:</strong> ${safeMessage}</p>` : ''}
                     </div>
                     <p>Please log in to the GRCompliance dashboard to review and provide your feedback.</p>
                     <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
@@ -481,16 +487,18 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                 });
               }
 
+              const safePolicyName = escapeHtml(policy.name);
+              const safeNotes = notes ? escapeHtml(notes) : "";
               await EmailService.send({
                 to: policy.owner,
-                subject: `Policy Review Update: ${policy.name}`,
+                subject: `Policy Review Update: ${String(policy.name || "").replace(/[\r\n]/g, " ").slice(0, 180)}`,
                 html: `
                       <div style="font-family: sans-serif; color: #374151;">
                         <h2>Policy Review Decision</h2>
-                        <p>A decision has been made on the policy: <strong>${policy.name}</strong></p>
+                        <p>A decision has been made on the policy: <strong>${safePolicyName}</strong></p>
                         <div style="background-color: ${decision === 'approved' ? '#ecfdf5' : '#fef2f2'}; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid ${decision === 'approved' ? '#10b981' : '#ef4444'};">
-                          <p><strong>Decision:</strong> <span style="font-weight: bold; color: ${decision === 'approved' ? '#059669' : '#dc2626'}; text-transform: uppercase;">${decision.replace('_', ' ')}</span></p>
-                          ${notes ? `<p><strong>Notes/Feedback:</strong> ${notes}</p>` : ''}
+                          <p><strong>Decision:</strong> <span style="font-weight: bold; color: ${decision === 'approved' ? '#059669' : '#dc2626'}; text-transform: uppercase;">${escapeHtml(decision.replace('_', ' '))}</span></p>
+                          ${safeNotes ? `<p><strong>Notes/Feedback:</strong> ${safeNotes}</p>` : ''}
                         </div>
                         <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
                            style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">

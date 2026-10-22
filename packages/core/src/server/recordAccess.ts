@@ -2,7 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { communityWorkspaceAllows, isPremiumEditionEnabled } from "../lib/edition";
+import { escapeHtml as escapeHtmlText } from "../lib/security/escapeHtml";
 import { clients, userClients } from "../schema";
+
+/** HTML escaping for workspace emails. Same helper as the gap-invite mailer. */
+export function escapeHtml(value: unknown): string {
+    return escapeHtmlText(value);
+}
 
 /** Same platform roles as checkClientAccess. A workspace role is not one of these. */
 export const PLATFORM_ADMIN_ROLES = [
