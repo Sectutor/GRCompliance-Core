@@ -76,21 +76,13 @@ async function defaultDirectory(): Promise<WorkspaceDirectory> {
     return {
         async listMemberships(userId) {
             const rows = await dbConn
-                .select({
-                    clientId: userClients.clientId,
-                    role: userClients.role,
-                    name: clients.name,
-                    joinedAt: userClients.joinedAt,
-                    accessExpiresAt: userClients.accessExpiresAt,
-                })
+                .select()
                 .from(userClients)
-                .innerJoin(clients, eq(userClients.clientId, clients.id))
                 .where(eq(userClients.userId, userId))
                 .orderBy(asc(userClients.joinedAt));
             return rows.map((row) => ({
                 clientId: row.clientId,
                 role: row.role,
-                name: row.name,
                 joinedAt: row.joinedAt,
                 accessExpiresAt: row.accessExpiresAt,
             }));

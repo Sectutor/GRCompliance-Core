@@ -6,6 +6,7 @@ import { threatModels, threatModelComponents, riskScenarios, devProjects, riskTr
 import { eq, and, desc, or } from "drizzle-orm";
 import { logActivity } from "../../lib/audit";
 import { loadRowById, requireRecordWorkspace } from "../recordAccess";
+import { recordProcedure as rowProcedure, requirePremiumEdition } from "../trpc";
 
 import { calculateResidualScore, scoreToRiskLevel } from "../../lib/riskCalculations";
 
@@ -800,7 +801,7 @@ async function requireThreatPart(user: any, table: any, id: number) {
     });
 }
 
-export const createThreatModelsRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) => {
+export const createThreatModelsRouter = (t: any, clientProcedure: any, recordProcedure = rowProcedure.use(requirePremiumEdition)) => {
     return t.router({
         create: clientProcedure
             .input(z.object({

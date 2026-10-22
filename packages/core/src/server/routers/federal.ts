@@ -9,9 +9,9 @@ import { fileURLToPath } from "url";
 import { llmService } from "../../lib/llm/service";
 import { loadRowById, requireOwnedRow, requireRecordWorkspace } from "../recordAccess";
 
-import { t as tType, clientProcedure as cpType, checkPremiumAccess } from "../trpc";
+import { t as tType, clientProcedure as cpType, checkPremiumAccess, recordProcedure as rowProcedure } from "../trpc";
 
-export const createFederalRouter = (t: any, clientProcedure: any, recordProcedure = clientProcedure) => {
+export const createFederalRouter = (t: any, clientProcedure: any, recordProcedure = rowProcedure) => {
     // Federal Compliance is a Premium Feature
     const premiumProcedure = clientProcedure.use(checkPremiumAccess);
 
