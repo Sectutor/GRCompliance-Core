@@ -6,7 +6,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLicense, FEATURES } from '@/lib/license/index';
-import { getMockLicenseServerClient } from '@/lib/license/server';
 import { 
   Card, 
   CardContent, 
@@ -56,7 +55,7 @@ const LicenseManagement: React.FC = () => {
     validateFeature 
   } = useLicense();
   
-  const [licenseInfo, setLicenseInfo] = useState(getLicenseInfo());
+  const [licenseInfo] = useState(getLicenseInfo());
   const [licenseKey, setLicenseKey] = useState('');
   const [isActivating, setIsActivating] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -67,80 +66,20 @@ const LicenseManagement: React.FC = () => {
   const isEnterprise = isEnterpriseEdition();
   const isTrial = isTrialEdition();
   
-  // Mock license server client (replace with real one in production)
-  const licenseServer = getMockLicenseServerClient();
-  
   const handleActivateLicense = async () => {
     if (!licenseKey.trim()) {
       toast.error('Please enter a license key');
       return;
     }
-    
     setIsActivating(true);
-    
-    try {
-      const result = await licenseServer.activateLicense({
-        licenseKey: licenseKey.trim(),
-        userId: 'current-user-id', // Replace with actual user ID
-        domain: window.location.hostname
-      });
-      
-      if (result.success && result.license) {
-        // In a real implementation, you would update the license validator
-        // with the new license information
-        toast.success('License activated successfully!');
-        setLicenseInfo(result.license);
-        setLicenseKey('');
-        
-        // Reload page to apply new license (in real app, update state)
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        toast.error(result.error || 'Failed to activate license');
-      }
-    } catch (error) {
-      toast.error('Error activating license');
-      console.error('License activation error:', error);
-    } finally {
-      setIsActivating(false);
-    }
+    toast.error('A license key is not activated in the browser. A workspace plan changes only after Gumroad verifies a purchase.');
+    setIsActivating(false);
   };
   
   const handleValidateLicense = async () => {
-    if (!licenseInfo) {
-      toast.error('No license to validate');
-      return;
-    }
-    
     setIsValidating(true);
-    
-    try {
-      // In a real implementation, you would have the activation ID stored
-      const result = await licenseServer.validateLicense({
-        licenseKey: 'mock-license-key', // Replace with actual license key
-        domain: window.location.hostname
-      });
-      
-      if (result.success) {
-        if (result.valid) {
-          toast.success('License is valid');
-        } else {
-          toast.error(`License is invalid: ${result.error}`);
-        }
-        
-        if (result.license) {
-          setLicenseInfo(result.license);
-        }
-      } else {
-        toast.error(result.error || 'Failed to validate license');
-      }
-    } catch (error) {
-      toast.error('Error validating license');
-      console.error('License validation error:', error);
-    } finally {
-      setIsValidating(false);
-    }
+    toast.error('This page cannot verify a purchase. License checks stay on the server.');
+    setIsValidating(false);
   };
   
   const handleCopyLicenseInfo = () => {
