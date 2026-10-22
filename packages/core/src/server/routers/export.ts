@@ -6,8 +6,42 @@ import { eq, and } from 'drizzle-orm';
 import TurndownService from 'turndown';
 import puppeteer from 'puppeteer';
 import * as schema from '../../schema';
+import { generateSoADocx } from '../../lib/soaExport';
+import { loadAnnexAStatement } from '../soaData';
+import { handleSoaExport } from './soaExportHandler';
 
 export const exportRouter = express.Router();
+
+// Statement of Applicability export is a Community feature. Do not wrap it in the premium gate.
+exportRouter.get("/soa/:clientId", (req, res) => {
+    handleSoaExport(req, res, {
+        loadMembership: async (userId, clientId) => {
+            const database = await db.getDb();
+            const [membership] = await database.select({
+                userId: schema.userClients.userId,
+                clientId: schema.userClients.clientId,
+                accessExpiresAt: schema.userClients.accessExpiresAt,
+            }).from(schema.userClients).where(and(
+                eq(schema.userClients.userId, userId),
+                eq(schema.userClients.clientId, clientId),
+            )).limit(1);
+            return membership ?? null;
+        },
+        loadClientName: async (clientId) => {
+            const database = await db.getDb();
+            const [client] = await database.select({ name: clients.name })
+                .from(clients)
+                .where(eq(clients.id, clientId))
+                .limit(1);
+            return client?.name ?? null;
+        },
+        loadStatement: (clientId) => loadAnnexAStatement(clientId),
+        generateDocx: generateSoADocx,
+    }).catch((error) => {
+        console.error("Export SoA Error:", error);
+        if (!res.headersSent) res.status(500).send("Error generating the Statement of Applicability");
+    });
+});
 
 const turndownService = new TurndownService();
 

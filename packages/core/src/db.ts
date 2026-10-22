@@ -1205,9 +1205,9 @@ export async function ensureDefaultDataSeeded() {
 
       {
 
-        controlId: "A.5-Policies",
+        controlId: "A.5.1",
 
-        name: "Information Security Policies",
+        name: "Policies for information security",
 
         description: "Policies for information security shall be defined, approved, published and communicated.",
 
@@ -1229,9 +1229,9 @@ export async function ensureDefaultDataSeeded() {
 
       {
 
-        controlId: "A.9-Access",
+        controlId: "A.5.15",
 
-        name: "Access Control",
+        name: "Access control",
 
         description: "Access to information assets shall be controlled based on business and security requirements.",
 
@@ -3113,8 +3113,8 @@ async function applyDemoControlMix(clientId: number) {
 }
 
 const DEMO_POLICY_CONTROL_LINKS: Record<string, string[]> = {
-  "Information Security Policy": ["A.5-Policies", "A.5.2", "NIS2-21-a"],
-  "Access Control Policy": ["A.9-Access", "A.8.2", "A.8.5", "NIS2-21-j"],
+  "Information Security Policy": ["A.5.1", "A.5.2", "NIS2-21-a"],
+  "Access Control Policy": ["A.5.15", "A.8.2", "A.8.5", "NIS2-21-j"],
   "Incident Response Policy": ["A.5.24", "NIS2-21-b"],
   "Vendor Risk Management Policy": ["A.5.19", "A.5.23", "NIS2-21-d"],
   "Business Continuity Policy": ["A.5.30", "A.8.13", "NIS2-21-c"],

@@ -2,134 +2,81 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { clientControls, controls } from "../../schema";
 import * as db from "../../db";
-import { eq, and, inArray, or } from "drizzle-orm";
-import { iso27001Controls } from "../../data/frameworks/iso27001";
+import { eq, and } from "drizzle-orm";
+import { ANNEX_A_CONTROLS } from "../../data/annexACatalog";
+import { soaAdoptionPatch } from "../../lib/soaListing";
+import { ensureAnnexACatalog } from "../ensureAnnexACatalog";
+import { loadAnnexAStatement } from "../soaData";
 
 export const createIso27001Router = (t: any, clientProcedure: any, clientEditorProcedure: any) => {
     return t.router({
         getSoA: clientProcedure
             .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }: any) => {
-                console.log(`[ISO27001] Fetching SoA for client: ${input.clientId}`);
+            .query(async ({ input }: any) => loadAnnexAStatement(input.clientId)),
+
+        adoptSoA: clientEditorProcedure
+            .input(z.object({
+                clientId: z.number(),
+                controlRef: z.string(),
+                applicability: z.enum(["applicable", "not_applicable"]),
+                justification: z.string().max(8000).optional(),
+                status: z.enum(["not_implemented", "in_progress", "implemented", "not_applicable"]).optional(),
+                implementationNotes: z.string().max(8000).optional(),
+            }))
+            .mutation(async ({ input }: any) => {
+                const decision = soaAdoptionPatch(input);
+                if ("error" in decision) {
+                    throw new TRPCError({ code: "BAD_REQUEST", message: decision.error });
+                }
+                if (!ANNEX_A_CONTROLS.some((control) => control.controlId === input.controlRef)) {
+                    throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown Annex A control" });
+                }
+
+                await ensureAnnexACatalog();
                 const dbConn = await db.getDb();
-
-                // 1. Fetch existing client controls for ISO 27001 (allowing for name variations)
-                const existing = await dbConn.select({
-                    clientControl: clientControls,
-                    control: controls
-                })
-                    .from(clientControls)
-                    .innerJoin(controls, eq(clientControls.controlId, controls.id))
-                    .where(and(
-                        eq(clientControls.clientId, input.clientId),
-                        or(
-                            eq(controls.framework, "ISO 27001:2022"),
-                            eq(controls.framework, "ISO 27001")
-                        )
-                    ));
-
-                if (existing.length > 0) {
-                    console.log(`[ISO27001] Found ${existing.length} existing controls`);
-                    return existing;
-                }
-                console.log(`[ISO27001] No controls found for client, checking global...`);
-
-                // 2. If none, check if global controls exist
-                const globalControls = await dbConn.select()
+                const [master] = await dbConn.select({ id: controls.id })
                     .from(controls)
-                    .where(or(
-                        eq(controls.framework, "ISO 27001:2022"),
-                        eq(controls.framework, "ISO 27001")
-                    ));
-
-                if (globalControls.length === 0) {
-                    console.log(`[ISO27001] No global controls found. Seeding ISO 27001:2022...`);
-                    // Seed global controls from static data if they don't exist
-                    const toInsert = iso27001Controls.map(c => ({
-                        controlId: c.id,
-                        name: c.name,
-                        description: c.description,
-                        framework: "ISO 27001:2022",
-                        category: c.category,
-                        status: 'active' as const,
-                        version: 1
-                    }));
-                    await dbConn.insert(controls).values(toInsert);
-
-                    // Re-fetch
-                    const newGlobal = await dbConn.select()
-                        .from(controls)
-                        .where(or(
-                            eq(controls.framework, "ISO 27001:2022"),
-                            eq(controls.framework, "ISO 27001")
-                        ));
-
-                    // Auto-assign to client
-                    const clientBatch = newGlobal.map(c => ({
-                        clientId: input.clientId,
-                        controlId: c.id,
-                        clientControlId: c.controlId,
-                        status: 'not_implemented' as const,
-                        applicability: 'applicable'
-                    }));
-                    await dbConn.insert(clientControls).values(clientBatch);
-
-                    return await dbConn.select({
-                        clientControl: clientControls,
-                        control: controls
-                    })
-                        .from(clientControls)
-                        .innerJoin(controls, eq(clientControls.controlId, controls.id))
-                        .where(and(
-                            eq(clientControls.clientId, input.clientId),
-                            eq(controls.framework, "ISO 27001:2022")
-                        ));
+                    .where(eq(controls.controlId, input.controlRef))
+                    .limit(1);
+                if (!master) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Annex A control is not in the catalog yet" });
                 }
 
-                console.log(`[ISO27001] Found ${globalControls.length} global controls, assigning to client...`);
-
-                // 3. Global exist but not assigned to client (or partially assigned)
-                // Need to filter out controls the client ALREADY has to avoid duplicate key errors.
-
-                // Fetch ALL existing client control IDs for this client (regardless of framework filter)
-                // This ensures we don't try to insert a duplicate (clientId, controlId)
-                const existingClientControlIds = await dbConn.select({
-                    controlId: clientControls.controlId
-                })
+                const [existing] = await dbConn.select({ id: clientControls.id })
                     .from(clientControls)
-                    .where(eq(clientControls.clientId, input.clientId));
-
-                const existingSet = new Set(existingClientControlIds.map(c => c.controlId));
-
-                const clientBatch = globalControls
-                    .filter(c => !existingSet.has(c.id))
-                    .map(c => ({
-                        clientId: input.clientId,
-                        controlId: c.id,
-                        clientControlId: c.controlId,
-                        status: 'not_implemented' as const,
-                        applicability: 'applicable'
-                    }));
-
-                if (clientBatch.length > 0) {
-                    await dbConn.insert(clientControls)
-                        .values(clientBatch)
-                        .onConflictDoNothing();
-                }
-
-                return await dbConn.select({
-                    clientControl: clientControls,
-                    control: controls
-                })
-                    .from(clientControls)
-                    .innerJoin(controls, eq(clientControls.controlId, controls.id))
                     .where(and(
                         eq(clientControls.clientId, input.clientId),
-                        or(
-                            eq(controls.framework, "ISO 27001:2022"),
-                            eq(controls.framework, "ISO 27001")
-                        )
-                    ));
+                        eq(clientControls.controlId, master.id),
+                    ))
+                    .limit(1);
+
+                if (existing) {
+                    await dbConn.update(clientControls)
+                        .set({
+                            applicability: decision.applicability,
+                            status: decision.status,
+                            justification: decision.justification,
+                            implementationNotes: input.implementationNotes,
+                            updatedAt: new Date(),
+                        })
+                        .where(and(
+                            eq(clientControls.id, existing.id),
+                            eq(clientControls.clientId, input.clientId),
+                        ));
+                    return { success: true, clientControlId: existing.id };
+                }
+
+                const [created] = await dbConn.insert(clientControls).values({
+                    clientId: input.clientId,
+                    controlId: master.id,
+                    clientControlId: input.controlRef,
+                    applicability: decision.applicability,
+                    status: decision.status,
+                    justification: decision.justification,
+                    implementationNotes: input.implementationNotes,
+                }).returning({ id: clientControls.id });
+
+                return { success: true, clientControlId: created.id };
             }),
 
         updateSoA: clientEditorProcedure
