@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
-import { Sparkles, Wand2, MessageSquare } from 'lucide-react';
+import { Sparkles, MessageSquare } from 'lucide-react';
 import { Button } from '@complianceos/ui/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@complianceos/ui/ui/tooltip';
 import { toast } from 'sonner';
+import { AiRewriteToolbarActions } from '@/components/policy/AiRewriteActions';
 
 export interface RichTextEditorRef {
   scrollToHighlight: (index: number, length: number, quote?: string) => void;
@@ -260,46 +261,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
     <div className={`rich-text-editor-wrapper bg-slate-50 rounded-lg border border-slate-200 ${className}`}>
       {(onAiRewrite || onAiFix) && (
         <div className="flex items-center flex-nowrap overflow-x-auto no-scrollbar justify-start md:justify-end gap-2 mb-2 p-2 bg-white rounded border border-slate-200 shadow-sm w-full">
-          {onAiRewrite && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  id="rte-ai-rewrite"
-                  variant="outline"
-                  size="sm"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleManualAction(onAiRewrite)}
-                  className="text-purple-600 border-purple-200 hover:bg-purple-50 flex-shrink-0"
-                >
-                  <Wand2 className="sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Rewrite with AI</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Rephrase and improve clarity while maintaining meaning</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {onAiFix && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  id="rte-ai-fix"
-                  variant="outline"
-                  size="sm"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleManualAction(onAiFix)}
-                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 flex-shrink-0"
-                >
-                  <Sparkles className="sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Fix with AI</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Fix missing sections and resolve placeholders</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
+          <AiRewriteToolbarActions
+            onRewrite={onAiRewrite ? () => handleManualAction(onAiRewrite) : undefined}
+            onFix={onAiFix ? () => handleManualAction(onAiFix) : undefined}
+          />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

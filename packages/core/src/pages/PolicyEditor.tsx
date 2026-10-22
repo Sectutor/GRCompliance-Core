@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { ArrowLeft, Check, Copy, Eye, History, Loader2, Save, Sparkles, Trash2, Shield, AlertTriangle, Clock, Target, CheckCircle2, FileText, Users, Wand2, ShieldAlert, Link as LinkIcon, Unlink, TrendingDown, TrendingUp, ExternalLink, BarChart3, X, Send, RotateCcw, Activity, MessageSquare, Plus } from "lucide-react";
+import { ArrowLeft, Check, Copy, Eye, History, Loader2, Save, Sparkles, Trash2, Shield, AlertTriangle, Clock, Target, CheckCircle2, FileText, Users, ShieldAlert, Link as LinkIcon, Unlink, TrendingDown, TrendingUp, ExternalLink, BarChart3, X, Send, RotateCcw, Activity, MessageSquare, Plus } from "lucide-react";
 import { marked } from "marked";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
@@ -35,6 +35,10 @@ import { PageGuide } from "@/components/PageGuide";
 
 import PolicyLinter from "@/components/policy/PolicyLinter";
 import { AiRewriteDialog } from "@/components/policy/AiRewriteDialog";
+import { CommunityAiRewriteNote } from "@/components/policy/AiRewriteActions";
+import { isCommunityEdition } from "@/lib/communityNav";
+import { COMMUNITY_AI_REWRITE_NOTE } from "@/lib/policy/communityAiRewrite";
+import { workspaceBreadcrumbLabel } from "@/lib/workspaceLabel";
 
 // Helper logic for Policy Analysis
 
@@ -103,6 +107,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
     });
     const [location, setLocation] = useLocation();
     const { user } = useAuth();
+    const communityEdition = isCommunityEdition(import.meta.env.VITE_ENABLE_PREMIUM);
 
     const { data: policyData, isLoading: loadingPolicy, refetch: refetchPolicy } = trpc.clientPolicies.get.useQuery(
         { id: policyId, clientId },
@@ -844,7 +849,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                 <Breadcrumb
                     items={[
                         { label: "Clients", href: "/clients" },
-                        { label: `Client ${clientId}`, href: `/clients/${clientId}` },
+                        { label: workspaceBreadcrumbLabel(clientData?.name, clientId), href: `/clients/${clientId}` },
                         { label: "Policies", href: `/clients/${clientId}/policies` },
                         { label: policy.name || "Policy Editor", href: "#" },
                     ]}
@@ -977,11 +982,17 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     description: "Define the official name and ownership of this policy document.",
                                     targetId: "policy-name"
                                 },
-                                {
-                                    step: "AI-Assisted Writing",
-                                    description: "Use the 'Rewrite' or 'Fix' buttons in the editor to improve technical language.",
-                                    targetId: "rte-ai-rewrite"
-                                },
+                                communityEdition
+                                    ? {
+                                        step: "Writing the policy",
+                                        description: `Edit the policy text directly. ${COMMUNITY_AI_REWRITE_NOTE}`,
+                                        targetId: "community-ai-rewrite-note",
+                                    }
+                                    : {
+                                        step: "AI-Assisted Writing",
+                                        description: "Use the 'Rewrite' or 'Fix' buttons in the editor to improve technical language.",
+                                        targetId: "rte-ai-rewrite"
+                                    },
                                 {
                                     step: "Commit Changes",
                                     description: "Always save your progress to update the live draft.",
@@ -2509,13 +2520,17 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     Assign to Employees
                                 </Button>
 
-                                <Button
-                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
-                                    onClick={handleAiFixPlaceholders}
-                                >
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    Fix Placeholders
-                                </Button>
+                                {communityEdition ? (
+                                    <CommunityAiRewriteNote premiumFlag={false} />
+                                ) : (
+                                    <Button
+                                        className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                        onClick={handleAiFixPlaceholders}
+                                    >
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Fix Placeholders
+                                    </Button>
+                                )}
 
                                 <Button
                                     className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
@@ -2536,11 +2551,6 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         variant: "ghost"
                                     }}
                                 />
-                                {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
-                                    <div className="text-xs text-muted-foreground px-2 py-1">
-                                        Enable Premium (VITE_ENABLE_PREMIUM=true) to use AI rewrite
-                                    </div>
-                                )}
                                 <div className="space-y-1">
                                     <Button
                                         className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"

@@ -39,6 +39,7 @@ import {
     HelpCircle
 } from "lucide-react";
 import { toast } from "sonner";
+import { workspaceBreadcrumbLabel } from "@/lib/workspaceLabel";
 
 interface SectionContent {
     systemName?: string;
@@ -68,6 +69,10 @@ export default function SSPEditor() {
     const frameworkLabel = frameworkSlug === 'ssp-171' ? 'NIST 800-171 Rev 2' : 'NIST 800-172 Enhanced';
 
     const { data: ssps, isLoading: loadingSSPs, error: sspsError } = trpc.federal.listSSPs.useQuery({ clientId });
+    const { data: clientData } = trpc.clients.get.useQuery(
+        { id: clientId },
+        { enabled: Number.isFinite(clientId) && clientId > 0 }
+    );
 
     // Find the SSP for the current framework
     const currentSSP = ssps?.find(ssp => ssp.framework === frameworkSlug);
@@ -702,7 +707,7 @@ export default function SSPEditor() {
                     <Breadcrumb
                         items={[
                             { label: "Clients", href: "/clients" },
-                            { label: `Client ${clientId}`, href: `/clients/${clientId}` },
+                            { label: workspaceBreadcrumbLabel(clientData?.name, clientId), href: `/clients/${clientId}` },
                             { label: "Federal Compliance", href: `/clients/${clientId}/federal` },
                             { label: frameworkLabel, href: `/clients/${clientId}/federal/${frameworkSlug}` }
                         ]}

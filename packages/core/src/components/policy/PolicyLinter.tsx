@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 // Removed premium slot actions for placeholders to avoid duplicate/faulty buttons
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { CommunityAiRewriteNote } from "@/components/policy/AiRewriteActions";
+import { aiRewriteOffered } from "@/lib/policy/communityAiRewrite";
 
 type LinterIssue = {
   id: string;
@@ -136,6 +138,7 @@ export function PolicyLinter({
   orgName,
   publishDisabled,
   publishTooltip,
+  premiumFlag,
 }: {
   content: string;
   onInsertSection: (htmlToAppend: string) => void;
@@ -147,7 +150,12 @@ export function PolicyLinter({
   orgName?: string;
   publishDisabled?: boolean;
   publishTooltip?: string;
+  /** Defaults to the build flag. Tests pass this explicitly. */
+  premiumFlag?: string | boolean | null;
 }) {
+  const rewriteOffered = aiRewriteOffered(
+    premiumFlag === undefined ? import.meta.env.VITE_ENABLE_PREMIUM : premiumFlag,
+  );
   const contentText = useMemo(() => normalizeText(content || ""), [content]);
 
   const sectionResults = useMemo<LinterIssue[]>(() => {
@@ -245,15 +253,22 @@ export function PolicyLinter({
           </div>
           <div className="flex items-center gap-2">
             {missingSections.length > 0 && (
-              <Button
-                size="sm"
-                variant="default"
-                onClick={handleFixAll}
-                disabled={fixAllMutation.isPending}
-              >
-                {fixAllMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                Fix All with AI
-              </Button>
+              rewriteOffered ? (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleFixAll}
+                  disabled={fixAllMutation.isPending}
+                >
+                  {fixAllMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                  Fix All with AI
+                </Button>
+              ) : (
+                <CommunityAiRewriteNote
+                  premiumFlag={false}
+                  className="text-xs text-muted-foreground text-right max-w-[14rem] leading-snug"
+                />
+              )
             )}
             <Badge variant="outline" className={cn(issues.length === 0 ? "text-green-700 border-green-200 bg-green-50" : "text-amber-700 border-amber-200 bg-amber-50")}>
               {issues.length === 0 ? "No issues" : `${issues.length} issue(s)`}
