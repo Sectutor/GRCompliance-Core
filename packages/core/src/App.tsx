@@ -10,6 +10,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ClientContextProvider, useClientContext } from "./contexts/ClientContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { premiumRouteAllowed } from "./lib/edition";
 import { AdvisorProvider } from "./contexts/AdvisorContext";
 import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
@@ -403,11 +404,15 @@ function UnifiedClientGuard({
   const globalRole = userMe?.role;
   const isGlobalAdmin = ['admin', 'owner', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
   const isAdminOrOwner = isGlobalAdmin || clientRole === 'owner' || clientRole === 'admin';
-  const isPremiumContext = tier === 'pro' || tier === 'enterprise' || isAdminOrOwner || clientRole === 'owner' || clientRole === 'admin';
+  const premiumAllowed = premiumRouteAllowed(import.meta.env.VITE_ENABLE_PREMIUM, {
+    globalRole,
+    clientRole,
+    planTier: tier,
+  });
 
   useEffect(() => {
-    setIsPremiumStatus(isPremiumContext);
-  }, [isPremiumContext, setIsPremiumStatus]);
+    setIsPremiumStatus(premiumAllowed);
+  }, [premiumAllowed, setIsPremiumStatus]);
 
   if (error?.data?.code === 'PRECONDITION_FAILED') {
     const message = error.message?.toLowerCase() || '';
@@ -423,16 +428,8 @@ function UnifiedClientGuard({
 
   if (userLoading || (!!effectiveClientId && clientLoading)) return <PageLoader />;
 
-  if (requirePremium) {
-    const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
-    const isPremium = isPremiumContext;
-
-    if (!enabledInBuild && !isGlobalAdmin && clientRole !== 'owner' && clientRole !== 'admin') {
-      return <Redirect to="/upgrade-required" />;
-    }
-    if (!isPremium) {
-      return <Redirect to="/upgrade-required" />;
-    }
+  if (requirePremium && !premiumAllowed) {
+    return <Redirect to="/upgrade-required" />;
   }
 
   if (requireManagement) {
