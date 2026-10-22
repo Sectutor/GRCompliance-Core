@@ -1,8 +1,38 @@
+import { createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
 import * as db from "../../db";
 import * as schema from "../../schema";
 import { eq, and, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { requireWorkspaceRole } from "../recordAccess";
+
+/**
+ * Documents a trust centre may publish.
+ * Locked rows are omitted entirely, so their file URLs never leave the server.
+ */
+export function publishedTrustDocuments<T extends { isLocked?: boolean | null }>(docs: T[]): T[] {
+    return docs.filter((doc) => doc.isLocked !== true);
+}
+
+/**
+ * Stateless proof that this caller just registered as this visitor.
+ * Uses the existing JWT_SECRET. No new secret is introduced.
+ */
+export function issueTrustAccessToken(clientId: number, visitorId: number, email: string): string | null {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) return null;
+    return createHmac("sha256", secret)
+        .update(`trust-center:${clientId}:${visitorId}:${email.trim().toLowerCase()}`)
+        .digest("base64url");
+}
+
+function trustAccessTokenMatches(expected: string | null, given: string): boolean {
+    if (!expected) return false;
+    const wanted = Buffer.from(expected);
+    const presented = Buffer.from(given);
+    if (wanted.length !== presented.length) return false;
+    return timingSafeEqual(wanted, presented);
+}
 
 export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedProcedure: any) => {
     return t.router({
@@ -11,12 +41,11 @@ export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedP
             .query(async ({ input }: any) => {
                 const dbConn = await db.getDb();
 
-                // Get documents for this client
                 const docs = await dbConn.select().from(schema.trustDocuments)
                     .where(eq(schema.trustDocuments.clientId, input.clientId));
 
                 return {
-                    documents: docs
+                    documents: publishedTrustDocuments(docs).filter((doc) => doc.clientId === input.clientId),
                 };
             }),
 
@@ -60,7 +89,11 @@ export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedP
                         .where(eq(schema.trustCenterVisitors.id, visitor.id));
                 }
 
-                return { visitorId: visitor.id, success: true };
+                return {
+                    visitorId: visitor.id,
+                    accessToken: issueTrustAccessToken(input.clientId, visitor.id, input.email),
+                    success: true,
+                };
             }),
 
         signNDA: publicProcedure
@@ -97,46 +130,65 @@ export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedP
         getAccessStatus: publicProcedure
             .input(z.object({
                 clientId: z.number(),
-                email: z.string().email().optional()
+                email: z.string().email().optional(),
+                accessToken: z.string().min(1).max(512).optional(),
             }))
             .query(async ({ input, ctx }: any) => {
                 const dbConn = await db.getDb();
+                const sessionEmail = typeof ctx.user?.email === "string" ? ctx.user.email.trim().toLowerCase() : null;
+                const requestedEmail = typeof input.email === "string" ? input.email.trim().toLowerCase() : null;
+                const denied = { signed: false, isLoggedIn: !!ctx.user };
 
-                // Determine email to check: input first, then authenticated user
-                const checkEmail = input.email || ctx.user?.email;
-
-                if (!checkEmail) {
-                    return { signed: false, isLoggedIn: !!ctx.user };
+                // A visitor record is returned only to the holder of the access
+                // token issued by requestAccess, or to the signed-in user for
+                // their own email. An email by itself is not enough.
+                let checkEmail: string | null = null;
+                if (input.accessToken) {
+                    checkEmail = requestedEmail || sessionEmail;
+                    if (!checkEmail) return denied;
+                } else if (sessionEmail && (!requestedEmail || requestedEmail === sessionEmail)) {
+                    checkEmail = sessionEmail;
+                } else {
+                    return denied;
                 }
 
-                // 1. Get or Create Visitor for this User/Email
-                const [visitor] = await dbConn.select().from(schema.trustCenterVisitors)
+                const visitors = await dbConn.select().from(schema.trustCenterVisitors)
                     .where(and(
                         eq(schema.trustCenterVisitors.clientId, input.clientId),
                         eq(schema.trustCenterVisitors.email, checkEmail)
                     )).limit(1);
+                const visitor = (visitors as any[]).find((row) =>
+                    String(row.email || "").trim().toLowerCase() === checkEmail && row.clientId === input.clientId
+                );
 
-                // If logged in but no visitor record yet, we can technically "pre-fill"
-                if (!visitor && ctx.user) {
+                if (input.accessToken) {
+                    if (!visitor) return denied;
+                    const expected = issueTrustAccessToken(input.clientId, visitor.id, visitor.email);
+                    if (!trustAccessTokenMatches(expected, input.accessToken)) return denied;
+                }
+
+                if (!visitor && ctx.user && !input.accessToken) {
                     return {
                         signed: false,
                         isLoggedIn: true,
                         user: {
                             name: ctx.user.name,
                             email: ctx.user.email,
-                            company: "Internal User" // Optional: fetch client name
+                            company: "Internal User"
                         }
                     };
                 }
 
-                if (!visitor) return { signed: false, isLoggedIn: !!ctx.user };
+                if (!visitor) return denied;
 
-                // 2. Check Signature
-                const signature = await dbConn.select().from(schema.ndaSignatures)
+                const signatures = await dbConn.select().from(schema.ndaSignatures)
                     .where(and(
                         eq(schema.ndaSignatures.clientId, input.clientId),
                         eq(schema.ndaSignatures.visitorId, visitor.id)
                     )).limit(1);
+                const signature = (signatures as any[]).filter((row) =>
+                    row.clientId === input.clientId && row.visitorId === visitor.id
+                );
 
                 return {
                     signed: signature.length > 0,
@@ -156,7 +208,8 @@ export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedP
                 isLocked: z.boolean().default(false),
                 category: z.string().optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await db.getDb();
                 return await dbConn.insert(schema.trustDocuments).values(input).returning();
             }),
