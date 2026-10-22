@@ -5,6 +5,7 @@ import * as schema from "../../schema";
 import { eq, and } from "drizzle-orm";
 import { PLANNING_PROMPTS, SYSTEM_TEMPLATES } from "../../lib/ai/planningPrompts";
 import { llmService } from "../../lib/llm/service";
+import { requireWorkspaceRole } from "../recordAccess";
 
 export const createCompliancePlanningRouter = (t: any, protectedProcedure: any) => {
     return t.router({
@@ -29,6 +30,7 @@ export const createCompliancePlanningRouter = (t: any, protectedProcedure: any) 
             useAi: z.boolean().optional().default(false),
             context: z.string().optional()
         })).mutation(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
             try {
                 const db = await getDb();
                 const frameworkCode = (input.framework || '').toUpperCase();

@@ -5,6 +5,7 @@ import * as schema from "../../schema";
 import { eq, desc, and, like, sql } from "drizzle-orm";
 import * as crypto from 'crypto';
 import { sendEmail } from "../../lib/email/transporter";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
 
 export const createAuditRouter = (t: any, protectedProcedure: any) => {
     return t.router({
@@ -13,6 +14,7 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
             email: z.string().email(),
             name: z.string().optional()
         })).mutation(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "owner" });
             const db = await getDb();
 
             // 1. Check if user already exists
@@ -81,7 +83,8 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
         }),
         list: protectedProcedure.input(z.object({
             clientId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "viewer" });
             const db = await getDb();
             const results = await db.select({
                 audit: schema.certificationAudits,
@@ -106,6 +109,7 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
             startDate: z.string().optional(), // ISO date string
             stage: z.string().default('stage_1')
         })).mutation(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
             const db = await getDb();
 
             const [audit] = await db.insert(schema.certificationAudits).values({
@@ -126,7 +130,13 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
             auditId: z.number(),
             status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled', 'delayed']),
             outcome: z.string().optional()
-        })).mutation(async ({ input }: any) => {
+        })).mutation(async ({ input, ctx }: any) => {
+            const access = await requireRecordWorkspace({
+                user: ctx.user,
+                loadRow: () => loadRowById(schema.certificationAudits, schema.certificationAudits.id, input.auditId),
+                workspaceId: (row: { clientId?: number | null }) => row.clientId,
+                minRole: "editor",
+            });
             const db = await getDb();
 
             const [updated] = await db.update(schema.certificationAudits)
@@ -135,7 +145,10 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
                     outcome: input.outcome,
                     updatedAt: new Date()
                 })
-                .where(eq(schema.certificationAudits.id, input.auditId))
+                .where(and(
+                    eq(schema.certificationAudits.id, input.auditId),
+                    eq(schema.certificationAudits.clientId, access.clientId),
+                ))
                 .returning();
 
             return updated;
@@ -144,7 +157,13 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
         getReadinessStats: protectedProcedure.input(z.object({
             planId: z.number(),
             frameworkId: z.number()
-        })).query(async ({ input }: any) => {
+        })).query(async ({ input, ctx }: any) => {
+            await requireRecordWorkspace({
+                user: ctx.user,
+                loadRow: () => loadRowById(schema.implementationPlans, schema.implementationPlans.id, input.planId),
+                workspaceId: (row: { clientId?: number | null }) => row.clientId,
+                minRole: "viewer",
+            });
             const db = await getDb();
 
             // 1. Check Scope (Plan exists)
@@ -222,6 +241,7 @@ export const createAuditRouter = (t: any, protectedProcedure: any) => {
             })).optional(),
             createCalendarEvent: z.boolean().default(true)
         })).mutation(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
             const db = await getDb();
             const results: any = {
                 audit: null,

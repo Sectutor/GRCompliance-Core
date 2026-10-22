@@ -7,6 +7,7 @@ import { eq, and, isNull, sql, asc, or, ilike } from "drizzle-orm";
 import * as db from "../../db";
 import * as XLSX from 'xlsx';
 import { nistAiRmfControls } from '../../data/frameworks/nist_ai_rmf';
+import { requireWorkspaceRole } from "../recordAccess";
 
 export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
     console.log('[FrameworksRouter] Initializing createFrameworksRouter...');
@@ -18,6 +19,7 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                 fileContent: z.string().optional(), // Base64, optional for system frameworks
             }))
             .mutation(async ({ ctx, input }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 let newControls: any[] = [];
                 let frameworkName = "";
 
@@ -361,6 +363,9 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
             .input(z.object({ clientId: z.number().optional() }))
             .query(async ({ ctx, input }: any) => {
                 const targetId = input?.clientId || ctx.user?.clientId;
+                if (targetId) {
+                    await requireWorkspaceRole({ user: ctx.user, clientId: targetId, minRole: "viewer" });
+                }
                 const d = await db.getDb();
                 const result = await d.execute(sql`
           SELECT 

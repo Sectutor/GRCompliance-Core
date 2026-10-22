@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import * as schema from "../../schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getDb } from "../../db";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
 
 export const createFindingsRouter = (
     t: any,
@@ -15,6 +16,7 @@ export const createFindingsRouter = (
                 status: z.enum(["open", "remediated", "accepted", "closed", "all"]).optional()
             }))
             .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "viewer" });
                 const dbConn = await getDb();
 
                 const conditions = [eq(schema.auditFindings.clientId, input.clientId)];
@@ -41,6 +43,7 @@ export const createFindingsRouter = (
                 evidenceId: z.number().optional()
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const dbConn = await getDb();
 
                 const [finding] = await dbConn.insert(schema.auditFindings).values({
@@ -64,6 +67,16 @@ export const createFindingsRouter = (
                 description: z.string().optional()
             }))
             .mutation(async ({ input, ctx }: any) => {
+                const access = await requireRecordWorkspace({
+                    user: ctx.user,
+                    loadRow: () => loadRowById<typeof schema.auditFindings.$inferSelect>(
+                        schema.auditFindings,
+                        schema.auditFindings.id,
+                        input.id,
+                    ),
+                    workspaceId: (row) => row.clientId,
+                    minRole: "editor",
+                });
                 const dbConn = await getDb();
 
                 const updates: any = { updatedAt: new Date() };
@@ -73,7 +86,10 @@ export const createFindingsRouter = (
 
                 const [updated] = await dbConn.update(schema.auditFindings)
                     .set(updates)
-                    .where(eq(schema.auditFindings.id, input.id))
+                    .where(and(
+                        eq(schema.auditFindings.id, input.id),
+                        eq(schema.auditFindings.clientId, access.clientId),
+                    ))
                     .returning();
 
                 return updated;
@@ -82,6 +98,7 @@ export const createFindingsRouter = (
         stats: protectedProcedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "viewer" });
                 const dbConn = await getDb();
 
                 // Group by severity
