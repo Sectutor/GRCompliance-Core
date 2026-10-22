@@ -248,7 +248,8 @@ export default function AuditHub() {
                                     filename,
                                     data: base64,
                                     contentType: file.type,
-                                    folder: 'evidence'
+                                    folder: 'evidence',
+                                    clientId,
                                 }),
                             });
 

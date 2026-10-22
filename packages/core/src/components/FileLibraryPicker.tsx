@@ -71,7 +71,8 @@ export function FileLibraryPicker({ open, onOpenChange, clientId, onSelect }: Fi
             filename: file.name,
             data: base64Data,
             contentType: file.type,
-            folder: `evidence/${clientId}`
+            folder: "evidence",
+            clientId,
           })
         });
 

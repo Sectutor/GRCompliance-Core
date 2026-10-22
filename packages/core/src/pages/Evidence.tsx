@@ -298,7 +298,8 @@ export default function Evidence() {
                     filename: generatedFilename,
                     data: base64,
                     contentType: file.type,
-                    folder: 'evidence'
+                    folder: 'evidence',
+                    clientId,
                   })
                 });
 

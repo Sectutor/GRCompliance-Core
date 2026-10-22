@@ -44,6 +44,7 @@ import { getDb, resetDb } from './packages/core/src/db';
 import { sql } from 'drizzle-orm';
 import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
+import { authorizeUploadDownload } from './packages/core/src/server/uploadAccess';
 import { aiRouter } from './packages/core/src/server/routers/ai';
 import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroad';
 import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
@@ -184,34 +185,11 @@ if (process.env.RATE_LIMITING_ENABLED === 'true') {
 // Apply Authentication Middleware to populate req.user
 app.use(authMiddleware);
 
-// Secure static uploads - must be after authMiddleware
-app.use('/uploads', (req: any, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required for media access' });
-    }
-    // Optional: Check client_id in path if we structure uploads by client
-    next();
+// Secure static uploads - must be after authMiddleware.
+// Keys are clients/<workspaceId>/... and the caller must be able to read that workspace.
+app.use('/uploads', (req, res, next) => {
+    void authorizeUploadDownload(req, res, next);
 }, express.static(path.join(process.cwd(), 'uploads')));
-
-
-
-// Production Diagnostics Endpoint - Restricted to Admins
-// Diagnostic endpoint to check polyfills
-app.get(['/debug/globals', '/api/debug/globals'], (req: express.Request, res: express.Response) => {
-    const g = global as any;
-    res.json({
-        DOMMatrix: typeof g.DOMMatrix,
-        window: typeof g.window,
-        document: typeof g.document,
-        location: typeof g.location,
-        location_type: Object.prototype.toString.call(g.location),
-        location_href: g.location?.href,
-        navigator: typeof g.navigator,
-        userAgent: g.navigator?.userAgent,
-        process_env_NETLIFY: !!process.env.NETLIFY,
-        process_env_NODE_ENV: process.env.NODE_ENV,
-    });
-});
 
 app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) => {
     if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {

@@ -757,8 +757,10 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                 fileName: z.string(),
                 mimeType: z.string()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const { clientId, evidenceId, fileId, fileName, mimeType } = input;
+                const { requireWorkspaceRole } = await import("../recordAccess");
+                await requireWorkspaceRole({ user: ctx?.user, clientId, minRole: "editor" });
                 try {
                     const dbConn = await db.getDb();
 
@@ -798,39 +800,19 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                         });
                     }
 
-                    // Convert to base64
                     const arrayBuffer = await response.arrayBuffer();
                     const buffer = Buffer.from(arrayBuffer);
-                    const base64 = buffer.toString("base64");
 
-                    // Generate unique filename
                     const timestamp = Date.now();
                     const randomSuffix = Math.random().toString(36).substring(2, 8);
                     const extension = fileName.split(".").pop() || "";
                     const filename = `gdrive-${evidenceId}-${timestamp}-${randomSuffix}.${extension}`;
 
-                    // Upload to storage (using the same approach as EvidenceFileUpload)
-                    const uploadResponse = await fetch("/api/upload", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            filename,
-                            data: base64,
-                            contentType: mimeType,
-                            folder: "evidence"
-                        })
-                    });
-
-                    if (!uploadResponse.ok) {
-                        throw new TRPCError({
-                            code: "INTERNAL_SERVER_ERROR",
-                            message: "Failed to upload file to storage"
-                        });
-                    }
-
-                    const { key, url } = await uploadResponse.json();
+                    const { storagePut } = await import("../../storage");
+                    const { buildUploadKey } = await import("../uploadAccess");
+                    const key = buildUploadKey(clientId, "evidence", filename, timestamp);
+                    const stored = await storagePut(key, buffer, mimeType);
+                    const url = stored.url;
                     const fileSize = buffer.length;
 
                     // Insert file record

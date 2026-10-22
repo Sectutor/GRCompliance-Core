@@ -88,7 +88,8 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
               filename: `logo-${clientId}-${Date.now()}.${file.name.split(".").pop()}`,
               data: base64Data,
               contentType: file.type,
-              folder: "branding" // Organized storage
+              folder: "branding",
+              clientId,
             }),
           });
 
