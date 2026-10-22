@@ -7,7 +7,8 @@ import tailwindcss from '@tailwindcss/vite';
 // Dual-licensing build configuration
 // BUILD_TYPE can be: 'AGPLv3' (Community), 'COMMERCIAL' (Enterprise), or 'TRIAL'
 const buildType = process.env.BUILD_TYPE || 'AGPLv3';
-const forceDisablePremium = process.env.VITE_ENABLE_PREMIUM === 'false';
+const premiumEdition = process.env.VITE_ENABLE_PREMIUM === 'true';
+const forceDisablePremium = !premiumEdition;
 
 // For commercial builds, check if premium package exists
 const premiumPath = path.resolve(__dirname, "../premium/src");
@@ -27,7 +28,7 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     define: {
         "process.env.BUILD_TYPE": JSON.stringify(buildType),
-        "process.env.VITE_ENABLE_PREMIUM": JSON.stringify(process.env.VITE_ENABLE_PREMIUM || "true"),
+        "process.env.VITE_ENABLE_PREMIUM": JSON.stringify(premiumEdition ? "true" : "false"),
     },
     resolve: {
         alias: {

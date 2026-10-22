@@ -1,11 +1,12 @@
 /**
  * Community edition navigation.
  *
- * VITE_ENABLE_PREMIUM=false is the community build (the published image and
- * docker-compose.yml). Premium-only entries stay in the menu data so a
- * commercial build can show them with a Pro badge. The community build omits
- * them instead of advertising a plan that is not included.
+ * Community is the default. Premium-only entries stay in the menu data so a
+ * build with the exact flag VITE_ENABLE_PREMIUM=true can show them with a Pro
+ * badge. Every other value, including unset, omits them.
  */
+
+export { isCommunityEdition } from "./edition";
 
 export type EditionNavItem = {
     label: string;
@@ -18,10 +19,6 @@ export type EditionNavGroup<T extends EditionNavItem = EditionNavItem> = {
     label: string;
     items: T[];
 };
-
-export function isCommunityEdition(premiumFlag: string | boolean | undefined | null): boolean {
-    return premiumFlag === false || premiumFlag === "false";
-}
 
 export function filterNavForEdition<T extends EditionNavItem>(
     groups: EditionNavGroup<T>[],

@@ -109,7 +109,7 @@ console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
 console.log(process.env.AUTH_MODE === 'local'
     ? '- AUTH_MODE: local (Supabase is not used)'
     : `- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
-console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'false' ? 'CORE (Open Source)' : 'PREMIUM (Full Access)'}`);
+console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'true' ? 'PREMIUM (Full Access)' : 'CORE (Open Source)'}`);
 console.log(`- REDIS: ${process.env.REDIS_HOST ? 'Configured' : 'Disabled'}`);
 
 

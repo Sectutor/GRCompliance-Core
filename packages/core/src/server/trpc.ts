@@ -3,6 +3,7 @@ import * as db from "../db";
 import * as schema from "../schema";
 import { eq } from "drizzle-orm";
 import { rateLimiter } from "../lib/redis";
+import { isPremiumEditionEnabled } from "../lib/edition";
 import { router, publicProcedure, middleware, t } from "./trpc-base";
 import {
     authorizeWorkspace,
@@ -134,17 +135,20 @@ export const checkClientAccess = middleware(async (opts) => {
     // Other legacy callers that pass the workspace as `id` are handled inside
     // resolveClaimedWorkspaceId. Record procedures are excluded.
     const clientId = resolveClaimedWorkspaceId(input, path, ctx.clientId);
+    const platformAdmin = PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '');
 
-    if (PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '')) {
-        debugLog('[DEBUG checkClientAccess] Admin access granted to clientId:', clientId);
+    if (!clientId) {
+        if (!platformAdmin) {
+            debugLog('[DEBUG checkClientAccess] No clientId found for path:', path);
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'Client ID is required for this operation' });
+        }
+        debugLog('[DEBUG checkClientAccess] Admin access granted without a workspace id');
         return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
     }
 
-    if (!clientId) {
-        debugLog('[DEBUG checkClientAccess] No clientId found for path:', path);
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Client ID is required for this operation' });
-    }
-
+    // authorizeWorkspace applies the fail-closed Community limit, including
+    // for platform admins. A paid plan tier does not open another workspace
+    // unless VITE_ENABLE_PREMIUM is exactly "true".
     const { clientRole } = await authorizeWorkspace(ctx, clientId);
     debugLog('[DEBUG checkClientAccess] Access granted with role:', clientRole);
     return next({ ctx: { ...ctx, clientId, clientRole } });
@@ -158,57 +162,22 @@ export const checkClientEditor = middleware(({ ctx, next }) => {
     return next();
 });
 
-export const checkPremiumAccess = middleware(async (opts) => {
-    const { ctx, next } = opts;
-    const rawInput = (opts as any).rawInput;
-    const input = rawInput as any;
-    const clientId = input?.clientId || ctx.clientId;
-
-    // Allow global admins or client admins/owners to bypass all checks including environment flags
-    const clientRole = (ctx as any).clientRole;
-    if (PLATFORM_ADMIN_ROLES.includes(ctx.user?.role || '') || clientRole === 'owner' || clientRole === 'admin') {
-        return next({ ctx: { ...ctx, isPremium: true } });
-    }
-
-    // STRICT CHECK: Premium must be enabled in environment
-    // Note: process.env.VITE_ENABLE_PREMIUM works in Node/Server environment if loaded via dotenv
-    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
+/**
+ * Community is the default. Platform admin, workspace owner, and client admin
+ * do not unlock premium. Only the exact flag VITE_ENABLE_PREMIUM=true does.
+ */
+export const requirePremiumEdition = middleware(async ({ ctx, next }) => {
+    if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
         throw new TRPCError({
             code: 'FORBIDDEN',
-            message: 'Premium features are disabled in this environment. Please upgrade to the Enterprise Edition.'
+            message: 'Premium features are not included in the Community edition.'
         });
     }
 
-    if (!clientId) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Client context required for premium features' });
-    }
-
-    try {
-        const dbConn = await db.getDb();
-        const [client] = await dbConn.select({ planTier: schema.clients.planTier })
-            .from(schema.clients)
-            .where(eq(schema.clients.id, clientId))
-            .limit(1);
-
-        if (!client) {
-            throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
-        }
-
-        const isPremium = client.planTier === 'pro' || client.planTier === 'enterprise';
-        if (!isPremium) {
-            throw new TRPCError({
-                code: 'PRECONDITION_FAILED',
-                message: 'This feature requires a Pro or Enterprise subscription.'
-            });
-        }
-
-        return next({ ctx: { ...ctx, isPremium: true } });
-    } catch (err) {
-        if (err instanceof TRPCError) throw err;
-        console.error('[PremiumGuard] Error checking premium access:', err);
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to verify subscription status' });
-    }
+    return next({ ctx: { ...ctx, isPremium: true } });
 });
+
+export const checkPremiumAccess = requirePremiumEdition;
 
 /**
  * MFA Enforcement Middleware - AL 3 High Assurance

@@ -6,9 +6,39 @@ import * as db from "../../db";
 import * as schema from "../../schema";
 import { clients, userClients } from "../../schema";
 import { eq, desc, and, sql, inArray, ne } from "drizzle-orm";
+import { canCreateAnotherWorkspace, isPremiumEditionEnabled } from "../../lib/edition";
 import { policyCoverage, postureScore } from "../../lib/postureScore";
 import { generateGapAnalysisReport } from "../../lib/reporting";
 import { sendEmail } from "../../lib/email/transporter";
+
+function assertCanOwnAnotherWorkspace(opts: {
+    premiumFlag: string | undefined;
+    ownedNames: string[];
+    maxClients: number;
+}) {
+    if (canCreateAnotherWorkspace(opts)) return;
+    if (!isPremiumEditionEnabled(opts.premiumFlag)) {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
+        });
+    }
+    throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: `Organization Limit Reached: Your current plan allows for ${opts.maxClients} organizations. Please upgrade to add more.`
+    });
+}
+
+async function ownedWorkspaceNames(dbConn: any, userId: number): Promise<string[]> {
+    const owned = await dbConn.select({ name: schema.clients.name })
+        .from(schema.userClients)
+        .innerJoin(schema.clients, eq(schema.userClients.clientId, schema.clients.id))
+        .where(and(
+            eq(schema.userClients.userId, userId),
+            eq(schema.userClients.role, 'owner')
+        ));
+    return owned.map((row: { name: string }) => row.name);
+}
 
 export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure: any, clientEditorProcedure: any, publicProcedure: any, isAuthed: any, requiresMFA: any) => {
     return t.router({
@@ -251,37 +281,14 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     console.log(`[Clients] Creating client (Enhanced): ${input.name} (Admin: ${ctx.user?.id})`);
                     const fullUser = await db.getUserById(ctx.user.id);
 
-                    // 1. Check Limits for the Creator (if not admin)
+                    // 1. Workspace capacity applies to every role, including administrators.
                     const d = await db.getDb();
-                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
-                        .from(schema.userClients)
-                        .where(and(
-                            eq(schema.userClients.userId, ctx.user.id),
-                            eq(schema.userClients.role, 'owner')
-                        ));
-
-                    const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
-
-                    // Admins/Internal Owners/Super Admins bypass limit
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
-
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
-                            });
-                        }
-                    }
+                    assertCanOwnAnotherWorkspace({
+                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
+                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
+                        maxClients: limit,
+                    });
 
                     // 2. Determine Owner User (Create if needed)
                     let ownerUserId = ctx.user.id;
@@ -385,35 +392,12 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     const d = await db.getDb();
                     const fullUser = await db.getUserById(ctx.user.id);
 
-                    // Check Limits
-                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
-                        .from(schema.userClients)
-                        .where(and(
-                            eq(schema.userClients.userId, ctx.user.id),
-                            eq(schema.userClients.role, 'owner')
-                        ));
-
-                    const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
-
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
-
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations.`
-                            });
-                        }
-                    }
+                    assertCanOwnAnotherWorkspace({
+                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
+                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
+                        maxClients: limit,
+                    });
 
                     // Transactional Onboarding
                     const result = await db.onboardClient({
@@ -452,34 +436,12 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     const d = await db.getDb();
                     const fullUser = await db.getUserById(ctx.user.id);
-                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
-                        .from(schema.userClients)
-                        .where(and(
-                            eq(schema.userClients.userId, ctx.user.id),
-                            eq(schema.userClients.role, 'owner')
-                        ));
-
-                    const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
-
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
-
-                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
-                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-                        if (currentCount >= 1 && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
-                            });
-                        }
-                    } else {
-                        if (currentCount >= limit && !isGlobalAdmin) {
-                            throw new TRPCError({
-                                code: 'FORBIDDEN',
-                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations. Please upgrade to add more.`
-                            });
-                        }
-                    }
+                    assertCanOwnAnotherWorkspace({
+                        premiumFlag: process.env.VITE_ENABLE_PREMIUM,
+                        ownedNames: await ownedWorkspaceNames(d, ctx.user.id),
+                        maxClients: limit,
+                    });
 
                     const selectedFrameworks = Array.isArray(input.frameworks)
                         ? input.frameworks.filter((f: any) => typeof f === 'string' && f.trim().length > 0)
@@ -517,7 +479,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     try {
                         // Skip duplicate "DEMO" org creation in Community Edition to save the slot
-                        if (process.env.VITE_ENABLE_PREMIUM !== 'false') {
+                        if (isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
                             await db.seedSampleData(ctx.user.id, {
                                 name: `${input.name} DEMO`,
                                 industry: input.industry

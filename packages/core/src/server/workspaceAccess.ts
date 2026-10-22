@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import * as db from "../db";
+import { communityWorkspaceAllows, isPremiumEditionEnabled } from "../lib/edition";
 import * as schema from "../schema";
 import { userClients } from "../schema";
 import { middleware } from "./trpc-base";
@@ -118,7 +119,7 @@ export type WorkspaceMembership = {
 
 export type WorkspaceAccessDirectory = {
     findMembership(userId: number, clientId: number): Promise<WorkspaceMembership | null>;
-    listMemberships(userId: number): Promise<Array<{ clientId: number; role: string }>>;
+    listMemberships(userId: number): Promise<Array<{ clientId: number; role: string; name?: string | null }>>;
     getUser(userId: number): Promise<{ maxClients?: number | null } | null>;
     listOwnedClientIds(userId: number): Promise<number[]>;
 };
@@ -136,8 +137,13 @@ async function defaultDirectory(): Promise<WorkspaceAccessDirectory> {
         },
         async listMemberships(userId) {
             return dbConn
-                .select()
+                .select({
+                    clientId: userClients.clientId,
+                    role: userClients.role,
+                    name: schema.clients.name,
+                })
                 .from(userClients)
+                .innerJoin(schema.clients, eq(userClients.clientId, schema.clients.id))
                 .where(eq(userClients.userId, userId))
                 .orderBy(asc(userClients.joinedAt));
         },
@@ -167,8 +173,11 @@ export function canEditWorkspace(clientRole: string | null | undefined): boolean
 
 /**
  * Login is enforced by the caller. This checks that `clientId` is a
- * workspace the user may use, including Community single-workspace
- * and plan limits. Platform admins are allowed without a membership row.
+ * workspace the user may use. Community is the default: the limit applies
+ * unless VITE_ENABLE_PREMIUM is exactly "true", including for platform
+ * admins, and a paid plan tier does not open another workspace. Platform
+ * admins may still enter a workspace they have no membership row for when
+ * that workspace is inside the edition limit.
  */
 export async function authorizeWorkspace(
     ctx: { user?: { id: number; role?: string | null } | null },
@@ -186,38 +195,42 @@ export async function authorizeWorkspace(
         throw new TRPCError({ code: "FORBIDDEN", message: "Client ID is required for this operation" });
     }
 
-    if (isPlatformAdmin(ctx.user.role)) {
-        return { clientRole: "owner" };
-    }
-
     const dir = directory ?? (await defaultDirectory());
+    const platformAdmin = isPlatformAdmin(ctx.user.role);
     const membership = await dir.findMembership(ctx.user.id, clientId);
-    if (!membership) {
+    if (!membership && !platformAdmin) {
         throw new TRPCError({
             code: "FORBIDDEN",
             message: "No access to this client workspace. Membership required.",
         });
     }
 
-    if (membership.accessExpiresAt && new Date() > new Date(membership.accessExpiresAt)) {
+    if (membership?.accessExpiresAt && new Date() > new Date(membership.accessExpiresAt)) {
         throw new TRPCError({
             code: "FORBIDDEN",
             message: "Your access to this workspace has expired.",
         });
     }
 
-    if (process.env.VITE_ENABLE_PREMIUM === "false") {
+    if (!isPremiumEditionEnabled(process.env.VITE_ENABLE_PREMIUM)) {
         const allMemberships = await dir.listMemberships(ctx.user.id);
-        if (allMemberships.length > 0 && allMemberships[0].clientId !== clientId) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message:
-                    "Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.",
-            });
+        if (allMemberships.length > 0) {
+            const named = allMemberships.every((row) => typeof row.name === "string");
+            const allowed = named
+                ? communityWorkspaceAllows(
+                    allMemberships.map((row) => ({ clientId: row.clientId, name: row.name as string })),
+                    clientId,
+                )
+                : allMemberships[0].clientId === clientId;
+            if (!allowed) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message:
+                        "Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.",
+                });
+            }
         }
-    }
-
-    if (membership.role === "owner" && process.env.VITE_ENABLE_PREMIUM !== "false") {
+    } else if (membership?.role === "owner") {
         const fullUser = await dir.getUser(ctx.user.id);
         const maxClients = fullUser?.maxClients || 2;
         const allowedClientIds = (await dir.listOwnedClientIds(ctx.user.id)).slice(0, maxClients);
@@ -227,6 +240,10 @@ export async function authorizeWorkspace(
                 message: `This workspace exceeds your plan limit of ${maxClients} organizations. Please upgrade or remove excess workspaces.`,
             });
         }
+    }
+
+    if (!membership) {
+        return { clientRole: "owner" };
     }
 
     return { clientRole: membership.role };
