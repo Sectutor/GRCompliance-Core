@@ -9,13 +9,52 @@ import {
     threats, vulnerabilities,
     riskPolicyMappings
 } from "../../schema";
-import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not, getTableColumns } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray, ilike, or, isNull, lt, lte, gt, gte, not, getTableColumns } from "drizzle-orm";
 import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from "../../lib/riskCalculations";
 import { logActivity } from "../../lib/audit";
 import { llmService } from "../../lib/llm/service";
 import { generateRiskReportDocx } from "../../riskExportProfessional";
 import { recalculateRiskScore } from "../services/riskService";
 
+/**
+ * Bind a risk row to the workspace that owns it.
+ * Membership is required on the row's client_id. A supplied client id
+ * (argument or x-client-id) that points at a different workspace is rejected.
+ * Platform-admin bypass is intentionally not applied here.
+ */
+export async function assertRiskRowWorkspace(
+    db: { select: (...args: any[]) => any },
+    ctx: { user?: { id?: number } | null; clientId?: number | null },
+    rowClientId: number,
+    suppliedClientId?: number | null,
+) {
+    const userId = ctx?.user?.id;
+    if (!userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' });
+    }
+
+    const supplied = [suppliedClientId, ctx?.clientId];
+    for (const value of supplied) {
+        if (value === undefined || value === null) continue;
+        const numeric = Number(value);
+        if (!Number.isNaN(numeric) && numeric !== Number(rowClientId)) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'Risk does not belong to this workspace' });
+        }
+    }
+
+    const membership = await db.select().from(schema.userClients).where(and(
+        eq(schema.userClients.userId, userId),
+        eq(schema.userClients.clientId, Number(rowClientId)),
+    )).limit(1);
+    const member = membership?.[0];
+    if (!member) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace. Membership required.' });
+    }
+    if (member.accessExpiresAt && new Date() > new Date(member.accessExpiresAt)) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Your access to this workspace has expired.' });
+    }
+    return member;
+}
 
 export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
     console.log('[RISKS ROUTER] Creating risks router with procedures... AND RELOADED!');
@@ -645,83 +684,85 @@ ${reportData.conclusion}
                 }
 
                 const db = await getDb();
+                const inherentScore = input.likelihood * input.impact;
+                const inherentRisk = getMatrixScoreLevel(inherentScore);
 
-                return await db.transaction(async (tx: any) => {
-                    const inherentScore = input.likelihood * input.impact;
-                    const inherentRisk = getMatrixScoreLevel(inherentScore);
+                const data: any = {
+                    clientId: input.clientId,
+                    title: input.title,
+                    threatId: input.threatId,
+                    vulnerabilityId: input.vulnerabilityId,
+                    likelihood: String(input.likelihood),
+                    impact: String(input.impact),
+                    inherentScore,
+                    inherentRisk,
+                    status: input.status,
+                    contextSnapshot: input.contextSnapshot,
+                    riskOwner: input.riskOwner,
+                    fismaSystemId: input.fismaSystemId,
+                    treatmentOption: input.treatmentOption,
+                    priority: input.priority,
+                    residualScore: input.residualScore,
+                    residualRisk: input.residualRisk,
+                    existingControls: input.existingControls,
+                    controlEffectiveness: input.controlEffectiveness,
+                    threatDescription: input.threatDescription, // Map description if passed
+                    projectId: input.projectId,
+                    category: input.category,
+                    owaspCategory: input.owaspCategory,
+                    csfFunction: input.csfFunction,
+                    privacyImpact: input.privacyImpact,
+                    assessor: input.assessor,
+                    method: input.method,
+                    vulnerabilityDescription: input.vulnerabilityDescription,
+                    affectedAssets: input.affectedAssets,
+                    recommendedActions: input.recommendedActions,
+                    targetResidualRisk: input.targetResidualRisk,
+                    notes: input.notes,
+                    controlIds: input.controlIds,
+                    aiRmfCategory: input.aiRmfCategory,
+                    assessmentDate: input.assessmentDate ? new Date(input.assessmentDate) : undefined,
+                    reviewDueDate: input.reviewDueDate ? new Date(input.reviewDueDate) : undefined,
+                    nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : undefined,
+                    updatedAt: new Date()
+                };
 
-                    const data: any = {
-                        clientId: input.clientId,
-                        title: input.title,
-                        threatId: input.threatId,
-                        vulnerabilityId: input.vulnerabilityId,
-                        likelihood: String(input.likelihood),
-                        impact: String(input.impact),
-                        inherentScore,
-                        inherentRisk,
-                        status: input.status,
-                        contextSnapshot: input.contextSnapshot,
-                        riskOwner: input.riskOwner,
-                        fismaSystemId: input.fismaSystemId,
-                        treatmentOption: input.treatmentOption,
-                        priority: input.priority,
-                        residualScore: input.residualScore,
-                        residualRisk: input.residualRisk,
-                        existingControls: input.existingControls,
-                        controlEffectiveness: input.controlEffectiveness,
-                        threatDescription: input.threatDescription, // Map description if passed
-                        projectId: input.projectId,
-                        category: input.category,
-                        owaspCategory: input.owaspCategory,
-                        csfFunction: input.csfFunction,
-                        privacyImpact: input.privacyImpact,
-                        assessor: input.assessor,
-                        method: input.method,
-                        vulnerabilityDescription: input.vulnerabilityDescription,
-                        affectedAssets: input.affectedAssets,
-                        recommendedActions: input.recommendedActions,
-                        targetResidualRisk: input.targetResidualRisk,
-                        notes: input.notes,
-                        controlIds: input.controlIds,
-                        aiRmfCategory: input.aiRmfCategory,
-                        assessmentDate: input.assessmentDate ? new Date(input.assessmentDate) : undefined,
-                        reviewDueDate: input.reviewDueDate ? new Date(input.reviewDueDate) : undefined,
-                        nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : undefined,
-                        updatedAt: new Date()
-                    };
+                if (input.id) {
+                    return await db.transaction(async (tx: any) => {
+                        const [existing] = await tx.select().from(riskAssessments)
+                            .where(eq(riskAssessments.id, input.id))
+                            .limit(1);
+                        if (!existing) {
+                            throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+                        }
+                        await assertRiskRowWorkspace(tx, ctx, existing.clientId, input.clientId);
+                        data.clientId = existing.clientId;
 
-                    if (input.id) {
                         const [updated] = await tx.update(riskAssessments)
                             .set(data)
-                            .where(eq(riskAssessments.id, input.id))
+                            .where(and(
+                                eq(riskAssessments.id, input.id),
+                                eq(riskAssessments.clientId, existing.clientId),
+                            ))
                             .returning();
+                        if (!updated) {
+                            throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+                        }
 
-                        await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "update", entityType: "risk", entityId: updated.id, details: { title: updated.title, changes: data } }, tx);
-
-                        // Index updated risk (Outside TX if needed? Indexing service usually handles its own or is silent fail. Keeping inside for simplicity as it was)
-                        // Indexing removed for Core split
-                        // try {
-                        //     const { IndexingService } = await import('../../lib/advisor/indexing');
-                        //     // ... indexing logic ...
-                        // } catch (e) { console.error("Failed to index risk:", e); }
-
+                        await logActivity({ userId: ctx.user.id, clientId: existing.clientId, action: "update", entityType: "risk", entityId: updated.id, details: { title: updated.title, changes: data } }, tx);
                         return { id: updated.id, success: true };
-                    } else {
-                        data.assessmentId = `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`;
-                        const [created] = await tx.insert(riskAssessments)
-                            .values(data)
-                            .returning();
+                    });
+                }
 
-                        await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: created.id, details: { title: created.title } }, tx);
+                await assertRiskRowWorkspace(db, ctx, input.clientId, input.clientId);
+                return await db.transaction(async (tx: any) => {
+                    data.assessmentId = `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`;
+                    const [created] = await tx.insert(riskAssessments)
+                        .values(data)
+                        .returning();
 
-                        // Indexing removed for Core split
-                        // try {
-                        //     const { IndexingService } = await import('../../lib/advisor/indexing');
-                        //     // ... indexing logic ...
-                        // } catch (e) { console.error("Failed to index new risk:", e); }
-
-                        return { id: created.id, success: true };
-                    }
+                    await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: created.id, details: { title: created.title } }, tx);
+                    return { id: created.id, success: true };
                 });
             }),
 
@@ -729,20 +770,23 @@ ${reportData.conclusion}
         delete: procedure
             .input(z.object({ id: z.number(), clientId: z.number() }))
             .mutation(async ({ input, ctx }: any) => {
-                if (ctx.clientRole !== 'owner') {
+                const db = await getDb();
+                const [existing] = await db.select().from(riskAssessments)
+                    .where(eq(riskAssessments.id, input.id))
+                    .limit(1);
+                if (!existing) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+                }
+                const member = await assertRiskRowWorkspace(db, ctx, existing.clientId, input.clientId);
+                if (member.role !== 'owner') {
                     throw new TRPCError({ code: 'FORBIDDEN', message: 'Only owners can delete risks' });
                 }
-                const db = await getDb();
-                await db.delete(riskAssessments).where(eq(riskAssessments.id, input.id));
+                await db.delete(riskAssessments).where(and(
+                    eq(riskAssessments.id, input.id),
+                    eq(riskAssessments.clientId, existing.clientId),
+                ));
 
-                // Remove from Index
-                // Remove from Index - removed for Core split
-                // try {
-                //     const { IndexingService } = await import('../../lib/advisor/indexing');
-                //     await IndexingService.deleteDocumentIndex(input.clientId, 'risk', input.id.toString());
-                // } catch (e) { console.error("Failed to delete risk index:", e); }
-
-                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "delete", entityType: "risk", entityId: input.id, details: { title: "Deleted Risk" } });
+                await logActivity({ userId: ctx.user.id, clientId: existing.clientId, action: "delete", entityType: "risk", entityId: input.id, details: { title: "Deleted Risk" } });
                 return { success: true };
             }),
 
@@ -761,22 +805,43 @@ ${reportData.conclusion}
 
                 const db = await getDb();
                 return await db.transaction(async (tx: any) => {
-                    // Check existence
+                    const [treatment] = await tx.select().from(riskTreatments)
+                        .where(eq(riskTreatments.id, input.treatmentId))
+                        .limit(1);
+                    if (!treatment?.riskAssessmentId) {
+                        throw new TRPCError({ code: 'NOT_FOUND', message: 'Treatment not found' });
+                    }
+                    const [assessment] = await tx.select().from(riskAssessments)
+                        .where(eq(riskAssessments.id, treatment.riskAssessmentId))
+                        .limit(1);
+                    if (!assessment) {
+                        throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+                    }
+                    await assertRiskRowWorkspace(tx, ctx, assessment.clientId, input.clientId);
+                    if (treatment.clientId != null && treatment.clientId !== assessment.clientId) {
+                        throw new TRPCError({ code: 'FORBIDDEN', message: 'Treatment does not belong to this workspace' });
+                    }
+
                     const existing = await tx.select().from(treatmentControls)
                         .where(and(
                             eq(treatmentControls.treatmentId, input.treatmentId),
-                            eq(treatmentControls.controlId, input.controlId)
+                            eq(treatmentControls.controlId, input.controlId),
+                            or(
+                                eq(treatmentControls.clientId, assessment.clientId),
+                                eq(treatmentControls.clientId, 0),
+                                isNull(treatmentControls.clientId),
+                            ),
                         ));
 
                     if (existing.length > 0) return existing[0];
 
                     const [linked] = await tx.insert(treatmentControls).values({
-                        clientId: input.clientId,
+                        clientId: assessment.clientId,
                         treatmentId: input.treatmentId,
                         controlId: input.controlId
                     }).returning();
 
-                    await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "update", entityType: "treatment", entityId: input.treatmentId, details: { action: "linked_control", controlId: input.controlId } }, tx);
+                    await logActivity({ userId: ctx.user.id, clientId: assessment.clientId, action: "update", entityType: "treatment", entityId: input.treatmentId, details: { action: "linked_control", controlId: input.controlId } }, tx);
 
                     return linked;
                 });
@@ -1238,12 +1303,26 @@ ${reportData.conclusion}
 
         // Risk Treatments
         getRiskTreatments: procedure
-            .input(z.object({ riskAssessmentId: z.number() }))
-            .query(async ({ input }: any) => {
+            .input(z.object({
+                riskAssessmentId: z.number(),
+                clientId: z.number().optional(),
+            }))
+            .query(async ({ input, ctx }: any) => {
                 const db = await getDb();
+                const [assessment] = await db.select().from(riskAssessments)
+                    .where(eq(riskAssessments.id, input.riskAssessmentId))
+                    .limit(1);
+                if (!assessment) return [];
+                await assertRiskRowWorkspace(db, ctx, assessment.clientId, input.clientId);
                 return await db.select()
                     .from(riskTreatments)
-                    .where(eq(riskTreatments.riskAssessmentId, input.riskAssessmentId))
+                    .where(and(
+                        eq(riskTreatments.riskAssessmentId, input.riskAssessmentId),
+                        or(
+                            eq(riskTreatments.clientId, assessment.clientId),
+                            isNull(riskTreatments.clientId),
+                        ),
+                    ))
                     .orderBy(desc(riskTreatments.createdAt));
             }),
 
@@ -1534,25 +1613,48 @@ Example format:
                 const dbConn = await getDb();
 
                 return await dbConn.transaction(async (tx: any) => {
+                    const [assessment] = await tx.select().from(riskAssessments)
+                        .where(eq(riskAssessments.id, input.riskAssessmentId))
+                        .limit(1);
+                    if (!assessment) {
+                        throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+                    }
+                    await assertRiskRowWorkspace(tx, ctx, assessment.clientId, input.clientId);
+
                     // 1. Create/Update Treatment Record
                     let [treatment] = await tx.select().from(riskTreatments)
-                        .where(eq(riskTreatments.riskAssessmentId, input.riskAssessmentId))
+                        .where(and(
+                            eq(riskTreatments.riskAssessmentId, assessment.id),
+                            or(
+                                eq(riskTreatments.clientId, assessment.clientId),
+                                isNull(riskTreatments.clientId),
+                            ),
+                        ))
                         .limit(1);
 
                     if (treatment) {
                         [treatment] = await tx.update(riskTreatments)
                             .set({
+                                clientId: assessment.clientId,
                                 treatmentType: input.treatmentType,
                                 strategy: input.strategy,
                                 owner: input.owner,
                                 updatedAt: new Date()
                             })
-                            .where(eq(riskTreatments.id, treatment.id))
+                            .where(and(
+                                eq(riskTreatments.id, treatment.id),
+                                eq(riskTreatments.riskAssessmentId, assessment.id),
+                                or(
+                                    eq(riskTreatments.clientId, assessment.clientId),
+                                    isNull(riskTreatments.clientId),
+                                ),
+                            ))
                             .returning();
                     } else {
                         [treatment] = await tx.insert(riskTreatments)
                             .values({
-                                riskAssessmentId: input.riskAssessmentId,
+                                clientId: assessment.clientId,
+                                riskAssessmentId: assessment.id,
                                 treatmentType: input.treatmentType,
                                 strategy: input.strategy,
                                 owner: input.owner,
@@ -1568,7 +1670,7 @@ Example format:
 
                         // Insert new ones
                         const toInsert = input.controlIds.map((cid: number) => ({
-                            clientId: input.clientId,
+                            clientId: assessment.clientId,
                             treatmentId: treatment.id,
                             controlId: cid,
                             effectiveness: input.effectiveness || 'effective'
@@ -1580,7 +1682,7 @@ Example format:
                     }
 
                     // 3. Recalculate Risk Score
-                    await recalculateRiskScore(tx, input.riskAssessmentId);
+                    await recalculateRiskScore(tx, assessment.id);
 
                     return { id: treatment.id, success: true };
                 });
