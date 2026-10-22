@@ -17,7 +17,7 @@ import { generateRiskReportDocx } from "../../riskExportProfessional";
 import { recalculateRiskScore } from "../services/riskService";
 
 
-export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
+export const createRisksRouter = (t: any, procedure: any) => {
     console.log('[RISKS ROUTER] Creating risks router with procedures... AND RELOADED!');
     return t.router({
 
@@ -330,7 +330,7 @@ ${reportData.conclusion}
             }),
 
         // Export Professional DOCX Report
-        exportReport: premiumClientProcedure
+        exportReport: procedure
             .input(z.object({
                 clientId: z.number(),
                 title: z.string().optional(),

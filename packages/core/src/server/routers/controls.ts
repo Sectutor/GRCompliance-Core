@@ -6,6 +6,7 @@ import * as schema from "../../schema";
 import * as db from "../../db";
 import { eq, ilike, and, desc, sql, or } from "drizzle-orm";
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import { checkPremiumAccess } from "../trpc";
 
 // Helper for history
 const logControlHistory = async (dbConn: any, controlId: number, userId: number, changeNote: string, version: number) => {
@@ -156,7 +157,7 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 return await db.getControlHistory(input.controlId);
             }),
 
-        generateGuidance: adminProcedure
+        generateGuidance: adminProcedure.use(checkPremiumAccess)
             .input(z.object({
                 controlId: z.number(),
                 framework: z.string()
