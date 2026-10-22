@@ -4,10 +4,10 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq } from "drizzle-orm";
 
-export const createRiskSettingsRouter = (t: any, protectedProcedure: any, premiumClientProcedure: any) => {
+export const createRiskSettingsRouter = (t: any, clientProcedure: any) => {
     return t.router({
-        // Get risk settings for a client - requires authentication and premium access
-        get: premiumClientProcedure
+        // Community risk framework settings. Authentication still applies.
+        get: clientProcedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input, ctx }: any) => {
                 const db = await getDb();
@@ -24,8 +24,7 @@ export const createRiskSettingsRouter = (t: any, protectedProcedure: any, premiu
                 return settings;
             }),
 
-        // Create or update risk settings - requires authentication and premium access
-        update: premiumClientProcedure
+        update: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 scope: z.string().optional(),

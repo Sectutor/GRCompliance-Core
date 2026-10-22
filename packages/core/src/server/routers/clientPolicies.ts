@@ -9,6 +9,7 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { notifyUsers } from "../../lib/notificationService";
 import { EmailService } from "../../lib/email/service";
+import { checkPremiumAccess } from "../trpc";
 
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
@@ -711,7 +712,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true };
       }),
 
-    refine: clientEditorProcedure
+    refine: clientEditorProcedure.use(checkPremiumAccess)
       .input(z.object({
         clientId: z.number(),
         content: z.string(),

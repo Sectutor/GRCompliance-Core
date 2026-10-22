@@ -4,6 +4,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, or, isNull, asc } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
+import { checkPremiumAccess } from "../trpc";
 import { randomUUID } from "node:crypto";
 
 export const createImplementationRouter = (t: any, publicProcedure: any, adminProcedure: any, protectedProcedure: any) => {
@@ -493,7 +494,7 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
 
 
 
-        autoAssignPdca: adminProcedure.input(z.object({
+        autoAssignPdca: adminProcedure.use(checkPremiumAccess).input(z.object({
             planId: z.number()
         })).mutation(async ({ input, ctx }: any) => {
             const db = await getDb();
@@ -607,7 +608,7 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
             }
         }),
 
-        generateSubtasks: adminProcedure.input(z.object({
+        generateSubtasks: adminProcedure.use(checkPremiumAccess).input(z.object({
             taskId: z.number().optional(),
             title: z.string(),
             description: z.string().optional(),
@@ -661,7 +662,7 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
             }
         }),
 
-        generateSubtaskSolution: adminProcedure.input(z.object({
+        generateSubtaskSolution: adminProcedure.use(checkPremiumAccess).input(z.object({
             taskId: z.number(),
             subtaskTitle: z.string(),
             taskTitle: z.string(),
