@@ -257,3 +257,94 @@ describe("premium product routers use the fail-closed gate", () => {
         expect(settings).not.toContain("premiumClientProcedure");
     });
 });
+
+describe("clients.update rejects a plan write", () => {
+    it("rejects planTier, activeModules, and branding", async () => {
+        const { clientUpdateSchema } = await import("./routers/clients");
+        const allowed = clientUpdateSchema.safeParse({ id: 1, name: "Acme" });
+        expect(allowed.success).toBe(true);
+
+        for (const input of [
+            { id: 1, planTier: "enterprise" },
+            { id: 1, activeModules: ["crm"] },
+            { id: 1, brandPrimaryColor: "#000000" },
+            { id: 1, portalTitle: "Premium" },
+        ]) {
+            const parsed = clientUpdateSchema.safeParse(input);
+            expect(parsed.success).toBe(false);
+        }
+    });
+});
+
+describe("Gumroad activation fails closed", () => {
+    it("upgrades only a verified paid purchase", async () => {
+        const { tierFromVerifiedPurchase, EnhancedLicenseValidator, GumroadLicenseValidator } = await import("../lib/gumroad/license-validator");
+        expect(tierFromVerifiedPurchase({
+            type: "enterprise",
+            status: "valid",
+            metadata: { gumroad: { saleId: "sale-1", purchaseId: "purchase-1" } },
+        })).toBe("enterprise");
+        expect(tierFromVerifiedPurchase({
+            type: "trial",
+            status: "valid",
+            metadata: { gumroad: { saleId: "sale-1", purchaseId: "purchase-1" } },
+        })).toBe("pro");
+        expect(() => tierFromVerifiedPurchase({
+            type: "community",
+            status: "valid",
+            metadata: { gumroad: { saleId: "sale-1", purchaseId: "purchase-1" } },
+        })).toThrow(/could not be verified/);
+        expect(() => tierFromVerifiedPurchase({
+            type: "enterprise",
+            status: "valid",
+            metadata: { gumroad: { saleId: "sale-1" } },
+        })).toThrow(/could not be verified/);
+
+        const previousPremium = process.env.VITE_ENABLE_PREMIUM;
+        const previousKey = process.env.VITE_LICENSE_KEY;
+        const previousToken = process.env.GUMROAD_ACCESS_TOKEN;
+        process.env.VITE_ENABLE_PREMIUM = "true";
+        process.env.VITE_LICENSE_KEY = "not-a-purchase";
+        delete process.env.GUMROAD_ACCESS_TOKEN;
+        try {
+            const validator = new EnhancedLicenseValidator();
+            await expect(validator.validateLicense("not-a-purchase")).rejects.toThrow(/could not be verified/);
+        } finally {
+            if (previousPremium === undefined) delete process.env.VITE_ENABLE_PREMIUM;
+            else process.env.VITE_ENABLE_PREMIUM = previousPremium;
+            if (previousKey === undefined) delete process.env.VITE_LICENSE_KEY;
+            else process.env.VITE_LICENSE_KEY = previousKey;
+            if (previousToken === undefined) delete process.env.GUMROAD_ACCESS_TOKEN;
+            else process.env.GUMROAD_ACCESS_TOKEN = previousToken;
+        }
+
+        const failing = new GumroadLicenseValidator({
+            validateLicense: async () => {
+                throw new Error("network down");
+            },
+        } as any);
+        await expect(failing.validateGumroadLicense("any-key")).rejects.toThrow(/network down/);
+    });
+
+    it("does not ship the mock license server, test keys, or open webhook routes", () => {
+        const server = readFileSync(path.join(repoRoot, "packages/core/src/lib/license/server.ts"), "utf8");
+        const app = readFileSync(path.join(repoRoot, "packages/core/src/App.tsx"), "utf8");
+        const webhooks = readFileSync(path.join(repoRoot, "packages/core/src/server/webhooks/gumroad.ts"), "utf8");
+        const gumroad = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/gumroad.ts"), "utf8");
+        const validator = readFileSync(path.join(repoRoot, "packages/core/src/lib/gumroad/license-validator.ts"), "utf8");
+        expect(server).not.toContain("MockLicenseServerClient");
+        expect(server).not.toContain("example-enterprise-license");
+        expect(server).not.toContain("TRIAL-123456-7890");
+        expect(server).not.toContain("EXPIRED-123456-7890");
+        expect(app).not.toContain("/license-test");
+        expect(webhooks).not.toContain("'/gumroad/test'");
+        expect(webhooks).not.toContain("'/gumroad/status'");
+        expect(webhooks).toContain("router.post('/gumroad'");
+        expect(validator).not.toContain("validateFromEnvironment");
+        expect(validator).not.toContain("getCommunityLicense");
+        const verifyAt = gumroad.indexOf("tierFromVerifiedPurchase(licenseInfo)");
+        const writeAt = gumroad.indexOf("createLicenseActivation");
+        expect(verifyAt).toBeGreaterThan(-1);
+        expect(writeAt).toBeGreaterThan(verifyAt);
+    });
+});

@@ -7,7 +7,7 @@
  */
 
 import * as React from 'react';
-import { FEATURES as FEATURE_FLAGS, BUILD_TYPE, isFeatureAvailableInBuild } from '../features';
+import { FEATURES as FEATURE_FLAGS, BUILD_TYPE, FEATURE_DEFINITIONS, isFeatureAvailableInBuild } from '../features';
 
 export type LicenseType = 'community' | 'enterprise' | 'trial';
 export type LicenseStatus = 'valid' | 'expired' | 'invalid' | 'suspended';
@@ -63,88 +63,21 @@ export class LicenseValidator {
    * Load license from environment or configuration
    */
   private loadLicense(): void {
-    // Determine license type based on build type
-    const buildType = BUILD_TYPE;
-    
-    if (buildType === 'COMMERCIAL') {
-      // Commercial build - check for actual license
-      const licenseKey = (import.meta as any).env.VITE_LICENSE_KEY;
-      
-      if (licenseKey) {
-        // TODO: Implement actual license validation against license server
-        // For now, simulate a valid enterprise license
-        this.licenseInfo = {
-          type: 'enterprise',
-          status: 'valid',
-          issuedTo: 'Enterprise Customer',
-          issuedAt: new Date(),
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
-          maxUsers: 100,
-          maxClients: 50,
-          features: (Object.values(FEATURES) as string[]).filter(feature => 
-            isFeatureAvailableInBuild(feature)
-          ),
-          metadata: {
-            plan: 'enterprise',
-            version: '1.0.0',
-            buildType: 'COMMERCIAL'
-          }
-        };
-      } else {
-        // Commercial build but no license key - treat as trial
-        this.licenseInfo = {
-          type: 'trial',
-          status: 'valid',
-          issuedTo: 'Trial User',
-          issuedAt: new Date(),
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 day trial
-          maxUsers: 10,
-          maxClients: 5,
-          features: (Object.values(FEATURES) as string[]).filter(feature => 
-            isFeatureAvailableInBuild(feature)
-          ),
-          metadata: {
-            plan: 'trial',
-            trialDays: 30,
-            buildType: 'COMMERCIAL'
-          }
-        };
-      }
-    } else if (buildType === 'TRIAL') {
-      // Trial build
-      this.licenseInfo = {
-        type: 'trial',
-        status: 'valid',
-        issuedTo: 'Trial User',
-        issuedAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 day trial
-        maxUsers: 10,
-        maxClients: 5,
-        features: (Object.values(FEATURES) as string[]).filter(feature => 
-          isFeatureAvailableInBuild(feature)
-        ),
-        metadata: {
-          plan: 'trial',
-          trialDays: 30,
-          buildType: 'TRIAL'
-        }
-      };
-    } else {
-      // Community edition (AGPLv3)
-      this.licenseInfo = {
-        type: 'community',
-        status: 'valid',
-        issuedTo: 'Community User',
-        issuedAt: new Date(),
-        features: (Object.values(FEATURES) as string[]).filter(feature => 
-          isFeatureAvailableInBuild(feature)
-        ),
-        metadata: {
-          license: 'AGPLv3',
-          buildType: 'AGPLv3'
-        }
-      };
-    }
+    // The browser does not grant a plan. A verified Gumroad purchase is checked on the server.
+    this.licenseInfo = {
+      type: 'community',
+      status: 'valid',
+      issuedTo: 'Community User',
+      issuedAt: new Date(),
+      features: (Object.values(FEATURES) as string[]).filter((feature) => {
+        const definition = FEATURE_DEFINITIONS[feature];
+        return !!definition && !definition.requiresLicense && isFeatureAvailableInBuild(feature);
+      }),
+      metadata: {
+        license: 'AGPLv3',
+        buildType: BUILD_TYPE,
+      },
+    };
   }
   
   /**

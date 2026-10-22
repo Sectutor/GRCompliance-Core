@@ -143,7 +143,6 @@ const RoadmapCreatePage = lazy(() => import("@/components/roadmap/RoadmapCreateP
 const RoadmapTemplates = lazy(() => import("@/components/roadmap/RoadmapTemplates"));
 const StrategicReportsPage = lazy(() => import("./pages/roadmap/StrategicReportsPage"));
 const StrategicReportEditor = lazy(() => import("./pages/roadmap/StrategicReportEditor"));
-const LicenseTestPage = lazy(() => import("./pages/LicenseTestPage"));
 const RoadmapEditPage = lazy(() => import("./pages/readiness/RoadmapEditPageFixed"));
 
 const ImplementationDashboard = lazy(() => import("./components/implementation/ImplementationDashboard"));
@@ -704,11 +703,6 @@ function Router() {
 
         {/* Domain-Aware Root Route */}
         <Route path="/" component={RootHub} />
-
-        {/* License Test Page - For testing license validation system */}
-        <Route path="/license-test">
-          <ProtectedRoute component={LicenseTestPage} />
-        </Route>
 
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} />

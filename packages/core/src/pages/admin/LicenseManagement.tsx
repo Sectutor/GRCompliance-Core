@@ -655,42 +655,13 @@ export default function LicenseManagementPage() {
                 <Label>Webhook Status</Label>
                 <div className="text-center text-muted-foreground py-4">
                   <Server className="h-8 w-8 mx-auto mb-2" />
-                  <p>Webhook status monitoring will appear here once webhooks are received.</p>
-                  <p className="text-sm">Visit /api/webhooks/gumroad/status for current status.</p>
+                  <p>Signed deliveries are accepted at the webhook endpoint above.</p>
+                  <p className="text-sm">Unsigned test and status routes are not available.</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Webhook Test */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Webhook</CardTitle>
-              <CardDescription>
-                Test webhook processing with sample data
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Use this to test webhook processing without actual Gumroad events.
-                </p>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
-                    Test License Validation
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    Test Sale Event
-                  </Button>
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  <p>Visit <code>/api/webhooks/gumroad/test</code> to send test webhooks programmatically.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

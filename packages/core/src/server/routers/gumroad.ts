@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getGumroadClient } from "../../lib/gumroad";
-import { getEnhancedLicenseValidator } from "../../lib/gumroad/license-validator";
+import { getEnhancedLicenseValidator, tierFromVerifiedPurchase } from "../../lib/gumroad/license-validator";
 import { config } from "../../lib/config";
 import { licenseDbService } from "../../lib/license/licenseDbService";
 import * as db from "../../db";
@@ -224,22 +224,12 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
               message: `License is ${licenseInfo.status}`,
             };
           } catch (validationError) {
-            // Gumroad validation failed, use database data
-            console.warn("Gumroad validation failed, using cached license data:", validationError);
-
+            console.warn("Gumroad validation failed:", validationError);
             return {
-              status: activeLicense.licenseStatus,
-              type: activeLicense.licenseType,
-              licenseKey: activeLicense.licenseKey.substring(0, 8) + '...',
-              issuedTo: activeLicense.customerName || 'Unknown',
-              email: activeLicense.customerEmail || 'Unknown',
-              productName: activeLicense.productName || 'GRCompliance',
-              activatedAt: activeLicense.activatedAt?.toISOString(),
-              expiresAt: activeLicense.expiresAt?.toISOString(),
-              maxUsers: activeLicense.maxUsers,
-              maxClients: activeLicense.maxClients,
-              features: activeLicense.enabledFeatures as string[] || [],
-              message: `License status: ${activeLicense.licenseStatus} (cached)`,
+              status: 'invalid',
+              type: 'none',
+              message: 'License purchase could not be verified',
+              features: [],
             };
           }
         } catch (error) {
@@ -273,9 +263,10 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
             });
           }
 
-          // Validate with Gumroad
+          // Validate with Gumroad before any license or plan write.
           const validator = getEnhancedLicenseValidator();
           const licenseInfo = await validator.validateLicense(input.licenseKey);
+          const targetTier = tierFromVerifiedPurchase(licenseInfo);
 
           // Check if client already has an active license
           const existingActiveLicense = await licenseDbService.getActiveLicenseForClient(input.clientId);
@@ -345,22 +336,9 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
             });
           }
 
-          // CRITICAL FIX: Update Client Plan Tier
-          // The license is active, but we must update the client's tier in the main table
-          // so the rest of the app knows they are Premium/Enterprise.
           const dbConn = await db.getDb();
 
-          // Map license type to DB plan tier
-          let targetTier = 'enterprise';
-          const typeStr = String(licenseInfo.type); // Cast to string to avoid TS errors with enum mismatch
-
-          if (typeStr === 'community') targetTier = 'free';
-          else if (typeStr === 'trial') targetTier = 'pro';
-          else if (typeStr === 'startup') targetTier = 'startup';
-          else if (typeStr === 'pro') targetTier = 'pro';
-          // else default to enterprise
-
-          console.log(`[License] Upgrading client ${input.clientId} to ${targetTier} (License: ${input.licenseKey.substring(0, 8)}...)`);
+          console.log(`[License] Upgrading client ${input.clientId} to ${targetTier}`);
 
           await dbConn.update(clients)
             .set({
