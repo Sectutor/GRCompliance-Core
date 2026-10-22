@@ -5,6 +5,7 @@ import { getDb } from "../../db";
 import { devProjects, threatModels, riskScenarios, riskTreatments, projectTasks, projectComplianceMappings } from "../../schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { logActivity } from "../../lib/audit";
+import { requireWorkspaceRole } from "../recordAccess";
 
 
 
@@ -119,9 +120,8 @@ export const createDevProjectsRouter = (t: any, clientProcedure: any) => {
                 clientId: z.number(),
             }))
             .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const db = await getDb();
-
-                // Check permissions?
 
                 await db.delete(devProjects)
                     .where(and(eq(devProjects.id, input.id), eq(devProjects.clientId, input.clientId)));

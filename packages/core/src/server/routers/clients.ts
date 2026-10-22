@@ -1,4 +1,5 @@
 
+import { randomBytes } from "crypto";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 
@@ -9,6 +10,8 @@ import { eq, desc, and, sql, inArray, ne } from "drizzle-orm";
 import { policyCoverage, postureScore } from "../../lib/postureScore";
 import { generateGapAnalysisReport } from "../../lib/reporting";
 import { sendEmail } from "../../lib/email/transporter";
+import { appOrigin, createPasswordResetToken, upsertLocalCredential } from "../localAuth";
+import { escapeHtml, isPlatformAdmin, requireWorkspaceRole } from "../recordAccess";
 
 export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure: any, clientEditorProcedure: any, publicProcedure: any, isAuthed: any, requiresMFA: any) => {
     return t.router({
@@ -288,18 +291,23 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     let isNewUser = false;
                     const targetEmail = input.adminEmail;
 
+                    let resetUrl: string | null = null;
                     if (input.adminEmail && input.adminEmail !== ctx.user.email) {
                         let existingUser = await db.getUserByEmail(input.adminEmail);
                         if (!existingUser) {
                             console.log(`[Clients] Creating new user for org: ${input.adminEmail}`);
-                            // Create temp user
-                            const randomPassword = Math.random().toString(36).slice(-8);
                             existingUser = await db.createUser({
                                 email: input.adminEmail,
                                 name: input.adminEmail.split('@')[0],
-                                password: randomPassword // They should reset this
                             });
                             isNewUser = true;
+                            try {
+                                await upsertLocalCredential(existingUser.id, randomBytes(32).toString("base64url"));
+                                const token = await createPasswordResetToken(existingUser.id, input.adminEmail);
+                                resetUrl = `${appOrigin()}/update-password?token=${encodeURIComponent(token)}`;
+                            } catch (setupError) {
+                                console.error("[Clients] Password setup failed:", setupError instanceof Error ? setupError.message : "unknown");
+                            }
                         }
                         ownerUserId = existingUser.id;
                     }
@@ -331,26 +339,34 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     // 6. Send Email Notification
                     if (targetEmail) {
-                        const loginLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/login`;
-                        const defaultMsg = `You have been added as an administrator for the new organization <strong>${input.name}</strong> on GRCompliance.`;
+                        const loginLink = `${appOrigin()}/login`;
+                        const orgName = escapeHtml(input.name);
+                        const messageHtml = input.welcomeMessage
+                            ? escapeHtml(input.welcomeMessage).replace(/\n/g, "<br/>")
+                            : `You have been added as an administrator for the new organization <strong>${orgName}</strong> on GRCompliance.`;
+                        const resetHtml = isNewUser
+                            ? (resetUrl
+                                ? `<p>Your account has been created. Set a password before you sign in. This link expires in 24 hours.</p><p><a href="${escapeHtml(resetUrl)}">Set your password</a></p>`
+                                : `<p>Your account has been created. Use "Forgot Password" on the sign-in page to set your password.</p>`)
+                            : "";
 
                         await sendEmail({
                             to: targetEmail,
-                            subject: `Welcome to ${input.name} on GRCompliance`,
+                            subject: `Welcome to ${String(input.name).replace(/[\r\n]/g, " ").slice(0, 180)} on GRCompliance`,
                             html: `
                                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                                     <h2 style="color: #1a1a1a;">Welcome to GRCompliance</h2>
-                                    <p>${input.welcomeMessage ? input.welcomeMessage.replace(/\n/g, '<br/>') : defaultMsg}</p>
+                                    <p>${messageHtml}</p>
                                     
                                     <div style="margin: 24px 0; background-color: #f9f9f9; padding: 16px; border-radius: 4px;">
-                                        <strong>Organization:</strong> ${input.name}<br/>
+                                        <strong>Organization:</strong> ${orgName}<br/>
                                         <strong>Role:</strong> Owner
                                     </div>
 
-                                    ${isNewUser ? `<p>Your account has been created. Please use the "Forgot Password" function to set your password.</p>` : ''}
+                                    ${resetHtml}
                                     
                                     <div style="margin: 24px 0;">
-                                        <a href="${loginLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Access Dashboard</a>
+                                        <a href="${escapeHtml(loginLink)}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Access Dashboard</a>
                                     </div>
                                     
                                     <p style="color: #666; font-size: 14px;">If you didn't expect this, please contact support.</p>
@@ -669,6 +685,14 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         name: input.email.split('@')[0],
                     });
                 }
+                if (input.role === "owner") {
+                    await requireWorkspaceRole({
+                        user: ctx.user,
+                        clientId: input.clientId,
+                        minRole: "owner",
+                    });
+                }
+
                 if (user) {
                     const existing = await db.isUserAllowedForClient(user.id, input.clientId);
                     if (!existing) {
@@ -693,19 +717,16 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
         grantSelfAccess: publicProcedure.use(isAuthed).use(requiresMFA)
             .input(z.object({ clientId: z.number(), role: z.enum(['owner', 'admin', 'editor']).default('owner') }))
             .mutation(async ({ input, ctx }: any) => {
-                const d = await db.getDb();
                 const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
                 if (hasAccess) return { success: true, message: 'Already a member' };
-                const owners = await d.select().from(schema.userClients)
-                    .where(and(eq(schema.userClients.clientId, input.clientId), eq(schema.userClients.role, 'owner')));
-                if (owners.length === 0 || ctx.user.role === 'admin' || ctx.user.role === 'super_admin') {
-                    await db.assignUserToClient(ctx.user.id, input.clientId, input.role as any);
-                    return { success: true, message: 'Access granted' };
+                if (!isPlatformAdmin(ctx.user?.role)) {
+                    throw new TRPCError({
+                        code: 'FORBIDDEN',
+                        message: 'Only platform administrators can grant themselves workspace access.'
+                    });
                 }
-                throw new TRPCError({
-                    code: 'FORBIDDEN',
-                    message: 'An owner already exists for this workspace. Only admins can add themselves.'
-                });
+                await db.assignUserToClient(ctx.user.id, input.clientId, input.role as any);
+                return { success: true, message: 'Access granted' };
             }),
         stats: publicProcedure
             .input(z.object({ clientId: z.number() }))

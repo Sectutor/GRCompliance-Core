@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "../../db";
 import { vendorDpas, dpaTemplates } from "../../schema";
 import { eq, and, desc } from "drizzle-orm";
+import { requireWorkspaceRole } from "../recordAccess";
 
 export const createVendorDpasRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -111,7 +112,8 @@ export const createVendorDpasRouter = (t: any, clientProcedure: any) => {
                 id: z.number(),
                 clientId: z.number()
             }))
-            .mutation(async ({ input }: { input: any }) => {
+            .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const db = await getDb();
                 await db.delete(vendorDpas).where(and(
                     eq(vendorDpas.id, input.id),

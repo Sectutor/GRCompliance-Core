@@ -52,7 +52,7 @@ import * as policyReviewScheduler from './packages/core/src/server/services/poli
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
-import { localLoginHandler } from './packages/core/src/server/localAuth';
+import { localForgotPasswordHandler, localLoginHandler, localResetPasswordHandler } from './packages/core/src/server/localAuth';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -63,6 +63,12 @@ export const app = express();
 // Health Check - Moving to top to bypass potential middleware issues
 app.post('/api/auth/login', express.json({ limit: '32kb' }), (req, res) => {
     void localLoginHandler(req, res);
+});
+app.post('/api/auth/forgot-password', express.json({ limit: '32kb' }), (req, res) => {
+    void localForgotPasswordHandler(req, res);
+});
+app.post('/api/auth/reset-password', express.json({ limit: '32kb' }), (req, res) => {
+    void localResetPasswordHandler(req, res);
 });
 
 app.get(['/health', '/api/health'], async (req, res) => {

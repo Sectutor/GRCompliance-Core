@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, and } from "drizzle-orm";
+import { requireWorkspaceRole } from "../recordAccess";
 
 export const createSubprocessorsRouter = (t: any, premiumClientProcedure: any, publicProcedure: any) => {
     return t.router({
@@ -155,7 +156,8 @@ export const createSubprocessorsRouter = (t: any, premiumClientProcedure: any, p
          */
         delete: premiumClientProcedure
             .input(z.object({ clientId: z.number(), id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx.user, clientId: input.clientId, minRole: "editor" });
                 const db = await getDb();
 
                 // Soft delete - change status to Offboarded

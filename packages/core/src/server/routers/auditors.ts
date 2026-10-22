@@ -8,6 +8,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { sendEmail } from "../../lib/email/transporter";
 import { generateMagicLinkEmail } from "../../components/email/templates/MagicLinkInvite";
 import * as crypto from "crypto";
+import { escapeHtml } from "../recordAccess";
 
 export const createAuditorsRouter = (t: any, adminProcedure: any, clientProcedure: any) => {
     return t.router({
@@ -45,7 +46,7 @@ export const createAuditorsRouter = (t: any, adminProcedure: any, clientProcedur
                 await sendEmail({
                     to: input.email,
                     subject: "You have been added as an Auditor",
-                    html: `<p>You have been granted auditor access to client #${input.clientId}. Log in to view.</p>`
+                    html: `<p>You have been granted auditor access to client #${escapeHtml(input.clientId)}. Log in to view.</p>`
                 });
 
                 return { success: true, message: "User added as auditor" };

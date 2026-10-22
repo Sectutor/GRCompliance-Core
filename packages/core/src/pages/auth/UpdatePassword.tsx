@@ -14,6 +14,7 @@ export default function UpdatePassword() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [, setLocation] = useLocation();
+    const resetToken = new URLSearchParams(window.location.search).get("token");
 
     useEffect(() => {
         // Check if we have a session (e.g. from the magic link)
@@ -31,19 +32,29 @@ export default function UpdatePassword() {
             toast.error("Passwords do not match");
             return;
         }
-        if (password.length < 6) {
-            toast.error("Password must be at least 6 characters");
+        const minLength = resetToken ? 12 : 6;
+        if (password.length < minLength) {
+            toast.error(`Password must be at least ${minLength} characters`);
             return;
         }
 
         setLoading(true);
 
         try {
-            const { error } = await supabase.auth.updateUser({
-                password: password
-            });
-
-            if (error) throw error;
+            if (resetToken) {
+                const response = await fetch("/api/auth/reset-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: resetToken, password }),
+                });
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(body.error || "Failed to update password");
+            } else {
+                const { error } = await supabase.auth.updateUser({
+                    password: password
+                });
+                if (error) throw error;
+            }
 
             toast.success("Password updated successfully!");
             setLocation('/login'); // Redirect to login (or dashboard)
