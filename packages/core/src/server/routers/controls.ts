@@ -4,8 +4,9 @@ import { TRPCError } from "@trpc/server";
 import { controls } from "../../schema";
 import * as schema from "../../schema";
 import * as db from "../../db";
-import { eq, ilike, and, desc, sql, or } from "drizzle-orm";
+import { eq, ilike, and, desc, sql, or, isNull } from "drizzle-orm";
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import { requireWorkspaceRole } from "../recordAccess";
 
 // Helper for history
 const logControlHistory = async (dbConn: any, controlId: number, userId: number, changeNote: string, version: number) => {
@@ -21,8 +22,11 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
     return t.router({
         list: publicProcedure
         .input(z.object({ framework: z.string().optional(), clientId: z.number().optional() }).optional())
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
             console.log("[ControlsRouter] list called", input);
+            if (input?.clientId) {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
+            }
             try {
                 // If requesting NIST SP 800-171 Rev 2, map to NIST SP 800-53 Rev 5 and filter
                 // Or just return all controls if "NIST SP 800-171 Rev 2" doesn't exist in DB as a distinct framework
@@ -62,8 +66,11 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
                 offset: z.number().optional().default(0),
                 search: z.string().optional()
             }).optional())
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
                 console.log("[ControlsRouter] listPaginated called", input);
+                if (input?.clientId) {
+                    await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
+                }
                 try {
                     const result = await db.getControlsPaginated(
                         input?.framework,
@@ -82,19 +89,25 @@ export const createControlsRouter = (t: any, adminProcedure: any, publicProcedur
 
         getAvailableFrameworks: publicProcedure
             .input(z.object({ clientId: z.number().optional() }).optional())
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
                 console.log("[ControlsRouter] getAvailableFrameworks called", input);
+                if (input?.clientId) {
+                    await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
+                }
                 try {
                     const dbConn = await db.getDb();
-                    const standard = await dbConn.selectDistinct({ framework: schema.controls.framework }).from(schema.controls);
+                    const standard = await dbConn.selectDistinct({ framework: schema.controls.framework })
+                        .from(schema.controls)
+                        .where(isNull(schema.controls.clientId));
                     const list = standard.map((c: any) => c.framework).filter(Boolean) as string[];
 
                     if (input?.clientId) {
                         const clientFws = await dbConn.select().from(schema.clientFrameworks).where(eq(schema.clientFrameworks.clientId, input.clientId));
                         clientFws.forEach((f: any) => list.push(f.name));
-                    } else {
-                        const allClientFws = await dbConn.selectDistinct({ name: schema.clientFrameworks.name }).from(schema.clientFrameworks);
-                        allClientFws.forEach((f: any) => list.push(f.name));
+                        const privateNames = await dbConn.selectDistinct({ framework: schema.controls.framework })
+                            .from(schema.controls)
+                            .where(eq(schema.controls.clientId, input.clientId));
+                        privateNames.forEach((row: any) => list.push(row.framework));
                     }
 
                     return Array.from(new Set(list)).sort();

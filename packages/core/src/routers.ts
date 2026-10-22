@@ -29,6 +29,7 @@ import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrate
 import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
 import { logActivity } from "./lib/audit";
 import { postureScore } from "./lib/postureScore";
+import { isPlatformAdmin, listAuthorizedClientIds, loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "./server/recordAccess";
 import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
@@ -880,7 +881,8 @@ export const appRouter = router({
         clientId: z.number(),
         limit: z.number().optional().default(12) // Last 12 weeks
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
         const dbConn = await getDb();
 
         return dbConn.select().from(schema.complianceSnapshots)
@@ -892,7 +894,8 @@ export const appRouter = router({
     // Get forecast based on historical velocity
     getForecast: publicProcedure
       .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
         const dbConn = await getDb();
 
         const snapshots = await dbConn.select().from(schema.complianceSnapshots)
@@ -950,61 +953,17 @@ export const appRouter = router({
       }),
 
     // List all snapshots (admin)
-    list: publicProcedure.query(async () => {
+    list: publicProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required for client access." });
+      }
+      if (!isPlatformAdmin(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
       const dbConn = await getDb();
       return dbConn.select().from(schema.complianceSnapshots)
         .orderBy(desc(schema.complianceSnapshots.snapshotDate));
     }),
-  }),
-
-  // Gap Email Questionnaire
-  kris: router({
-    list: publicProcedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
-        const db = await getDb();
-        return db.select().from(schema.kris).where(eq(schema.kris.clientId, input.clientId));
-      }),
-    create: adminProcedure
-      .input(z.object({
-        clientId: z.number(),
-        name: z.string(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const [kri] = await db.insert(schema.kris).values({ ...input, status: 'active' }).returning();
-        return kri;
-      }),
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const { id, ...data } = input;
-        const [kri] = await db.update(schema.kris).set(data).where(eq(schema.kris.id, id)).returning();
-        return kri;
-      }),
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        await db.delete(schema.kris).where(eq(schema.kris.id, input.id));
-        return true;
-      }),
   }),
 
   vendorAuthorizations: router({
@@ -1980,12 +1939,19 @@ ONLY return the JSON. No Markdown formatting.
   orgRoles: router({
     list: publicProcedure
       .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
         return await db.getOrgRoles(input.clientId);
       }),
     get: publicProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await requireRecordWorkspace({
+          user: ctx?.user,
+          loadRow: () => loadRowById<{ clientId: number }>(orgRoles, orgRoles.id, input.id),
+          workspaceId: (row) => row.clientId,
+          minRole: "viewer",
+        });
         const role = await db.getOrgRoleById(input.id);
         if (!role) throw new TRPCError({ code: "NOT_FOUND" });
         return role;
@@ -2108,8 +2074,13 @@ ONLY return the JSON. No Markdown formatting.
           type: z.enum(['control', 'policy', 'evidence', 'client']).optional()
         }).optional()
       }))
-      .query(async ({ input }) => {
-        return await db.globalSearch(input.query, input.limit, input.filters);
+      .query(async ({ input, ctx }) => {
+        const allowed = await listAuthorizedClientIds({ user: ctx?.user });
+        if (input.filters?.clientId != null && !allowed.includes(input.filters.clientId)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "No access to this client workspace. Membership required." });
+        }
+        const scope = input.filters?.clientId != null ? [input.filters.clientId] : allowed;
+        return await db.globalSearch(input.query, input.limit, input.filters, scope);
       }),
     getMappings: publicProcedure
       .input(z.object({ controlId: z.number() }))

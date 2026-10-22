@@ -3,6 +3,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, and, desc, asc, ne, sql, count } from "drizzle-orm";
 import { WorkflowEngine } from "../../lib/governance/workflow";
+import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
 
 export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure: any) => t.router({
     // Generate a new roadmap
@@ -110,7 +111,8 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
     // List plans for a client
     list: publicProcedure
         .input(z.object({ clientId: z.number() }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const dbConn = await getDb();
             return dbConn.select().from(schema.remediationPlans)
                 .where(eq(schema.remediationPlans.clientId, input.clientId))
@@ -120,7 +122,13 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
     // Get full plan details
     get: publicProcedure
         .input(z.object({ planId: z.number() }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
+            await requireRecordWorkspace({
+                user: ctx?.user,
+                loadRow: () => loadRowById<{ clientId: number }>(schema.remediationPlans, schema.remediationPlans.id, input.planId),
+                workspaceId: (row) => row.clientId,
+                minRole: "viewer",
+            });
             const dbConn = await getDb();
             const [plan] = await dbConn.select().from(schema.remediationPlans)
                 .where(eq(schema.remediationPlans.id, input.planId));
@@ -227,7 +235,8 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
             clientId: z.number(),
             status: z.enum(['draft', 'active', 'on_track', 'delayed', 'completed']).nullish()
         }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const dbConn = await getDb();
             let query = dbConn.select().from(schema.roadmaps)
                 .where(eq(schema.roadmaps.clientId, input.clientId));
@@ -242,7 +251,13 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
     // Get roadmap with details
     getStrategic: publicProcedure
         .input(z.object({ roadmapId: z.number() }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
+            await requireRecordWorkspace({
+                user: ctx?.user,
+                loadRow: () => loadRowById<{ clientId: number }>(schema.roadmaps, schema.roadmaps.id, input.roadmapId),
+                workspaceId: (row) => row.clientId,
+                minRole: "viewer",
+            });
             const dbConn = await getDb();
 
             // Get roadmap
@@ -406,7 +421,8 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
             roadmapId: z.number().optional(),
             status: z.enum(['not_started', 'planning', 'in_progress', 'testing', 'completed', 'blocked']).optional()
         }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
+            await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
             const dbConn = await getDb();
             let query = dbConn.select().from(schema.implementationPlans)
                 .where(eq(schema.implementationPlans.clientId, input.clientId));

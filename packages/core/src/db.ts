@@ -1,4 +1,4 @@
-import { and, desc, eq, like, ilike, or, sql, ne, isNotNull, lt, lte, gt, gte, aliasedTable, getTableColumns, inArray } from "drizzle-orm";
+import { and, desc, eq, like, ilike, or, sql, ne, isNotNull, isNull, lt, lte, gt, gte, aliasedTable, getTableColumns, inArray } from "drizzle-orm";
 
 import { drizzle } from "drizzle-orm/postgres-js";
 
@@ -840,13 +840,26 @@ export async function getControls(framework?: string, clientId?: number) {
 
   // 1. Fetch Standard Controls
 
-  let standardQuery = db.select().from(controls);
+  const standardFilters = [];
 
   if (framework && framework !== 'all') {
 
-    standardQuery = standardQuery.where(eq(controls.framework, framework));
+    standardFilters.push(eq(controls.framework, framework));
 
   }
+
+  // Global catalogue is client_id IS NULL. A workspace id also includes that workspace's private imports.
+  if (clientId) {
+
+    standardFilters.push(or(isNull(controls.clientId), eq(controls.clientId, clientId)));
+
+  } else {
+
+    standardFilters.push(isNull(controls.clientId));
+
+  }
+
+  const standardQuery = db.select().from(controls).where(and(...standardFilters));
 
   const standardControls = await standardQuery.orderBy(controls.controlId);
 
@@ -999,6 +1012,16 @@ export async function getControlsPaginated(
     } else {
       conditions.push(eq(controls.framework, framework));
     }
+  }
+
+  if (clientId) {
+
+    conditions.push(or(isNull(controls.clientId), eq(controls.clientId, clientId)));
+
+  } else {
+
+    conditions.push(isNull(controls.clientId));
+
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -4378,7 +4401,9 @@ export async function globalSearch(
 
   limit: number = 20,
 
-  filters?: SearchFilters
+  filters?: SearchFilters,
+
+  allowedClientIds?: number[]
 
 ): Promise<SearchResult[]> {
 
@@ -4389,6 +4414,10 @@ export async function globalSearch(
 
 
   const searchTerm = `%${query.toLowerCase()}%`;
+
+  const allowed = allowedClientIds ? new Set(allowedClientIds) : null;
+
+  const inScope = (clientId: number | null | undefined) => allowed == null || (clientId != null && allowed.has(clientId));
 
   const results: SearchResult[] = [];
 
@@ -4430,6 +4459,8 @@ export async function globalSearch(
 
       if (filters?.framework && control.framework !== filters.framework) continue;
 
+      if (control.clientId != null && !inScope(control.clientId)) continue;
+
 
 
       results.push({
@@ -4443,6 +4474,8 @@ export async function globalSearch(
         description: control.description || '',
 
         framework: control.framework || undefined,
+
+        clientId: control.clientId ?? undefined,
 
         url: '/controls',
 
@@ -4485,6 +4518,8 @@ export async function globalSearch(
       // Apply status filter
 
       if (filters?.status && client.status !== filters.status) continue;
+
+      if (!inScope(client.id)) continue;
 
       // Apply clientId filter
 
@@ -4549,6 +4584,8 @@ export async function globalSearch(
     for (const { policy, clientName } of policyResults) {
 
       // Apply filters
+
+      if (!inScope(policy.clientId)) continue;
 
       if (filters?.clientId && policy.clientId !== filters.clientId) continue;
 
@@ -4621,6 +4658,8 @@ export async function globalSearch(
     for (const { evidence: ev, clientName } of evidenceResults) {
 
       // Apply filters
+
+      if (!inScope(ev.clientId)) continue;
 
       if (filters?.clientId && ev.clientId !== filters.clientId) continue;
 
