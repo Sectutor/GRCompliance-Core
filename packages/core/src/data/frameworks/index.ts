@@ -39,7 +39,11 @@ export const frameworks: Framework[] = [
         description: "National Institute of Standards and Technology Cybersecurity Framework. Voluntary guidance based on existing standards.",
         type: "Security",
         isObligation: true,
-        logo: "/frameworks/nist.svg"
+        logo: "/frameworks/nist.svg",
+        version: "2.0",
+        controlsCount: 106,
+        contentPolicy: "bundled",
+        contentLicense: "NIST CSWP 29 (public domain)"
     },
     {
         id: "nist-800-171",
@@ -106,43 +110,66 @@ export const frameworks: Framework[] = [
         name: "OWASP AISVS (AI Security)",
         description: "OWASP Artificial Intelligence Security Verification Standard (1.0). structured checklist to evaluate AI-driven applications.",
         type: "AI & Data",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        version: "1.0",
+        controlsCount: 191,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-4.0"
     },
     {
         id: "owasp-asvs",
         name: "OWASP ASVS (App Security)",
         description: "OWASP Application Security Verification Standard (4.0.3). Basis for testing technical security controls.",
         type: "Security",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        version: "4.0.3",
+        controlsCount: 286,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-3.0"
     },
     {
         id: "owasp_masvs",
         name: "OWASP MASVS (Mobile Security)",
         description: "OWASP Mobile Application Security Verification Standard (2.0). The industry standard for mobile app security.",
         type: "Security",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        version: "2.0.0",
+        controlsCount: 20,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-4.0"
     },
     {
         id: "owasp_samm",
         name: "OWASP SAMM (Maturity Model)",
         description: "OWASP Software Assurance Maturity Model. An effective and measurable way for all types of organizations to analyze and improve their software security posture.",
         type: "Governance",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        version: "2",
+        controlsCount: 90,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-4.0"
     },
     {
         id: "owasp_api_top10",
         name: "OWASP API Security Top 10",
         description: "The most critical API security risks. Focuses on strategies and solutions to understand and mitigate the unique vulnerabilities and security risks of APIs.",
         type: "Security",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        version: "2023",
+        controlsCount: 10,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-4.0"
     },
     {
         id: "owasp_top10",
         name: "OWASP Web Top 10",
-        description: "The standard awareness document for developers and web application security (2025 Draft/Pre-release).",
+        description: "The standard awareness document for developers and web application security (2025).",
         version: "2025",
         type: "Security",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        controlsCount: 10,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-4.0"
     },
     {
         id: "owasp_top10_2021",
@@ -150,14 +177,21 @@ export const frameworks: Framework[] = [
         description: "The standard awareness document for developers and web application security (2021).",
         version: "2021",
         type: "Security",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        controlsCount: 10,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-4.0"
     },
     {
         id: "essential-eight",
         name: "Australian Essential Eight",
         description: "Eight prioritized mitigation strategies for cyber resilience with maturity levels 0–3.",
         type: "Security",
-        logo: "/frameworks/australia.svg"
+        logo: "/frameworks/australia.svg",
+        version: "2023-11",
+        controlsCount: 304,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-4.0"
     },
     {
         id: "cmmc-2",
@@ -170,18 +204,22 @@ export const frameworks: Framework[] = [
     {
         id: "soc-1",
         name: "SOC 1 Type II",
-        description: "Service Organization Control 1 - Internal Control over Financial Reporting (ICFR).",
+        description: "Service Organization Control 1 - Internal Control over Financial Reporting (ICFR). Control objectives are entity-specific and are not bundled.",
         type: "Security",
         isObligation: true,
-        logo: "/frameworks/soc1.svg"
+        logo: "/frameworks/soc1.svg",
+        contentPolicy: "bring-your-own",
+        contentLicense: "bring-your-own (AICPA text is not redistributed; there is no universal control catalog)"
     },
     {
         id: "tisax",
         name: "TISAX",
-        description: "Trusted Information Security Assessment Exchange - Automotive industry standard.",
+        description: "Trusted Information Security Assessment Exchange - Automotive industry standard. The VDA ISA catalog is not bundled.",
         type: "Security",
         isObligation: true,
-        logo: "/frameworks/tisax.svg"
+        logo: "/frameworks/tisax.svg",
+        contentPolicy: "bring-your-own",
+        contentLicense: "bring-your-own (VDA ISA text is not redistributed)"
     },
     {
         id: "nist-800-161",
@@ -189,22 +227,31 @@ export const frameworks: Framework[] = [
         description: "Cybersecurity Supply Chain Risk Management (SCRM) Practices.",
         type: "Security",
         isObligation: true,
-        logo: "/frameworks/nist.svg"
+        logo: "/frameworks/nist.svg",
+        version: "r1-upd1",
+        controlsCount: 297,
+        contentPolicy: "bundled",
+        contentLicense: "NIST SP 800-161r1-upd1 (public domain)"
     },
     {
         id: "scf",
         name: "Secure Controls Framework (SCF)",
-        description: "A comprehensive library of cybersecurity and privacy control meta-framework.",
+        description: "A comprehensive library of cybersecurity and privacy control meta-framework. Control text is not bundled; upload the workbook you obtained.",
         type: "Security",
-        logo: "/frameworks/scf.svg"
+        logo: "/frameworks/scf.svg",
+        contentPolicy: "bring-your-own",
+        contentLicense: "bring-your-own (CC BY-ND 4.0 text is not redistributed)"
     },
     {
         id: "owasp_ml_top10",
         name: "OWASP ML Security Top 10",
-        description: "Vulnerabilities in machine learning models and systems through the ML lifecycle (0.3).",
+        description: "Vulnerabilities in machine learning models and systems through the ML lifecycle (2023).",
         version: "2023",
         type: "AI & Data",
-        logo: "/frameworks/owasp.svg"
+        logo: "/frameworks/owasp.svg",
+        controlsCount: 10,
+        contentPolicy: "bundled",
+        contentLicense: "CC-BY-SA-4.0"
     }
 ];
 

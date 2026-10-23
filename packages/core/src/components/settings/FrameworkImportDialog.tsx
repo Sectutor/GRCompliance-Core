@@ -16,7 +16,7 @@ interface FrameworkImportDialogProps {
 }
 
 export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess }: FrameworkImportDialogProps) {
-    const [frameworkType, setFrameworkType] = useState<"pci_dss_v4" | "cis_v8" | "ccm_v4" | "hitrust" | "fedramp" | "fedramp_low" | "fedramp_high" | "cyber_essentials" | "nist_ai_rmf" | "iso27001" | "soc2" | "cis_v8_system" | "owasp_aisvs" | "owasp_asvs" | "owasp_masvs" | "owasp_samm" | "owasp_api_top10" | "owasp_top10" | "owasp_top10_2021" | "owasp_ml_top10">("pci_dss_v4");
+    const [frameworkType, setFrameworkType] = useState<"pci_dss_v4" | "cis_v8" | "ccm_v4" | "hitrust" | "fedramp" | "fedramp_low" | "fedramp_high" | "cyber_essentials" | "nist_ai_rmf" | "iso27001" | "soc2" | "cis_v8_system" | "owasp_aisvs" | "owasp_asvs" | "owasp_masvs" | "owasp_samm" | "owasp_api_top10" | "owasp_top10" | "owasp_top10_2021" | "owasp_ml_top10" | "nist_csf_2" | "essential_eight" | "nist_800_161" | "soc1" | "tisax" | "scf">("pci_dss_v4");
     const [file, setFile] = useState<File | null>(null);
     const [isConfirmed, setIsConfirmed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +52,14 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
         frameworkType === "owasp_masvs" ||
         frameworkType === "owasp_samm" ||
         frameworkType === "owasp_api_top10" ||
-        frameworkType === "owasp_top10";
+        frameworkType === "owasp_top10" ||
+        frameworkType === "owasp_top10_2021" ||
+        frameworkType === "owasp_ml_top10" ||
+        frameworkType === "nist_csf_2" ||
+        frameworkType === "essential_eight" ||
+        frameworkType === "nist_800_161";
+
+    const isBringYourOwn = frameworkType === "soc1" || frameworkType === "tisax" || frameworkType === "scf";
 
     // Dynamic Description Text
     const getFrameworkDescription = () => {
@@ -313,6 +320,12 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
                                 <SelectItem value="owasp_top10">OWASP Web Top 10 (2025)</SelectItem>
                                 <SelectItem value="owasp_top10_2021">OWASP Web Top 10 (2021)</SelectItem>
                                 <SelectItem value="owasp_ml_top10">OWASP ML Security Top 10</SelectItem>
+                                <SelectItem value="nist_csf_2">NIST CSF 2.0 (Built-in)</SelectItem>
+                                <SelectItem value="essential_eight">Essential Eight (Built-in)</SelectItem>
+                                <SelectItem value="nist_800_161">NIST SP 800-161 (Built-in)</SelectItem>
+                                <SelectItem value="soc1">SOC 1 (upload your control objectives)</SelectItem>
+                                <SelectItem value="tisax">TISAX (upload your VDA ISA workbook)</SelectItem>
+                                <SelectItem value="scf">Secure Controls Framework (upload your workbook)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -321,7 +334,16 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
 
                     <div className="space-y-2">
                         <Label>Official Source File (.xlsx)</Label>
-                        {!isSystemFramework && (
+                        {isBringYourOwn && (
+                            <Alert className="bg-amber-50 border-amber-200 mb-2">
+                                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                <AlertTitle className="text-amber-800">Publisher text is not bundled</AlertTitle>
+                                <AlertDescription className="text-amber-700 text-xs">
+                                    SOC 1 control objectives are entity-specific. TISAX (VDA ISA) and the Secure Controls Framework are not licensed for redistribution. Upload the workbook you obtained. It needs columns for the control id, title, and description (.xlsx or .csv).
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        {!isSystemFramework && !isBringYourOwn && (
                             <Alert className="bg-amber-50 border-amber-200 mb-2">
                                 <AlertTriangle className="h-4 w-4 text-amber-600" />
                                 <AlertTitle className="text-amber-800">License Source Requirement</AlertTitle>
@@ -354,13 +376,13 @@ export function FrameworkImportDialog({ open, onOpenChange, clientId, onSuccess 
                                 <div className="text-center">
                                     <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
                                     <p className="font-medium">Click to upload spreadsheet</p>
-                                    <p className="text-sm text-muted-foreground">Supported format: .xlsx</p>
+                                    <p className="text-sm text-muted-foreground">{isBringYourOwn ? "Supported formats: .xlsx or .csv" : "Supported format: .xlsx"}</p>
                                 </div>
                             )}
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept=".xlsx"
+                                accept={isBringYourOwn ? ".xlsx,.csv" : ".xlsx"}
                                 className="hidden"
                                 onChange={handleFileChange}
                                 disabled={isSystemFramework}

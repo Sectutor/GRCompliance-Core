@@ -1,0 +1,1788 @@
+{
+  "source": "https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+  "license": "Public domain. NIST SP 800-161 Rev. 1 Update 1 (November 1, 2024), Appendix B Table 6 identifiers. Titles from NIST SP 800-53 Rev. 5.2.0 OSCAL where the identifier exists there.",
+  "controls": [
+    {
+      "id": "AC-1",
+      "name": "Policy and Procedures",
+      "description": "AC-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-2",
+      "name": "Account Management",
+      "description": "AC-2 Account Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-3",
+      "name": "Access Enforcement",
+      "description": "AC-3 Access Enforcement. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-3(8)",
+      "name": "Revocation of Access Authorizations",
+      "description": "AC-3(8) Revocation of Access Authorizations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-3(9)",
+      "name": "Controlled Release",
+      "description": "AC-3(9) Controlled Release. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-4",
+      "name": "Information Flow Enforcement",
+      "description": "AC-4 Information Flow Enforcement. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-4(6)",
+      "name": "Metadata",
+      "description": "AC-4(6) Metadata. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-4(17)",
+      "name": "Domain Authentication",
+      "description": "AC-4(17) Domain Authentication. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-4(19)",
+      "name": "Validation of Metadata",
+      "description": "AC-4(19) Validation of Metadata. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-4(21)",
+      "name": "Physical or Logical Separation of Information Flows",
+      "description": "AC-4(21) Physical or Logical Separation of Information Flows. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-5",
+      "name": "Separation of Duties",
+      "description": "AC-5 Separation of Duties. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-6(6)",
+      "name": "Privileged Access by Non-organizational Users",
+      "description": "AC-6(6) Privileged Access by Non-organizational Users. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-17",
+      "name": "Remote Access",
+      "description": "AC-17 Remote Access. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-17(6)",
+      "name": "Protection of Mechanism Information",
+      "description": "AC-17(6) Protection of Mechanism Information. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-18",
+      "name": "Wireless Access",
+      "description": "AC-18 Wireless Access. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-19",
+      "name": "Access Control for Mobile Devices",
+      "description": "AC-19 Access Control for Mobile Devices. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-20",
+      "name": "Use of External Systems",
+      "description": "AC-20 Use of External Systems. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-20(1)",
+      "name": "Limits on Authorized Use",
+      "description": "AC-20(1) Limits on Authorized Use. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-20(3)",
+      "name": "Non-organizationally Owned Systems — Restricted Use",
+      "description": "AC-20(3) Non-organizationally Owned Systems — Restricted Use. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-21",
+      "name": "Information Sharing",
+      "description": "AC-21 Information Sharing. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-22",
+      "name": "Publicly Accessible Content",
+      "description": "AC-22 Publicly Accessible Content. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-23",
+      "name": "Data Mining Protection",
+      "description": "AC-23 Data Mining Protection. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AC-24",
+      "name": "Access Control Decisions",
+      "description": "AC-24 Access Control Decisions. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-1",
+      "name": "Policy and Procedures",
+      "description": "AT-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-2(1)",
+      "name": "Practical Exercises",
+      "description": "AT-2(1) Practical Exercises. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-2(2)",
+      "name": "Insider Threat",
+      "description": "AT-2(2) Insider Threat. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-2(3)",
+      "name": "Social Engineering and Mining",
+      "description": "AT-2(3) Social Engineering and Mining. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-2(4)",
+      "name": "Suspicious Communications and Anomalous System Behavior",
+      "description": "AT-2(4) Suspicious Communications and Anomalous System Behavior. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-2(5)",
+      "name": "Advanced Persistent Threat",
+      "description": "AT-2(5) Advanced Persistent Threat. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-2(6)",
+      "name": "Cyber Threat Environment",
+      "description": "AT-2(6) Cyber Threat Environment. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-3",
+      "name": "Role-based Training",
+      "description": "AT-3 Role-based Training. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-3(2)",
+      "name": "Physical Security Controls",
+      "description": "AT-3(2) Physical Security Controls. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-3(6)",
+      "name": "Counterintelligence Training",
+      "description": "AT-3(6) Counterintelligence Training. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). This identifier is marked in that table as not defined in SP 800-53. Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AT-4",
+      "name": "Training Records",
+      "description": "AT-4 Training Records. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-1",
+      "name": "Policy and Procedures",
+      "description": "AU-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-2",
+      "name": "Event Logging",
+      "description": "AU-2 Event Logging. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-3",
+      "name": "Content of Audit Records",
+      "description": "AU-3 Content of Audit Records. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-6",
+      "name": "Audit Record Review, Analysis, and Reporting",
+      "description": "AU-6 Audit Record Review, Analysis, and Reporting. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-6(9)",
+      "name": "Correlation with Information from Nontechnical Sources",
+      "description": "AU-6(9) Correlation with Information from Nontechnical Sources. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-10",
+      "name": "Non-repudiation",
+      "description": "AU-10 Non-repudiation. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-10(1)",
+      "name": "Association of Identities",
+      "description": "AU-10(1) Association of Identities. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-10(2)",
+      "name": "Validate Binding of Information Producer Identity",
+      "description": "AU-10(2) Validate Binding of Information Producer Identity. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-10(3)",
+      "name": "Chain of Custody",
+      "description": "AU-10(3) Chain of Custody. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-12",
+      "name": "Audit Record Generation",
+      "description": "AU-12 Audit Record Generation. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-13",
+      "name": "Monitoring for Information Disclosure",
+      "description": "AU-13 Monitoring for Information Disclosure. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-14",
+      "name": "Session Audit",
+      "description": "AU-14 Session Audit. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-16",
+      "name": "Cross-organizational Audit Logging",
+      "description": "AU-16 Cross-organizational Audit Logging. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "AU-16(2)",
+      "name": "Sharing of Audit Information",
+      "description": "AU-16(2) Sharing of Audit Information. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-1",
+      "name": "Policy and Procedures",
+      "description": "CA-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-2",
+      "name": "Control Assessments",
+      "description": "CA-2 Control Assessments. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-2(2)",
+      "name": "Specialized Assessments",
+      "description": "CA-2(2) Specialized Assessments. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-2(3)",
+      "name": "Leveraging Results from External Organizations",
+      "description": "CA-2(3) Leveraging Results from External Organizations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-3",
+      "name": "Information Exchange",
+      "description": "CA-3 Information Exchange. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-5",
+      "name": "Plan of Action and Milestones",
+      "description": "CA-5 Plan of Action and Milestones. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-6",
+      "name": "Authorization",
+      "description": "CA-6 Authorization. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CA-7(3)",
+      "name": "Trend Analyses",
+      "description": "CA-7(3) Trend Analyses. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-1",
+      "name": "Policy and Procedures",
+      "description": "CM-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-2",
+      "name": "Baseline Configuration",
+      "description": "CM-2 Baseline Configuration. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-2(6)",
+      "name": "Development and Test Environments",
+      "description": "CM-2(6) Development and Test Environments. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-3",
+      "name": "Configuration Change Control",
+      "description": "CM-3 Configuration Change Control. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-3(1)",
+      "name": "Automated Documentation, Notification, and Prohibition of Changes",
+      "description": "CM-3(1) Automated Documentation, Notification, and Prohibition of Changes. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-3(2)",
+      "name": "Testing, Validation, and Documentation of Changes",
+      "description": "CM-3(2) Testing, Validation, and Documentation of Changes. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-3(4)",
+      "name": "Security and Privacy Representatives",
+      "description": "CM-3(4) Security and Privacy Representatives. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-3(8)",
+      "name": "Prevent or Restrict Configuration Changes",
+      "description": "CM-3(8) Prevent or Restrict Configuration Changes. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-4",
+      "name": "Impact Analyses",
+      "description": "CM-4 Impact Analyses. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-4(1)",
+      "name": "Separate Test Environments",
+      "description": "CM-4(1) Separate Test Environments. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-5",
+      "name": "Access Restrictions for Change",
+      "description": "CM-5 Access Restrictions for Change. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-5(1)",
+      "name": "Automated Access Enforcement and Audit Records",
+      "description": "CM-5(1) Automated Access Enforcement and Audit Records. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-5(6)",
+      "name": "Limit Library Privileges",
+      "description": "CM-5(6) Limit Library Privileges. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-6",
+      "name": "Configuration Settings",
+      "description": "CM-6 Configuration Settings. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-6(1)",
+      "name": "Automated Management, Application, and Verification",
+      "description": "CM-6(1) Automated Management, Application, and Verification. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-6(2)",
+      "name": "Respond to Unauthorized Changes",
+      "description": "CM-6(2) Respond to Unauthorized Changes. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7",
+      "name": "Least Functionality",
+      "description": "CM-7 Least Functionality. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7(1)",
+      "name": "Periodic Review",
+      "description": "CM-7(1) Periodic Review. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7(4)",
+      "name": "Unauthorized Software — Deny-by-exception",
+      "description": "CM-7(4) Unauthorized Software — Deny-by-exception. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7(5)",
+      "name": "Authorized Software — Allow-by-exception",
+      "description": "CM-7(5) Authorized Software — Allow-by-exception. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7(6)",
+      "name": "Confined Environments with Limited Privileges",
+      "description": "CM-7(6) Confined Environments with Limited Privileges. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7(7)",
+      "name": "Code Execution in Protected Environments",
+      "description": "CM-7(7) Code Execution in Protected Environments. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7(8)",
+      "name": "Binary or Machine Executable Code",
+      "description": "CM-7(8) Binary or Machine Executable Code. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-7(9)",
+      "name": "Prohibiting The Use of Unauthorized Hardware",
+      "description": "CM-7(9) Prohibiting The Use of Unauthorized Hardware. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8",
+      "name": "System Component Inventory",
+      "description": "CM-8 System Component Inventory. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(1)",
+      "name": "Updates During Installation and Removal",
+      "description": "CM-8(1) Updates During Installation and Removal. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(2)",
+      "name": "Automated Maintenance",
+      "description": "CM-8(2) Automated Maintenance. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(4)",
+      "name": "Accountability Information",
+      "description": "CM-8(4) Accountability Information. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(6)",
+      "name": "Assessed Configurations and Approved Deviations",
+      "description": "CM-8(6) Assessed Configurations and Approved Deviations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(7)",
+      "name": "Centralized Repository",
+      "description": "CM-8(7) Centralized Repository. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(8)",
+      "name": "Automated Location Tracking",
+      "description": "CM-8(8) Automated Location Tracking. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(9)",
+      "name": "Assignment of Components to Systems",
+      "description": "CM-8(9) Assignment of Components to Systems. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-8(10)",
+      "name": "SBOMs for Open Source Projects",
+      "description": "CM-8(10) SBOMs for Open Source Projects. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). This identifier is marked in that table as not defined in SP 800-53. Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-9",
+      "name": "Configuration Management Plan",
+      "description": "CM-9 Configuration Management Plan. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-9(1)",
+      "name": "Assignment of Responsibility",
+      "description": "CM-9(1) Assignment of Responsibility. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-10",
+      "name": "Software Usage Restrictions",
+      "description": "CM-10 Software Usage Restrictions. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-10(1)",
+      "name": "Open-source Software",
+      "description": "CM-10(1) Open-source Software. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-11",
+      "name": "User-installed Software",
+      "description": "CM-11 User-installed Software. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-12",
+      "name": "Information Location",
+      "description": "CM-12 Information Location. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-12(1)",
+      "name": "Automated Tools to Support Information Location",
+      "description": "CM-12(1) Automated Tools to Support Information Location. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-13",
+      "name": "Data Action Mapping",
+      "description": "CM-13 Data Action Mapping. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CM-14",
+      "name": "Signed Components",
+      "description": "CM-14 Signed Components. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-1",
+      "name": "Policy and Procedures",
+      "description": "CP-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-2",
+      "name": "Contingency Plan",
+      "description": "CP-2 Contingency Plan. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-2(1)",
+      "name": "Coordinate with Related Plans",
+      "description": "CP-2(1) Coordinate with Related Plans. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-2(2)",
+      "name": "Capacity Planning",
+      "description": "CP-2(2) Capacity Planning. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-2(7)",
+      "name": "Coordinate with External Service Providers",
+      "description": "CP-2(7) Coordinate with External Service Providers. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-2(8)",
+      "name": "Identify Critical Assets",
+      "description": "CP-2(8) Identify Critical Assets. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-3",
+      "name": "Contingency Training",
+      "description": "CP-3 Contingency Training. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-3(1)",
+      "name": "Simulated Events",
+      "description": "CP-3(1) Simulated Events. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-4",
+      "name": "Contingency Plan Testing",
+      "description": "CP-4 Contingency Plan Testing. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-6",
+      "name": "Alternate Storage Site",
+      "description": "CP-6 Alternate Storage Site. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-6(1)",
+      "name": "Separation from Primary Site",
+      "description": "CP-6(1) Separation from Primary Site. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-7",
+      "name": "Alternate Processing Site",
+      "description": "CP-7 Alternate Processing Site. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-8",
+      "name": "Telecommunications Services",
+      "description": "CP-8 Telecommunications Services. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-8(3)",
+      "name": "Separation of Primary and Alternate Providers",
+      "description": "CP-8(3) Separation of Primary and Alternate Providers. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-8(4)",
+      "name": "Provider Contingency Plan",
+      "description": "CP-8(4) Provider Contingency Plan. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "CP-11",
+      "name": "Alternate Communications Protocols",
+      "description": "CP-11 Alternate Communications Protocols. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-1",
+      "name": "Policy and Procedures",
+      "description": "IA-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-2",
+      "name": "Identification and Authentication (Organizational Users)",
+      "description": "IA-2 Identification and Authentication (Organizational Users). Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-3",
+      "name": "Device Identification and Authentication",
+      "description": "IA-3 Device Identification and Authentication. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-4",
+      "name": "Identifier Management",
+      "description": "IA-4 Identifier Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-4(6)",
+      "name": "Cross-organization Management",
+      "description": "IA-4(6) Cross-organization Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-5",
+      "name": "Authenticator Management",
+      "description": "IA-5 Authenticator Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-5(5)",
+      "name": "Change Authenticators Prior to Delivery",
+      "description": "IA-5(5) Change Authenticators Prior to Delivery. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-5(9)",
+      "name": "Federated Credential Management",
+      "description": "IA-5(9) Federated Credential Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-8",
+      "name": "Identification and Authentication (Non-organizational Users)",
+      "description": "IA-8 Identification and Authentication (Non-organizational Users). Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IA-9",
+      "name": "Service Identification and Authentication",
+      "description": "IA-9 Service Identification and Authentication. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-1",
+      "name": "Policy and Procedures",
+      "description": "IR-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-2",
+      "name": "Incident Response Training",
+      "description": "IR-2 Incident Response Training. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-3",
+      "name": "Incident Response Testing",
+      "description": "IR-3 Incident Response Testing. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-4(6)",
+      "name": "Insider Threats",
+      "description": "IR-4(6) Insider Threats. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-4(7)",
+      "name": "Insider Threats — Intra-organization Coordination",
+      "description": "IR-4(7) Insider Threats — Intra-organization Coordination. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-4(10)",
+      "name": "Supply Chain Coordination",
+      "description": "IR-4(10) Supply Chain Coordination. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-4(11)",
+      "name": "Integrated Incident Response Team",
+      "description": "IR-4(11) Integrated Incident Response Team. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-5",
+      "name": "Incident Monitoring",
+      "description": "IR-5 Incident Monitoring. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-6(3)",
+      "name": "Supply Chain Coordination",
+      "description": "IR-6(3) Supply Chain Coordination. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-7(2)",
+      "name": "Coordination with External Providers",
+      "description": "IR-7(2) Coordination with External Providers. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-8",
+      "name": "Incident Response Plan",
+      "description": "IR-8 Incident Response Plan. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "IR-9",
+      "name": "Information Spillage Response",
+      "description": "IR-9 Information Spillage Response. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-1",
+      "name": "Policy and Procedures",
+      "description": "MA-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-2(2)",
+      "name": "Automated Maintenance Activities",
+      "description": "MA-2(2) Automated Maintenance Activities. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-3",
+      "name": "Maintenance Tools",
+      "description": "MA-3 Maintenance Tools. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-3(1)",
+      "name": "Inspect Tools",
+      "description": "MA-3(1) Inspect Tools. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-3(2)",
+      "name": "Inspect Media",
+      "description": "MA-3(2) Inspect Media. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-3(3)",
+      "name": "Prevent Unauthorized Removal",
+      "description": "MA-3(3) Prevent Unauthorized Removal. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-4",
+      "name": "Nonlocal Maintenance",
+      "description": "MA-4 Nonlocal Maintenance. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-4(3)",
+      "name": "Comparable Security and Sanitization",
+      "description": "MA-4(3) Comparable Security and Sanitization. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-5",
+      "name": "Maintenance Personnel",
+      "description": "MA-5 Maintenance Personnel. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-5(4)",
+      "name": "Foreign Nationals",
+      "description": "MA-5(4) Foreign Nationals. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-6",
+      "name": "Timely Maintenance",
+      "description": "MA-6 Timely Maintenance. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-7",
+      "name": "Field Maintenance",
+      "description": "MA-7 Field Maintenance. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MA-8",
+      "name": "Maintenance Monitoring and Information Sharing",
+      "description": "MA-8 Maintenance Monitoring and Information Sharing. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). This identifier is marked in that table as not defined in SP 800-53. Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MP-1",
+      "name": "Policy and Procedures",
+      "description": "MP-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MP-4",
+      "name": "Media Storage",
+      "description": "MP-4 Media Storage. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MP-5",
+      "name": "Media Transport",
+      "description": "MP-5 Media Transport. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "MP-6",
+      "name": "Media Sanitization",
+      "description": "MP-6 Media Sanitization. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-1",
+      "name": "Policy and Procedures",
+      "description": "PE-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-2",
+      "name": "Physical Access Authorizations",
+      "description": "PE-2 Physical Access Authorizations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-2(1)",
+      "name": "Access by Position or Role",
+      "description": "PE-2(1) Access by Position or Role. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-3",
+      "name": "Physical Access Control",
+      "description": "PE-3 Physical Access Control. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-3(1)",
+      "name": "System Access",
+      "description": "PE-3(1) System Access. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-3(2)",
+      "name": "Facility and Systems",
+      "description": "PE-3(2) Facility and Systems. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-3(5)",
+      "name": "Tamper Protection",
+      "description": "PE-3(5) Tamper Protection. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-6",
+      "name": "Monitoring Physical Access",
+      "description": "PE-6 Monitoring Physical Access. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-16",
+      "name": "Delivery and Removal",
+      "description": "PE-16 Delivery and Removal. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-17",
+      "name": "Alternate Work Site",
+      "description": "PE-17 Alternate Work Site. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-18",
+      "name": "Location of System Components",
+      "description": "PE-18 Location of System Components. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-20",
+      "name": "Asset Monitoring and Tracking",
+      "description": "PE-20 Asset Monitoring and Tracking. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PE-23",
+      "name": "Facility Location",
+      "description": "PE-23 Facility Location. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-1",
+      "name": "Policy and Procedures",
+      "description": "PL-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-2",
+      "name": "System Security and Privacy Plans",
+      "description": "PL-2 System Security and Privacy Plans. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-4",
+      "name": "Rules of Behavior",
+      "description": "PL-4 Rules of Behavior. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-7",
+      "name": "Concept of Operations",
+      "description": "PL-7 Concept of Operations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-8",
+      "name": "Security and Privacy Architectures",
+      "description": "PL-8 Security and Privacy Architectures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-8(2)",
+      "name": "Supplier Diversity",
+      "description": "PL-8(2) Supplier Diversity. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-9",
+      "name": "Central Management",
+      "description": "PL-9 Central Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PL-10",
+      "name": "Baseline Selection",
+      "description": "PL-10 Baseline Selection. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-2",
+      "name": "Information Security Program Leadership Role",
+      "description": "PM-2 Information Security Program Leadership Role. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-3",
+      "name": "Information Security and Privacy Resources",
+      "description": "PM-3 Information Security and Privacy Resources. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-4",
+      "name": "Plan of Action and Milestones Process",
+      "description": "PM-4 Plan of Action and Milestones Process. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-5",
+      "name": "System Inventory",
+      "description": "PM-5 System Inventory. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-6",
+      "name": "Measures of Performance",
+      "description": "PM-6 Measures of Performance. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-7",
+      "name": "Enterprise Architecture",
+      "description": "PM-7 Enterprise Architecture. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-8",
+      "name": "Critical Infrastructure Plan",
+      "description": "PM-8 Critical Infrastructure Plan. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-9",
+      "name": "Risk Management Strategy",
+      "description": "PM-9 Risk Management Strategy. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-10",
+      "name": "Authorization Process",
+      "description": "PM-10 Authorization Process. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-11",
+      "name": "Mission and Business Process Definition",
+      "description": "PM-11 Mission and Business Process Definition. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-12",
+      "name": "Insider Threat Program",
+      "description": "PM-12 Insider Threat Program. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-13",
+      "name": "Security and Privacy Workforce",
+      "description": "PM-13 Security and Privacy Workforce. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-14",
+      "name": "Testing, Training, and Monitoring",
+      "description": "PM-14 Testing, Training, and Monitoring. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-15",
+      "name": "Security and Privacy Groups and Associations",
+      "description": "PM-15 Security and Privacy Groups and Associations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-16",
+      "name": "Threat Awareness Program",
+      "description": "PM-16 Threat Awareness Program. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-17",
+      "name": "Protecting Controlled Unclassified Information on External Systems",
+      "description": "PM-17 Protecting Controlled Unclassified Information on External Systems. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-18",
+      "name": "Privacy Program Plan",
+      "description": "PM-18 Privacy Program Plan. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-19",
+      "name": "Privacy Program Leadership Role",
+      "description": "PM-19 Privacy Program Leadership Role. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-20",
+      "name": "Dissemination of Privacy Program Information",
+      "description": "PM-20 Dissemination of Privacy Program Information. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-21",
+      "name": "Accounting of Disclosures",
+      "description": "PM-21 Accounting of Disclosures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-22",
+      "name": "Personally Identifiable Information Quality Management",
+      "description": "PM-22 Personally Identifiable Information Quality Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-23",
+      "name": "Data Governance Body",
+      "description": "PM-23 Data Governance Body. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-25",
+      "name": "Minimization of Personally Identifiable Information Used in Testing, Training, and Research",
+      "description": "PM-25 Minimization of Personally Identifiable Information Used in Testing, Training, and Research. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-26",
+      "name": "Complaint Management",
+      "description": "PM-26 Complaint Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-27",
+      "name": "Privacy Reporting",
+      "description": "PM-27 Privacy Reporting. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-28",
+      "name": "Risk Framing",
+      "description": "PM-28 Risk Framing. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-29",
+      "name": "Risk Management Program Leadership Roles",
+      "description": "PM-29 Risk Management Program Leadership Roles. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-30",
+      "name": "Supply Chain Risk Management Strategy",
+      "description": "PM-30 Supply Chain Risk Management Strategy. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-31",
+      "name": "Continuous Monitoring Strategy",
+      "description": "PM-31 Continuous Monitoring Strategy. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PM-32",
+      "name": "Purposing",
+      "description": "PM-32 Purposing. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PS-1",
+      "name": "Policy and Procedures",
+      "description": "PS-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PS-3",
+      "name": "Personnel Screening",
+      "description": "PS-3 Personnel Screening. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PS-6",
+      "name": "Access Agreements",
+      "description": "PS-6 Access Agreements. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PS-7",
+      "name": "External Personnel Security",
+      "description": "PS-7 External Personnel Security. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "PT-1",
+      "name": "Policy and Procedures",
+      "description": "PT-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-1",
+      "name": "Policy and Procedures",
+      "description": "RA-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-2",
+      "name": "Security Categorization",
+      "description": "RA-2 Security Categorization. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-3",
+      "name": "Risk Assessment",
+      "description": "RA-3 Risk Assessment. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-3(1)",
+      "name": "Supply Chain Risk Assessment",
+      "description": "RA-3(1) Supply Chain Risk Assessment. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-5",
+      "name": "Vulnerability Monitoring and Scanning",
+      "description": "RA-5 Vulnerability Monitoring and Scanning. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-5(3)",
+      "name": "Breadth and Depth of Coverage",
+      "description": "RA-5(3) Breadth and Depth of Coverage. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-5(6)",
+      "name": "Automated Trend Analyses",
+      "description": "RA-5(6) Automated Trend Analyses. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-7",
+      "name": "Risk Response",
+      "description": "RA-7 Risk Response. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-9",
+      "name": "Criticality Analysis",
+      "description": "RA-9 Criticality Analysis. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "RA-10",
+      "name": "Threat Hunting",
+      "description": "RA-10 Threat Hunting. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-1",
+      "name": "Policy and Procedures",
+      "description": "SA-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-2",
+      "name": "Allocation of Resources",
+      "description": "SA-2 Allocation of Resources. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-3",
+      "name": "System Development Life Cycle",
+      "description": "SA-3 System Development Life Cycle. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-4",
+      "name": "Acquisition Process",
+      "description": "SA-4 Acquisition Process. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-4(5)",
+      "name": "System, Component, and Service Configurations",
+      "description": "SA-4(5) System, Component, and Service Configurations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-4(7)",
+      "name": "NIAP-approved Protection Profiles ",
+      "description": "SA-4(7) NIAP-approved Protection Profiles . Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-4(8)",
+      "name": "Continuous Monitoring Plan for Controls",
+      "description": "SA-4(8) Continuous Monitoring Plan for Controls. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-5",
+      "name": "System Documentation",
+      "description": "SA-5 System Documentation. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-8",
+      "name": "Security and Privacy Engineering Principles",
+      "description": "SA-8 Security and Privacy Engineering Principles. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-9(1)",
+      "name": "Risk Assessments and Organizational Approvals",
+      "description": "SA-9(1) Risk Assessments and Organizational Approvals. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-9(3)",
+      "name": "Establish and Maintain Trust Relationship with Providers",
+      "description": "SA-9(3) Establish and Maintain Trust Relationship with Providers. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-9(4)",
+      "name": "Consistent Interests of Consumers and Providers",
+      "description": "SA-9(4) Consistent Interests of Consumers and Providers. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-9(5)",
+      "name": "Processing, Storage, and Service Location",
+      "description": "SA-9(5) Processing, Storage, and Service Location. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-10",
+      "name": "Developer Configuration Management",
+      "description": "SA-10 Developer Configuration Management. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-11",
+      "name": "Developer Testing and Evaluation",
+      "description": "SA-11 Developer Testing and Evaluation. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-15",
+      "name": "Development Process, Standards, and Tools",
+      "description": "SA-15 Development Process, Standards, and Tools. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-15(3)",
+      "name": "Criticality Analysis",
+      "description": "SA-15(3) Criticality Analysis. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-15(4)",
+      "name": "Threat Modeling and Vulnerability Analysis",
+      "description": "SA-15(4) Threat Modeling and Vulnerability Analysis. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-15(8)",
+      "name": "Reuse of Threat and Vulnerability Information",
+      "description": "SA-15(8) Reuse of Threat and Vulnerability Information. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-16",
+      "name": "Developer-provided Training",
+      "description": "SA-16 Developer-provided Training. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-17",
+      "name": "Developer Security and Privacy Architecture and Design",
+      "description": "SA-17 Developer Security and Privacy Architecture and Design. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-20",
+      "name": "Customized Development of Critical Components",
+      "description": "SA-20 Customized Development of Critical Components. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-21",
+      "name": "Developer Screening",
+      "description": "SA-21 Developer Screening. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-21(1)",
+      "name": "Validation of Screening",
+      "description": "SA-21(1) Validation of Screening. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SA-22",
+      "name": "Unsupported System Components",
+      "description": "SA-22 Unsupported System Components. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-1",
+      "name": "Policy and Procedures",
+      "description": "SC-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-4",
+      "name": "Information in Shared System Resources",
+      "description": "SC-4 Information in Shared System Resources. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-5(2)",
+      "name": "Capacity, Bandwidth, and Redundancy",
+      "description": "SC-5(2) Capacity, Bandwidth, and Redundancy. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-7",
+      "name": "Boundary Protection",
+      "description": "SC-7 Boundary Protection. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-7(13)",
+      "name": "Isolation of Security Tools, Mechanisms, and Support Components",
+      "description": "SC-7(13) Isolation of Security Tools, Mechanisms, and Support Components. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-7(14)",
+      "name": "Protect Against Unauthorized Physical Connections",
+      "description": "SC-7(14) Protect Against Unauthorized Physical Connections. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-7(19)",
+      "name": "Block Communication from Non-organizationally Configured Hosts",
+      "description": "SC-7(19) Block Communication from Non-organizationally Configured Hosts. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-8",
+      "name": "Transmission Confidentiality and Integrity",
+      "description": "SC-8 Transmission Confidentiality and Integrity. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-18",
+      "name": "Mobile Code",
+      "description": "SC-18 Mobile Code. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-18(2)",
+      "name": "Acquisition, Development, and Use",
+      "description": "SC-18(2) Acquisition, Development, and Use. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-27",
+      "name": "Platform-independent Applications",
+      "description": "SC-27 Platform-independent Applications. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-28",
+      "name": "Protection of Information at Rest",
+      "description": "SC-28 Protection of Information at Rest. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-29",
+      "name": "Heterogeneity",
+      "description": "SC-29 Heterogeneity. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-30",
+      "name": "Concealment and Misdirection",
+      "description": "SC-30 Concealment and Misdirection. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-30(2)",
+      "name": "Randomness",
+      "description": "SC-30(2) Randomness. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-30(3)",
+      "name": "Change Processing and Storage Locations",
+      "description": "SC-30(3) Change Processing and Storage Locations. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-30(4)",
+      "name": "Misleading Information",
+      "description": "SC-30(4) Misleading Information. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-30(5)",
+      "name": "Concealment of System Components",
+      "description": "SC-30(5) Concealment of System Components. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-36",
+      "name": "Distributed Processing and Storage",
+      "description": "SC-36 Distributed Processing and Storage. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-37(1)",
+      "name": "Ensure Delivery and Transmission",
+      "description": "SC-37(1) Ensure Delivery and Transmission. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-38",
+      "name": "Operations Security",
+      "description": "SC-38 Operations Security. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SC-47",
+      "name": "Alternate Communications Paths",
+      "description": "SC-47 Alternate Communications Paths. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-1",
+      "name": "Policy and Procedures",
+      "description": "SI-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-2",
+      "name": "Flaw Remediation",
+      "description": "SI-2 Flaw Remediation. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-2(5)",
+      "name": "Automatic Software and Firmware Updates",
+      "description": "SI-2(5) Automatic Software and Firmware Updates. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-3",
+      "name": "Malicious Code Protection",
+      "description": "SI-3 Malicious Code Protection. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-4",
+      "name": "System Monitoring",
+      "description": "SI-4 System Monitoring. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-4(17)",
+      "name": "Integrated Situational Awareness",
+      "description": "SI-4(17) Integrated Situational Awareness. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-4(19)",
+      "name": "Risk for Individuals",
+      "description": "SI-4(19) Risk for Individuals. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-5",
+      "name": "Security Alerts, Advisories, and Directives",
+      "description": "SI-5 Security Alerts, Advisories, and Directives. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-7",
+      "name": "Software, Firmware, and Information Integrity",
+      "description": "SI-7 Software, Firmware, and Information Integrity. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-7(14)",
+      "name": "Binary or Machine Executable Code",
+      "description": "SI-7(14) Binary or Machine Executable Code. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-7(15)",
+      "name": "Code Authentication",
+      "description": "SI-7(15) Code Authentication. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-12",
+      "name": "Information Management and Retention",
+      "description": "SI-12 Information Management and Retention. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SI-20",
+      "name": "Tainting",
+      "description": "SI-20 Tainting. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-1",
+      "name": "Policy and Procedures",
+      "description": "SR-1 Policy and Procedures. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-2",
+      "name": "Supply Chain Risk Management Plan",
+      "description": "SR-2 Supply Chain Risk Management Plan. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-3",
+      "name": "Supply Chain Controls and Processes",
+      "description": "SR-3 Supply Chain Controls and Processes. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-3(1)",
+      "name": "Diverse Supply Base",
+      "description": "SR-3(1) Diverse Supply Base. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-3(3)",
+      "name": "Sub-tier Flow Down",
+      "description": "SR-3(3) Sub-tier Flow Down. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-4",
+      "name": "Provenance",
+      "description": "SR-4 Provenance. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-5",
+      "name": "Acquisition Strategies, Tools, and Methods",
+      "description": "SR-5 Acquisition Strategies, Tools, and Methods. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-6",
+      "name": "Supplier Assessments and Reviews",
+      "description": "SR-6 Supplier Assessments and Reviews. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-7",
+      "name": "Supply Chain Operations Security",
+      "description": "SR-7 Supply Chain Operations Security. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-8",
+      "name": "Notification Agreements",
+      "description": "SR-8 Notification Agreements. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-9",
+      "name": "Tamper Resistance and Detection",
+      "description": "SR-9 Tamper Resistance and Detection. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-10",
+      "name": "Inspection of Systems or Components",
+      "description": "SR-10 Inspection of Systems or Components. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-11",
+      "name": "Component Authenticity",
+      "description": "SR-11 Component Authenticity. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-11(1)",
+      "name": "Anti-counterfeit Training",
+      "description": "SR-11(1) Anti-counterfeit Training. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-11(2)",
+      "name": "Configuration Control for Component Service and Repair",
+      "description": "SR-11(2) Configuration Control for Component Service and Repair. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-11(3)",
+      "name": "Anti-counterfeit Scanning",
+      "description": "SR-11(3) Anti-counterfeit Scanning. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-12",
+      "name": "Component Disposal",
+      "description": "SR-12 Component Disposal. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). Title from the NIST SP 800-53 Rev. 5.2.0 OSCAL catalog (public domain). Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    },
+    {
+      "id": "SR-13",
+      "name": "Supplier Inventory",
+      "description": "SR-13 Supplier Inventory. Listed in NIST SP 800-161 Rev. 1 Update 1, Appendix B, Table 6 (C-SCRM control summary). This identifier is marked in that table as not defined in SP 800-53. Source: https://doi.org/10.6028/NIST.SP.800-161r1-upd1",
+      "category": "C-SCRM"
+    }
+  ]
+}
