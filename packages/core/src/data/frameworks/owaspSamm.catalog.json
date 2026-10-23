@@ -1,0 +1,637 @@
+{
+  "license": "CC-BY-SA-4.0",
+  "source": "https://github.com/owaspsamm/core branch develop, model/activities/*.yml",
+  "attribution": "OWASP SAMM © OWASP Foundation, licensed CC BY-SA 4.0. Activity text is the longDescription field. This file stays under CC-BY-SA-4.0.",
+  "controls": [
+    {
+      "id": "D-SA-1-A",
+      "name": "Adhere to basic security principles",
+      "description": "During design, technical staff on the product team use a short checklist of security principles. Typically, security principles include defense in depth, securing the weakest link, use of secure defaults, simplicity in design of security functionality, secure failure, balance of security and usability, running with least privilege, avoidance of security by obscurity, etc.",
+      "category": "Design / Secure Architecture",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SA-1-B",
+      "name": "Identify tools and technologies",
+      "description": "People often take the path of least resistance in developing, deploying or operating a software solution. New technologies are often included when they can facilitate or speed up the effort or enable the solution to scale better. These new technologies might, however, introduce new risks to the organization that you need to manage.",
+      "category": "Design / Secure Architecture",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SA-2-A",
+      "name": "Provide preferred security solutions",
+      "description": "Identify shared infrastructure or services with security functionality. These typically include single-sign-on services, access control or entitlements services, logging and monitoring services or application-level firewalling. Collect and evaluate reusable systems to assemble a list of such resources and categorize them by the security mechanism they fulfill. Consider each resource in terms of why a product team would want to integrate with it, i.e., the benefits of using the shared resource.",
+      "category": "Design / Secure Architecture",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SA-2-B",
+      "name": "Promote preferred tools and technologies",
+      "description": "Identify commonly used technologies, frameworks, and tools in use across software projects in the organization, focusing on capturing the high-level technologies.",
+      "category": "Design / Secure Architecture",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SA-3-A",
+      "name": "Build reference architectures",
+      "description": "Build a set of reference architectures that select and combine a verified set of security components to ensure a proper design of security. Reference platforms have advantages in terms of shortening audit and security-related reviews, increasing efficiency in development, and lowering maintenance overhead. Continuously maintain and improve the reference architecture based on new insights in the organization and within the community. Have architects, senior developers and other technical stakeholders participate in design and creation of reference platforms. After creation, teams maintain ongoing support and updates.",
+      "category": "Design / Secure Architecture",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SA-3-B",
+      "name": "Enforce the use of recommended technologies",
+      "description": "For all proprietary development (in-house or acquired), impose and monitor the use of standardized technology. Depending on your organization, either implement these restrictions into build or deployment tools, by means of after-the-fact automated analysis of application artifacts (e.g., source code, configuration files or deployment artifacts), or periodically review focusing on the correct use of these frameworks.",
+      "category": "Design / Secure Architecture",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SR-1-A",
+      "name": "Identify security requirements",
+      "description": "Perform a review of the functional requirements of the software project. Identify relevant security requirements (i.e. expectations) for this functionality by reasoning on the desired confidentiality, integrity or availability of the service or data offered by the software project. Requirements state the objective (e.g., \"personal data for the registration process should be transferred and stored securely\"), but not the actual measure to achieve the objective (e.g., \"use TLSv1.2 for secure transfer\").",
+      "category": "Design / Security Requirements",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SR-1-B",
+      "name": "Perform vendor assessments",
+      "description": "The security competences and habits of the external suppliers involved in the development of your software can have a significant impact on the security posture of the final product. Consequently, it is important to know and evaluate your suppliers on this front.",
+      "category": "Design / Security Requirements",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SR-2-A",
+      "name": "Standardize and integrate security requirements",
+      "description": "Security requirements can originate from other sources including policies and legislation, known problems within the application, and intelligence from metrics and feedback. At this level, a more systematic elicitation of security requirements must be achieved by analyzing different sources of such requirements. Ensure that appropriate input is received from these sources to help the elicitation of requirements. For example, organize interviews or brainstorm sessions (e.g., in the case of policy and legislation), analyze historical logs or vulnerability systems.",
+      "category": "Design / Security Requirements",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SR-2-B",
+      "name": "Discuss security responsibilities with suppliers",
+      "description": "Increase your confidence in the capability of your suppliers for software security. Discuss concrete responsibilities and expectations from your suppliers and your own organization and establish a contract with the supplier. The responsibilities can be specific quality requirements or particular tasks, and minimal service can be detailed in a Service Level Agreement (SLA). A quality requirement example is that they will deliver software that is protected against the OWASP Top 10, and in case issues are detected, these will be fixed. A task example is that they have to perform continuous static code analysis, or perform an independent penetration test before a major release. The agreement stipulates liabilities and caps in case an important issue arises.",
+      "category": "Design / Security Requirements",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SR-3-A",
+      "name": "Develop a security requirements framework",
+      "description": "Set up a security requirements framework to help projects elicit an appropriate and complete requirements set for their project. This framework considers the different types of requirements and sources of requirements. It should be adapted to the organizational habits and culture, and provide effective methodology and guidance in the elicitation and formation of requirements.",
+      "category": "Design / Security Requirements",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-SR-3-B",
+      "name": "Align security methodology with suppliers",
+      "description": "The best way to minimize the risk of issues in software is to align maximally and integrate closely between the different parties. From a process perspective, this means using similar development paradigms and introducing regular milestones to ensure proper alignment and qualitative progress. From a tools perspective, this might mean using similar build, verification and deployment environments, and sharing other supporting tools (e.g. requirements, architecture tools, or code repositories).",
+      "category": "Design / Security Requirements",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-TA-1-A",
+      "name": "Perform application risk assessments",
+      "description": "Use a simple method to evaluate the application risk per application, estimating the potential business impact that it poses for the organization in case of an attack. To achieve this, evaluate the impact of a breach in the confidentiality, integrity and availability of the data or service. Consider using a set of 5-10 questions to understand important application characteristics, such as whether the application processes financial data, whether it is internet facing, or whether privacy-related data is involved. The application risk profile tells you whether these factors are applicable and if they could significantly impact the organization.",
+      "category": "Design / Threat Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-TA-1-B",
+      "name": "Perform basic threat modeling",
+      "description": "Threat modeling is a structured activity for identifying, evaluating, and managing system threats, architectural design flaws, and recommended security mitigations. It is typically done as part of the design phase or as part of a security assessment.",
+      "category": "Design / Threat Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-TA-2-A",
+      "name": "Inventory risk profiles",
+      "description": "The goal of this activity is to thoroughly understand the risk level of all applications within the organization, to focus the effort of your software assurance activities where it really matters.",
+      "category": "Design / Threat Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-TA-2-B",
+      "name": "Standardize and scale threat modeling",
+      "description": "Use a standardized threat modeling methodology for your organization and align this on your application risk levels. Think about ways to support the scaling of threat modeling throughout the organization.",
+      "category": "Design / Threat Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-TA-3-A",
+      "name": "Periodic review of risk profiles",
+      "description": "The application portfolio of an organization changes, as well as the conditions and constraints in which an application lives (e.g., driven by the company strategy). Periodically review the risk inventory to ensure correctness of the risk evaluations of the different applications.",
+      "category": "Design / Threat Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "D-TA-3-B",
+      "name": "Optimize threat modeling",
+      "description": "Threat modeling is integrated into your SDLC and has become part of the developer security culture. Reusable risk patterns, comprising related threat libraries, design flaws, and security mitigations, are created and improved, based on the organization's threat models. You regularly (e.g., yearly) review the existing threat models to verify that no new threats are relevant for your applications.",
+      "category": "Design / Threat Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-EG-1-A",
+      "name": "Train all stakeholders for awareness",
+      "description": "Conduct security awareness training for all roles currently involved in the management, development, testing, or auditing of the software. The goal is to increase the awareness of application security threats and risks, security best practices, and secure software design principles. Develop training internally or procure it externally. Ideally, deliver training in person so participants can have discussions as a team, but Computer-Based Training (CBT) is also an option.",
+      "category": "Governance / Education and Guidance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-EG-1-B",
+      "name": "Identify security champions",
+      "description": "Implement a program where each software development team has a member considered a \"Security Champion\" who is the liaison between Information Security and developers. Depending on the size and structure of the team the \"Security Champion\" may be a software developer, tester, or a product manager. The \"Security Champion\" has a set number of hours per week for Information Security related activities. They participate in periodic briefings to increase awareness and expertise in different security disciplines. \"Security Champions\" have additional training to help develop these roles as Software Security subject-matter experts. You may need to customize the way you create and support \"Security Champions\" for cultural reasons.",
+      "category": "Governance / Education and Guidance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-EG-2-A",
+      "name": "Customize security training",
+      "description": "Conduct instructor-led or CBT security training specific to the organization's roles and technologies, starting with the core development team. The organization customizes training for product managers, software developers, testers, and security auditors, based on each group's technical needs.",
+      "category": "Governance / Education and Guidance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-EG-2-B",
+      "name": "Implement centers of excellence",
+      "description": "The organization implements a formal Secure Software Center of Excellence, with architects and senior developers representing the different business units and technology stacks. The team has an official charter and defines standards and best practices to improve software development practices. The goal is to mitigate the way the velocity of change in technology, programming languages, and development frameworks and libraries makes it difficult for Information Security professionals to be fully informed of all the technical nuances that impact security. Even developers often struggle keeping up with all the changes and new tools intended to make software development faster, better, and safer.",
+      "category": "Governance / Education and Guidance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-EG-3-A",
+      "name": "Standardize security guidance",
+      "description": "Implement a formal training program requiring anyone involved with the software development lifecycle to complete appropriate role and technology-specific training as part of the onboarding process. Based on the criticality of the application and user's role, consider restricting access until the onboarding training has been completed. While the organization may source some modules externally, the program is facilitated and managed in-house and includes content specific to the organization going beyond general security best practices. The program has a defined curriculum, checks participation, and tests understanding and competence. The training consists of a combination of industry best practices and organization's internal standards, including training on specific systems used by the organization.",
+      "category": "Governance / Education and Guidance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-EG-3-B",
+      "name": "Establish a security community",
+      "description": "Security is the responsibility of all employees, not just the Information Security team. Deploy communication and knowledge-sharing platforms to help developers build communities around different technologies, tools, and programming languages. In these communities employees share information, discuss challenges with other developers, and search the knowledge base for answers to previously discussed issues.",
+      "category": "Governance / Education and Guidance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-PC-1-A",
+      "name": "Define policies and standards",
+      "description": "Develop a library of policies and standards to govern all aspects of software development in the organization. Policies and standards are based on existing industry standards and appropriate for the organization's industry. Due to the full range of technology-specific limitations and best practices, review proposed standards with the various product teams. With the overarching objective of increasing security of the applications and computing infrastructure, invite product teams to offer feedback on any aspects of the standards that would not be feasible or cost-effective to implement, as well as opportunities for standards to go further with little effort on the product teams.",
+      "category": "Governance / Policy and Compliance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-PC-1-B",
+      "name": "Identify compliance requirements",
+      "description": "Create a comprehensive list of all compliance requirements, including any triggers that could help determine which applications are in scope. Compliance requirements may be considered in scope based on factors such as geographic location, types of data, or contractual obligations with clients or business partners. Review each identified compliance requirement with the appropriate experts and legal counsel, to ensure the obligation is understood. Since many compliance obligations vary in applicability based on how the data is processed, stored, or transmitted across the computing environment, compliance drivers should always indicate opportunities for lowering the overall compliance burden by changing how the data is handled.",
+      "category": "Governance / Policy and Compliance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-PC-2-A",
+      "name": "Develop test procedures",
+      "description": "To assist with the ongoing implementation and verification of compliance with policies and standards, develop application security and appropriate test scripts related to each applicable requirement. Organize these documents into libraries and make them available to all application teams in formats most conducive for inclusion into each application. Clearly label the documents and link them to the policies and standards they represent, to assist with the ongoing updates and maintenance. Version policies and standards and include detailed change logs with each iterative update to make ongoing inclusion into different products' SDLC easier.",
+      "category": "Governance / Policy and Compliance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-PC-2-B",
+      "name": "Standardize policy and compliance requirements",
+      "description": "Develop a library of application requirements and test scripts to establish and verify regulatory compliance of applications. Some of these are tied to individual compliance requirements like PCI or GDPR, while others are more general in nature and address global compliance requirements such as ISO. The library is available to all application development teams. It includes guidance for determining all applicable requirements including considerations for reducing the compliance burden and scope. Implement a process to periodically re-assess each application's compliance requirements. Re-assessment includes reviewing all application functionality and opportunities to reduce scope to lower the overall cost of compliance.",
+      "category": "Governance / Policy and Compliance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-PC-3-A",
+      "name": "Measure compliance to policies and standards",
+      "description": "Develop a program to measure each application's compliance with existing policies and standards. Mandatory requirements should be justified and reported consistently across all teams. Whenever possible, tie compliance status into automated testing and report with each version. Compliance reporting includes the version of policies and standards and appropriate code coverage factors.",
+      "category": "Governance / Policy and Compliance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-PC-3-B",
+      "name": "Measure compliance to external requirements",
+      "description": "Develop a program for measuring and reporting on the status of compliance between different applications. Application requirements and test scripts help determine the status of compliance. Leverage testing automation to promptly detect compliance regressions in frequently updated applications and ensure compliance is maintained through the different application versions. Whenever fully automated testing is not possible, QA, Internal Audit, or Information Security teams assess compliance periodically through a combination of manual testing and interview.",
+      "category": "Governance / Policy and Compliance",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-SM-1-A",
+      "name": "Identify the organization's risk appetite",
+      "description": "Understand, based on application risk exposure, what threats exist or may exist, as well as how tolerant executive leadership is of these risks. This understanding is a key component of determining software security assurance priorities. To ascertain these threats, interview business owners and stakeholders and document drivers specific to industries where the organization operates as well as drivers specific to the organization. Gathered information includes worst-case scenarios that could impact the organization, as well as opportunities where an optimized software development lifecycle and more secure applications could provide a market-differentiator or create additional opportunities.",
+      "category": "Governance / Strategy and Metrics",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-SM-1-B",
+      "name": "Define basic security metrics",
+      "description": "Define and document metrics to evaluate the effectiveness and efficiency of the application security program. This way, improvements are measurable and you can use them to secure future support and funding for the program. Considering the dynamic nature of most development environments, metrics should consist of measurements in the following categories",
+      "category": "Governance / Strategy and Metrics",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-SM-2-A",
+      "name": "Define the security strategy",
+      "description": "Based on the magnitude of assets, threats, and risk tolerance, develop a security strategic plan and budget to address business priorities around application security. The plan covers 1 to 3 years and includes milestones consistent with the organization's business drivers and risks. It provides tactical and strategic initiatives and follows a roadmap that makes its alignment with business priorities and needs visible.",
+      "category": "Governance / Strategy and Metrics",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-SM-2-B",
+      "name": "Set strategic KPIs",
+      "description": "Once the organization has defined its application security metrics, collect enough information to establish realistic goals. Test identified metrics to ensure you can gather data consistently and efficiently over a short period. After the initial testing period, the organization should have enough information to commit to goals and objectives expressed through Key Performance Indicators (KPIs).",
+      "category": "Governance / Strategy and Metrics",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-SM-3-A",
+      "name": "Align security and business strategies",
+      "description": "You review the application security plan periodically for ongoing applicability and support of the organization's evolving needs and future growth. To do this, you repeat the steps from the first two maturity levels of this Security Practice at least annually. The goal is for the plan to always support the current and future needs of the organization, which ensures the program is aligned with the business.",
+      "category": "Governance / Strategy and Metrics",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "G-SM-3-B",
+      "name": "Drive the security program through metrics",
+      "description": "Define guidelines for influencing the Application Security program based on the KPIs and other application security metrics. These guidelines combine the maturity of the application development process and procedures with different metrics to make the program more efficient. The following examples show a relationship between measurements and ways of evolving and improving application security:",
+      "category": "Governance / Strategy and Metrics",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-DM-1-A",
+      "name": "Track security defects centrally",
+      "description": "Introduce a common definition / understanding of a security defect and define the most common ways of identifying these. These typically include, but are not limited to:",
+      "category": "Implementation / Defect Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-DM-1-B",
+      "name": "Define basic defect metrics",
+      "description": "Once per defined period of time (typically at least once per year), go over your both resolved and still open recorded security defects in every team and extract basic metrics from the available data. These might include:",
+      "category": "Implementation / Defect Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-DM-2-A",
+      "name": "Rate and track security defects",
+      "description": "Introduce and apply a well defined rating methodology for your security defects consistently across the whole organization, based on the probability and expected impact of the defect being exploited. This will allow you to identify applications which need higher attention and investments. In case you don't store the information about security defects centrally, ensure that you're still able to easily pull the information from all sources and get an overview about \"hot spots\" needing your attention.",
+      "category": "Implementation / Defect Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-DM-2-B",
+      "name": "Define advanced defect metrics",
+      "description": "Define, collect and calculate unified metrics across the whole organization. These might include:",
+      "category": "Implementation / Defect Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-DM-3-A",
+      "name": "Enforce an SLA for defect management",
+      "description": "Implement an automated alerting on security defects if the fix time breaches the defined SLAs. Ensure that these defects are automatically transferred into the risk management process and rated by a consistent quantitative methodology. Evaluate how particular defects influence or amplify each other not only on the level of separate teams, but on the level of the whole organization. Use the knowledge of the full kill chain to prioritize, introduce and track compensating controls mitigating the respective business risks.",
+      "category": "Implementation / Defect Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-DM-3-B",
+      "name": "Use metrics to improve the security strategy",
+      "description": "Regularly (at least once per year) revisit the defect management metrics you're collecting and compare the effort needed to collect and track these to the expected outcomes. Make knowledgeable decisions about removing metrics which don't deliver the overall expected value. Wherever possible, include and automate verification activities for the quality of the collected data and ensure sustainable improvement if any differences are detected.",
+      "category": "Implementation / Defect Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SB-1-A",
+      "name": "Define a consistent build process",
+      "description": "Define the build process, breaking it down into a set of clear instructions to either be followed by a person or an automated tool. The build process definition describes the whole process end-to-end so that the person or tool can follow it consistently each time and produce the same result. The definition is stored centrally and accessible to any tools or people. Avoid storing multiple copies as they may become unaligned and outdated.",
+      "category": "Implementation / Secure Build",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SB-1-B",
+      "name": "Identify application dependencies",
+      "description": "Keep a record of all dependencies used throughout the target production environment. This is sometimes referred to as a Bill of Materials (BOM). Consider that different components of the application may consume entirely different dependencies. For example, if the software package is a web application, cover both the server-side application code and client-side scripts. In building these records, consider the various locations where dependencies might be specified such as configuration files, the project's directory on disk, a package management tool or the actual code (e.g. via an IDE that supports listing dependencies).",
+      "category": "Implementation / Secure Build",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SB-2-A",
+      "name": "Automate the build process",
+      "description": "Automate the build process so that builds can be executed consistently anytime. The build process shouldn't typically require any intervention, further reducing the likelihood of human error.",
+      "category": "Implementation / Secure Build",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SB-2-B",
+      "name": "Review application dependencies for security",
+      "description": "Evaluate used dependencies and establish a list of acceptable ones approved for use within a project, team, or the wider organization according to a defined set of criteria.",
+      "category": "Implementation / Secure Build",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SB-3-A",
+      "name": "Enforce a security baseline during build",
+      "description": "Define security checks suitable to be carried out during the build process, as well as minimum criteria for passing the build - these might differ according to the risk profiles of various applications. Include the respective security checks in the build and enforce breaking the build process in case the predefined criteria are not met. Trigger warnings for issues below the threshold and log these to a centralized system to track them and take actions. If sensible, implement an exception mechanism to bypass this behavior if the risk of a particular vulnerability has been accepted or mitigated. However, ensure these cases are explicitly approved first and log their occurrence together with a rationale.",
+      "category": "Implementation / Secure Build",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SB-3-B",
+      "name": "Test application dependencies",
+      "description": "Maintain a whitelist of approved dependencies and versions, and ensure that the build process fails upon the presence of a dependency not on the list. Include a sign-off process for handling exceptions to this rule if sensible.",
+      "category": "Implementation / Secure Build",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SD-1-A",
+      "name": "Use a repeatable deployment process",
+      "description": "Define the deployment process over all stages, breaking it down into a set of clear instructions to either be followed by a person or an automated tooling. The deployment process definition should describe the whole process end-to-end so that it can be consistently followed each time to produce the same result. The definition is stored centrally and accessible to all relevant personnel. Do not store or distribute multiple copies, some of which may become outdated.",
+      "category": "Implementation / Secure Deployment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SD-1-B",
+      "name": "Protect application secrets in configuration and code",
+      "description": "Developers should not have access to secrets or credentials for production environments. Have a mechanism in place to adequately protect production secrets, for instance by (i) having specific persons adding them to relevant configuration files upon deployment (the separation of duty principle) or (ii) by encrypting the production secrets contained in the configuration files upfront.",
+      "category": "Implementation / Secure Deployment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SD-2-A",
+      "name": "Automate deployment and integrate security checks",
+      "description": "Automate the deployment process to cover various stages, so that no manual configuration steps are needed and the risk of isolated human errors is eliminated. Ensure and verify that the deployment is consistent over all stages.",
+      "category": "Implementation / Secure Deployment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SD-2-B",
+      "name": "Include application secrets during deployment",
+      "description": "Have an automated process to add credentials and secrets to configuration files during the deployment process to respective stages. This way, developers and deployers do not see or handle those sensitive values.",
+      "category": "Implementation / Secure Deployment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SD-3-A",
+      "name": "Verify the integrity of deployment artifacts",
+      "description": "Take advantage of binaries being signed at the build time and include automatic verification of the integrity of software being deployed by checking their signatures against trusted certificates. This may include binaries developed and built in-house, as well as third-party artifacts. Do not deploy artifacts if their signatures cannot be verified, including those with invalid or expired certificates.",
+      "category": "Implementation / Secure Deployment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "I-SD-3-B",
+      "name": "Enforce lifecycle management of application secrets",
+      "description": "Implement lifecycle management for production secrets, and ensure the generation of new secrets as much as possible, and for every application instance. The use of secrets per application instance ensures that unexpected application behavior can be traced back and properly analyzed. Tools can help in automatically and seamlessly updating the secrets in all relevant places upon change.",
+      "category": "Implementation / Secure Deployment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-EM-1-A",
+      "name": "Use best-effort hardening",
+      "description": "Understanding the importance of securing the technology stacks you're using, apply secure configuration to stack elements, based on readily available guidance (e.g., open source projects, vendor documentation, blog articles). When your teams develop configuration guidance for their applications, based on trial-and-error and information gathered by team members, encourage them to share their learnings across the organization.",
+      "category": "Operations / Environment Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-EM-1-B",
+      "name": "Practice best-effort patching",
+      "description": "Identify applications and third-party components which need to be updated or patched, including underlying operating systems, application servers, and third-party code libraries.",
+      "category": "Operations / Environment Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-EM-2-A",
+      "name": "Establish hardening baselines",
+      "description": "Establish configuration hardening baselines for all components in each technology stack used. To assist with consistent application of the hardening baselines, develop configuration guides for the components. Require product teams to apply configuration baselines to all new systems, and to existing systems when practicable.",
+      "category": "Operations / Environment Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-EM-2-B",
+      "name": "Formalize patch management",
+      "description": "Develop and follow a well-defined process for managing patches to application components across the technology stacks in use. Ensure processes include regular schedules for applying vendor updates, aligned with vendor update calendars (e.g., Microsoft Patch Tuesday). For software developed by the organization, deliver releases to customers and organization-managed solutions on a regular basis (e.g., monthly), regardless of whether you are including new features.",
+      "category": "Operations / Environment Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-EM-3-A",
+      "name": "Perform continuous configuration monitoring",
+      "description": "Actively monitor the security configurations of deployed technology stacks, performing regular checks against established baselines. Ensure results of configuration checks are readily available, through published reports and dashboards.",
+      "category": "Operations / Environment Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-EM-3-B",
+      "name": "Enforce timely patch management",
+      "description": "Develop and use management dashboards/reports to track compliance with patching processes and SLAs, across the portfolio. Ensure dependency management and application packaging processes can support applying component-level patches at any time, to meet required SLAs.",
+      "category": "Operations / Environment Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-IM-1-A",
+      "name": "Use best-effort incident detection",
+      "description": "Analyze available log data (e.g., access logs, application logs, infrastructure logs), to detect possible security incidents in accordance with known log data retention periods.",
+      "category": "Operations / Incident Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-IM-1-B",
+      "name": "Create an incident response plan",
+      "description": "The first step is to recognize the incident response competence as such, and define a responsible owner. Provide them the time and resources they need to keep up with current state of incident handling best practices and forensic tooling.",
+      "category": "Operations / Incident Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-IM-2-A",
+      "name": "Define an incident detection process",
+      "description": "Establish a dedicated owner for the incident detection process, make clear documentation accessible to all process stakeholders, and ensure it is regularly reviewed and updated as necessary. Ensure employees responsible for incident detection follow this process (e.g., using training).",
+      "category": "Operations / Incident Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-IM-2-B",
+      "name": "Define an incident response process",
+      "description": "Establish and document the formal security incident response process. Ensure documentation includes information like&#58;",
+      "category": "Operations / Incident Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-IM-3-A",
+      "name": "Improve the incident detection process",
+      "description": "Ensure process documentation includes measures for continuous process improvement. Check the continuity of process improvement (e.g., via tracking of changes).",
+      "category": "Operations / Incident Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-IM-3-B",
+      "name": "Establish an incident response team",
+      "description": "Establish a dedicated incident response team, continuously available and responsible for continuous process improvement with the help of regular RCAs. For distributed organizations, define and document logistics rules for all relevant locations if sensible.",
+      "category": "Operations / Incident Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-OM-1-A",
+      "name": "Organize basic data protections",
+      "description": "Understand the types and sensitivity of data stored and processed by your applications, and maintain awareness of the fate of processed data (e.g., backups, sharing with external partners). At this level of maturity, the information gathered may be captured in varying forms and different places; no organization-wide data catalog is assumed to exist. Protect and handle all data associated with a given application according to protection requirements applying to the most sensitive data stored and processed.",
+      "category": "Operations / Operational Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-OM-1-B",
+      "name": "Identify unused applications",
+      "description": "Identify unused applications on an _ad hoc_ basis, either by chance observation, or by occasionally performing a review. When you identify unused applications, process those findings for further action. If you have established a formal process for decommissioning unused applications, ensure teams are aware of and use it.",
+      "category": "Operations / Operational Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-OM-2-A",
+      "name": "Establish a data catalog",
+      "description": "At this maturity level, Data Protection activities focus on actively managing your stewardship of data. Establish technical and administrative controls to protect the confidentiality of sensitive data, and the integrity and availability of all data in your care, from its initial creation/receipt through the destruction of backups at the end of their retention period.",
+      "category": "Operations / Operational Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-OM-2-B",
+      "name": "Formalize decommissioning process",
+      "description": "As part of decommissioning a system, application, or service, follow an established process for removing all relevant accounts, firewall rules, data, etc. from the operational environment. By removing these unused elements from configuration files, you improve the maintainability of infrastructure-as-code resources.",
+      "category": "Operations / Operational Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-OM-3-A",
+      "name": "Respond to data breaches",
+      "description": "Activities at this maturity level are focused on automating data protection, reducing your reliance on human effort to assess and manage compliance with policies. There is a focus on feedback mechanisms and proactive reviews, to identify and act on opportunities for process improvement.",
+      "category": "Operations / Operational Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "O-OM-3-B",
+      "name": "Review application lifecycle state regularly",
+      "description": "Regularly evaluate the lifecycle state and support status of every software asset and underlying infrastructure component, and estimate their end-of-life. Follow a well-defined process for actively mitigating security risks arising as assets/components approach their end-of-life. Regularly review and update your process, to reflect lessons learned.",
+      "category": "Operations / Operational Management",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-AA-1-A",
+      "name": "Assess application architecture",
+      "description": "Create a view of the overall architecture and examine it for the correct provision of general security mechanisms such as authentication, authorization, user and rights management, secure communication, data protection, key management and log management. Also consider the support for privacy. Do this based on project artifacts such as architecture or design documents, or interviews with business owners and technical staff. Also consider the infrastructure components - these are all the systems, components and libraries (including SDKs) that are not specific to the application, but provide direct support to use or manage the application(s) in the organization.",
+      "category": "Verification / Architecture Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-AA-1-B",
+      "name": "Evaluate architecture for typical threats",
+      "description": "Review the architecture for typical security threats. Security-savvy technical staff conduct this analysis with input from architects, developers, managers, and business owners as needed, to ensure the architecture addresses all common threats which development teams lacking specialized security expertise may have overlooked.",
+      "category": "Verification / Architecture Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-AA-2-A",
+      "name": "Verify the application architecture for security methodically",
+      "description": "Verify that the solution architecture addresses all identified security and compliance requirements. For each interface in the application, iterate through the list of security and compliance requirements and analyze the architecture for their provision. Also perform an interaction or data flow analysis to ensure that the requirements are adequately addressed over different components. Elaborate the analysis to show the design-level features that address each requirement.",
+      "category": "Verification / Architecture Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-AA-2-B",
+      "name": "Structurally verify the architecture for identified threats",
+      "description": "Systematically review each threat identified during the Threat Assessment activities and examine how the architecture mitigates them. Use a standardized process for analyzing system architectures and the flow of data within them. This is typically linked to the threat model used (e.g. STRIDE) in order to identify the relevant security objectives which address each type of threat. For each threat, identify the design-level features of the architecture which counter it and assess their effectiveness in doing so.",
+      "category": "Verification / Architecture Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-AA-3-A",
+      "name": "Verify the effectiveness of security components",
+      "description": "Review the effectiveness of the architecture components and their provided security mechanisms in terms of alignment with the overall strategy of the organization, and scrutinize the degree of availability, scalability and enterprise-readiness of the chosen security solutions. While tactical choices for a particular application can make sense in specific contexts, it is important to keep an eye on the bigger picture and ensure future readiness of the designed solution.",
+      "category": "Verification / Architecture Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-AA-3-B",
+      "name": "Feed review results back to improve reference architectures",
+      "description": "As an organization, you can further improve your software security posture by understanding which threats remain unaddressed in the software architectures and adapting your tactics to prevent this. Formalize a process to use recurring architecture findings as a trigger to identify the causes of gaps in the security assessment and deal with them. Feed findings back to the Design phase by creating, or updating relevant reference architectures, existing security solutions, or organization design principles and patterns.",
+      "category": "Verification / Architecture Assessment",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-RT-1-A",
+      "name": "Test the effectiveness of security controls",
+      "description": "Conduct security tests to verify that the standard software security controls operate as expected. At a high level, this means testing the correct functioning of the confidentiality, integrity, and availability controls of the data as well as the service. Security tests at least include testing for authentication, access control, input validation, encoding, and escaping data and encryption controls. The test objective is to validate that the security controls are correctly implemented.",
+      "category": "Verification / Requirements-driven Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-RT-1-B",
+      "name": "Perform fuzz testing",
+      "description": "Perform fuzzing, sending random or malformed data to the test subject in an attempt to make it crash. Fuzz testing or Fuzzing is a Black Box software testing technique, which consists of finding implementation bugs using automated malformed or semi-malformed data injection. Cover at least a minimum fuzzing for vulnerabilities against the main input parameters of the application.",
+      "category": "Verification / Requirements-driven Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-RT-2-A",
+      "name": "Define and run security test cases from requirements",
+      "description": "From the security requirements, identify and implement a set of security test cases to check the software for correct functionality. To have a successful testing program, you must know the testing objectives, specified by the security requirements.",
+      "category": "Verification / Requirements-driven Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-RT-2-B",
+      "name": "Define and run security abuse cases from requirements",
+      "description": "Misuse and abuse cases describe unintended and malicious use scenarios of the application, describing how an attacker could do this. Create misuse and abuse cases to misuse or exploit the weaknesses of controls in software features to attack an application. Use abuse-case models for an application to serve as fuel for identification of concrete security tests that directly or indirectly exploit the abuse scenarios.",
+      "category": "Verification / Requirements-driven Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-RT-3-A",
+      "name": "Automate security requirements testing",
+      "description": "Write and automate regression tests for all identified (and fixed) bugs to ensure that these become a test harness preventing similar issues from being introduced during later releases. Security unit tests should verify dynamically (i.e., at run time) that the components function as expected and should validate that code changes are properly implemented.",
+      "category": "Verification / Requirements-driven Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-RT-3-B",
+      "name": "Perform security stress testing",
+      "description": "Applications are particularly susceptible to denial of service attacks. Perform denial of service and security stress testing against them in controlled conditions, preferably on application acceptance environments.",
+      "category": "Verification / Requirements-driven Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-ST-1-A",
+      "name": "Perform automated security testing",
+      "description": "Use automated static and dynamic security test tools for software, resulting in more efficient security testing and higher quality results. Progressively increase the frequency of security tests and extend code coverage.",
+      "category": "Verification / Security Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-ST-1-B",
+      "name": "Test high risk application components manually",
+      "description": "Perform selective manual security testing, possibly using a combination of static and dynamic analysis tools to guide or focus the review, in order to more thoroughly analyze parts of the application, as an attacker. Automated tools are effective at finding various types of vulnerabilities but can never replace expert manual review.",
+      "category": "Verification / Security Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-ST-2-A",
+      "name": "Develop application-specific security test cases",
+      "description": "Increase the effectiveness of automated security testing tools by tuning and customizing them for your particular technology stacks and applications. Automated security testing tools have two important characteristics: Their false positive rate, i.e. the non-existent bugs and vulnerabilities they incorrectly report; their false negative rate, i.e. actual bugs and vulnerabilities which they fail to detect. As you mature in your use of automated testing tools, you strive to minimize their false positive and false negative rates. This maximizes the time development teams spend reviewing and addressing real security issues in their applications, and reduces the friction typically associated with using untuned automated security analysis tools.",
+      "category": "Verification / Security Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-ST-2-B",
+      "name": "Establish a penetration testing process",
+      "description": "Using the set of security test cases identified for each project, conduct manual penetration testing to evaluate the system's performance against each case. Generally, this happens during the testing phase prior to release and includes both static and dynamic manual penetration testing. In cases where software cannot be realistically tested outside of production, use of techniques such as blue-green deployments or A/B testing can allow ring-fenced security testing in production.",
+      "category": "Verification / Security Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-ST-3-A",
+      "name": "Integrate security testing tools in the delivery pipeline",
+      "description": "Projects within the organization routinely run automated security tests and review results during development. Configure security testing tools to automatically run as part of the build and deploy process to make this scalable with low overhead. Inspect findings as they occur.",
+      "category": "Verification / Security Testing",
+      "grouping": "SAMM 2"
+    },
+    {
+      "id": "V-ST-3-B",
+      "name": "Establish continuous, scalable security verification",
+      "description": "Integrate security testing in parallel with all other development activities, including requirement analysis, software design and construction.",
+      "category": "Verification / Security Testing",
+      "grouping": "SAMM 2"
+    }
+  ]
+}

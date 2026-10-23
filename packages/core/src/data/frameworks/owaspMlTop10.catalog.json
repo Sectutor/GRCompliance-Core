@@ -1,0 +1,87 @@
+{
+  "license": "CC-BY-SA-4.0",
+  "source": "https://github.com/OWASP/www-project-machine-learning-security-top-10 docs/ML*.md",
+  "attribution": "OWASP Machine Learning Security Top 10 2023 © OWASP Foundation, licensed CC BY-SA 4.0. This file stays under CC-BY-SA-4.0.",
+  "controls": [
+    {
+      "id": "ML01:2023",
+      "name": "ML01:2023 Input Manipulation Attack",
+      "description": "Input Manipulation Attacks is an umbrella term, which include Adversarial Attacks, a type of attack in which an attacker deliberately alters input data to mislead the model.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Adversarial training: One approach to defending against input manipulation attack is to train the model on adversarial examples. This can help the model become more robust to attacks and reduce its susceptibility to being misled. Robust models: Another approach is to use models that are designed to be robust against manipulative attacks, such as adversarial training or models that incorporate defense mechanisms. Input validation: Input validation is another important defense mechanism that can be used to detect and prevent input manipulation attacks. This involves checking the input data for anomalies, such as unexpected values or patterns, and rejecting inputs that are likely to be malicious."
+    },
+    {
+      "id": "ML02:2023",
+      "name": "ML02:2023 Data Poisoning Attack",
+      "description": "Data poisoning attacks occur when an attacker manipulates the training data to cause the model to behave in an undesirable way.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Data validation and verification: Ensure that the training data is thoroughly validated and verified before it is used to train the model. This can be done by implementing data validation checks and employing multiple data labelers to validate the accuracy of the data labeling. Secure data storage: Store the training data in a secure manner, such as using encryption, secure data transfer protocols, and firewalls. Data separation: Separate the training data from the production data to reduce the risk of compromising the training data. Access control: Implement access controls to limit who can access the training data and when they can access it. Monitoring and auditing: Regularly monitor the training data for any anomalies and conduct audits to detect any data tampering. Model validation: Validate the model using a separate validation set that has not been used during training. This can help to detect any data poisoning attacks that may have affected the training data. Model ensembles: Train multiple models using different subsets of the training data and use an ensemble of these models to make predictions. This can reduce the impact of data poisoning attacks as the attacker would need to compromise multiple models to achieve their goals. Anomaly detection: Use anomaly detection techniques to detect any abnormal behavior in the training data, such as sudden changes in the data distribution or data labeling. These techniques can be used to detect data poisoning attacks early on."
+    },
+    {
+      "id": "ML03:2023",
+      "name": "ML03:2023 Model Inversion Attack",
+      "description": "Model inversion attacks occur when an attacker reverse-engineers the model to extract information from it.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Access control: Limiting access to the model or its predictions can prevent attackers from obtaining the information needed to invert the model. This can be done by requiring authentication, encryption, or other forms of security when accessing the model or its predictions. Input validation: Validating the inputs to the model can prevent attackers from providing malicious data that can be used to invert the model. This can be done by checking the format, range, and consistency of the inputs before they are processed by the model. Model transparency: Making the model and its predictions transparent can help to detect and prevent model inversion attacks. This can be done by logging all inputs and outputs, providing explanations for the model's predictions, or allowing users to inspect the model's internal representations. Regular monitoring: Monitoring the model's predictions for anomalies can help to detect and prevent model inversion attacks. This can be done by tracking the distribution of inputs and outputs, comparing the model's predictions to ground truth data, or monitoring the model's performance over time. Model retraining: Regularly retraining the model can help to prevent the information leaked by model inversion attacks from becoming outdated. This can be done by incorporating new data and correcting any inaccuracies in the model's predictions."
+    },
+    {
+      "id": "ML04:2023",
+      "name": "ML04:2023 Membership Inference Attack",
+      "description": "Membership inference attacks occur when an attacker manipulates the model's training data in order to cause it to behave in a way that exposes sensitive information.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Model training on randomized or shuffled data: Training machine learning models on randomized or shuffled data can make it more difficult for an attacker to determine whether a particular example was included in the training dataset. Model Obfuscation: Obfuscating the model's predictions by adding random noise or using differential privacy techniques can help prevent membership inference attacks by making it harder for an attacker to determine the model's training data. Regularisation: Regularisation techniques such as L1 or L2 regularization can help prevent overfitting of the model to the training data, which can reduce the model's ability to accurately determine whether a particular example was included in the training dataset. Reducing the training data: Reducing the size of the training dataset or removing redundant or highly correlated features can help reduce the information an attacker can gain from a membership inference attack. Testing and monitoring: Regularly testing and monitoring the model's behavior for anomalies can help detect and prevent membership inference attacks by detecting when an attacker is attempting to gain access to sensitive information."
+    },
+    {
+      "id": "ML05:2023",
+      "name": "ML05:2023 Model Theft",
+      "description": "Model theft attacks occur when an attacker gains access to the model's parameters.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Encryption: Encrypting the model's code, training data, and other sensitive information can prevent attackers from being able to access and steal the model. Access Control: Implementing strict access control measures, such as two-factor authentication, can prevent unauthorized individuals from accessing and stealing the model. Regular backups: Regularly backing up the model's code, training data, and other sensitive information can ensure that it can be recovered in the event of a theft. Model Obfuscation: Obfuscating the model's code and making it difficult to reverse engineer can prevent attackers from being able to steal the model. Watermarking: Adding a watermark to the model's code and training data can make it possible to trace the source of a theft and hold the attacker accountable. Legal protection: Securing legal protection for the model, such as patents or trade secrets, can make it more difficult for an attacker to steal the model and can provide a basis for legal action in the event of a theft. Monitoring and auditing: Regularly monitoring and auditing the model's use can help detect and prevent theft by detecting when an attacker is attempting to access or steal the model."
+    },
+    {
+      "id": "ML06:2023",
+      "name": "ML06:2023 ML Supply Chain Attacks",
+      "description": "In ML Supply Chain Attacks threat actors target the supply chain of ML models. This category is broad and important, as software supply chain in Machine Learning includes even more elements than in the case of classic software. It consists of specific elements such as MLOps platforms, data management platforms, model management software, model hubs and other specialized types of software that enable ML engineers to effectively test and deploy software.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Verify packages integrity: Before using any packages in your infrastructure or application dependencies, verify the authenticity of the package by checking the digital signature of the package. Keep packages versions up-to-date: Constantly monitor the latest versions of the packages in your software supply chain and update your dependencies if you are using outdated software. Use tools such as OWASP Dependency Check. Refer to https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/ for more details Install packages from secure sources: Use secure third-party software repositiories, such as Anaconda or pip, that enforce strict security measures and have a vetting process for packages. Deploy ML infrastructure securely: Follow the vendor's deployment recommendations for MLOps platforms in your stack, limit the access to the web UIs from the Internet, monitor the traffic in the infrastructure for the anomalies and possible attacks. If the infrastructure is deployed in the cloud, ensure to leverage the cloud provider's security features such as Virtual Private Clouds (VPCs), security groups, and identity and access management (IAM) roles to restrict and control access. Implement strict access control measures. Ensure that only authorized personnel have access to the MLOps platforms."
+    },
+    {
+      "id": "ML07:2023",
+      "name": "ML07:2023 Transfer Learning Attack",
+      "description": "Transfer learning attacks occur when an attacker trains a model on one task and then fine-tunes it on another task to cause it to behave in an undesirable way.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Regularly monitor and update the training datasets: Regularly monitoring and updating the training datasets can help prevent the transfer of malicious knowledge from the attacker\\'s model to the target model. Use secure and trusted training datasets: Using secure and trusted training datasets can help prevent the transfer of malicious knowledge from the attacker's model to the target model. Implement model isolation: Implementing model isolation can help prevent the transfer of malicious knowledge from one model to another. For example, separating the training and deployment environments can prevent attackers from transferring knowledge from the training environment to the deployment environment. Use differential privacy: Using differential privacy can help protect the privacy of individual records in the training dataset and prevent the transfer of malicious knowledge from the attacker's model to the target model. Perform regular security audits: Regular security audits can help identify and prevent transfer learning attacks by identifying and addressing vulnerabilities in the system."
+    },
+    {
+      "id": "ML08:2023",
+      "name": "ML08:2023 Model Skewing",
+      "description": "Model skewing attacks occur when an attacker manipulates the distribution of the training data to cause the model to behave in an undesirable way.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Implement robust access controls: Ensure that only authorized personnel have access to the MLOps system and its feedback loops, and that all activities are logged and audited. Verify the authenticity of feedback data: Use techniques such as digital signatures and checksums to verify that the feedback data received by the system is genuine, and reject any data that does not match the expected format. Use data validation and cleaning techniques: Clean and validate the feedback data before using it to update the training data, to minimize the risk of incorrect or malicious data being used. Implement anomaly detection: Use techniques such as statistical and machine learning-based methods to detect and alert on anomalies in the feedback data, which could indicate an attack. Regularly monitor the model's performance: Continuously monitor the performance of the model, and compare its predictions with actual outcomes to detect any deviation or skewing. Continuously train the model: Regularly retrain the model using updated and verified training data, to ensure that it continues to reflect the latest information and trends."
+    },
+    {
+      "id": "ML09:2023",
+      "name": "ML09:2023 Output Integrity Attack",
+      "description": "In an Output Integrity Attack scenario, an attacker aims to modify or manipulate the output of a machine learning model in order to change its behavior or cause harm to the system it is used in.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Using cryptographic methods: Cryptographic methods like digital signatures and secure hashes can be used to verify the authenticity of the results. Secure communication channels: Communication channels between the model and the interface responsible for displaying the results should be secured using secure protocols such as SSL/TLS. Input Validation: Input validation should be performed on the results to check for unexpected or manipulated values. Tamper-evident logs: Maintaining tamper-evident logs of all input and output interactions can help detect and respond to any output integrity attacks. Regular software updates: Regular software updates to fix vulnerabilities and security patches can help reduce the risk of output integrity attacks. Monitoring and auditing: Regular monitoring and auditing of the results and the interactions between the model and the interface can help detect any suspicious activities and respond accordingly."
+    },
+    {
+      "id": "ML10:2023",
+      "name": "ML10:2023 Model Poisoning",
+      "description": "Model poisoning attacks occur when an attacker manipulates the model\\'s parameters to cause it to behave in an undesirable way.",
+      "category": "OWASP ML Security Top 10",
+      "grouping": "2023",
+      "implementationGuidance": "Regularisation: Adding regularisation techniques like L1 or L2 regularization to the loss function helps to prevent overfitting and reduce the chance of model poisoning attacks. Robust Model Design: Designing models with robust architectures and activation functions can help reduce the chances of successful model poisoning attacks. Cryptographic Techniques: Cryptographic techniques can be used to secure the parameters and weights of the model, and prevent unauthorized access or manipulation of these parameters."
+    }
+  ]
+}
