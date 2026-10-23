@@ -51,7 +51,7 @@ irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps
 
 When `/health` returns HTTP 200, the installer prints the URL. It prints the administrator password once, earlier, while it writes `~/grcompliance/.env` (mode 600). The administrator email is `admin@grcompliance.local`. The first start also loads the **Latore LTD** demo workspace, including sample risks, controls, policies, and evidence.
 
-If `/health` still has not returned HTTP 200 after the retries, the installer exits non-zero and prints `docker compose logs` hints. It does not print the ready message. Set `HEALTH_RETRIES` to change the attempt count (default 90, five seconds apart).
+While it waits, the installer prints a short progress line. If the app container exits or keeps restarting, it stops, prints the last app and bootstrap log lines with secrets removed, and exits non-zero with next steps. A container that stays up and is only slow still gets every retry. After `HEALTH_RETRIES` attempts without HTTP 200 (default 90, five seconds apart), the installer exits non-zero, prints that redacted log tail, and prints `docker compose logs` hints. It prints the ready message only after HTTP 200.
 
 Publish Postgres and Redis on loopback only when you need a host client. The default leaves them on the compose network:
 
@@ -105,7 +105,7 @@ The database image is Postgres 16 with pgvector, which the schema uses for embed
 | `APP_PORT` | Host port mapped to the app. |
 | `GRC_VERSION` | Image tag. `latest`, or a `v*` release tag. |
 | `AUTH_MODE` | `local` for the bundled login. `supabase` if you bring your own Supabase project. Local mode does not read Supabase settings. |
-| `HEALTH_RETRIES` | Installer `/health` attempts before a non-zero exit. Default 90. |
+| `HEALTH_RETRIES` | Installer `/health` attempts before a non-zero exit. Default 90. The installer exits sooner when the app container is crash-looping or has exited. |
 | `GRC_BIND_LOCAL` | Set to `1` to publish Postgres and Redis on `127.0.0.1` only. |
 | `GRC_COOKIE_CONSENT` | Set to `1` to show an optional in-browser preference notice. Default off. The app does not load advertising, analytics, or other third-party tracking scripts. Session storage does not need a notice. |
 | `POSTGRES_HOST_PORT` | Loopback port for Postgres when `--bind-local` is set. Default 5432. |

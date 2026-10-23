@@ -12,7 +12,7 @@ Postgres and Redis stay on the compose network. Only the app port is published. 
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --bind-local
 ```
 
-`docker-compose.local-ports.yml` is the same override. Secrets are read from `.env` and are never stored in the image. The installer exits non-zero, and prints `docker compose logs` hints, when `/health` does not return HTTP 200.
+`docker-compose.local-ports.yml` is the same override. Secrets are read from `.env` and are never stored in the image. The installer exits non-zero when the app container is crash-looping or has exited, and when `/health` does not return HTTP 200. It prints a redacted log tail and `docker compose logs` hints.
 
 Upgrade an existing directory with:
 
