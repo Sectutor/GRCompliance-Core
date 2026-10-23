@@ -163,6 +163,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 See [SECURITY.md](SECURITY.md). Do not commit `.env` files, credentials, or customer evidence.
 
+Install the secret-scanning pre-commit hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## License
 
 GRCompliance is licensed under the GNU Affero General Public License v3.0. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).

@@ -1,0 +1,18 @@
+# Extends the gitleaks default ruleset shipped in the binary:
+# https://github.com/gitleaks/gitleaks/blob/v8.30.1/config/gitleaks.toml
+#
+# Allowlist a finding only when it is a genuine false positive, and put a
+# comment above that entry explaining why. Do not allowlist a real credential.
+#
+# gitleaks 8.30.1 scanned every ref in this clone (--log-opts=--all) and the
+# working tree, and reported no leaks, so there is no allowlist below.
+#
+# packages/core/src/lib/addons/examples/s3-storage.tsx uses the public AWS
+# documentation access-key placeholder as an HTML placeholder. The default
+# aws-access-token rule already ignores keys ending in EXAMPLE, and the scan
+# did not report that file, so it is not allowlisted here.
+
+title = "GRCompliance"
+
+[extend]
+useDefault = true

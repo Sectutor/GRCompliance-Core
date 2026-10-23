@@ -1,5 +1,6 @@
 # Install with: pre-commit install
 # The repo also ships .githooks/pre-commit for clones that do not use pre-commit.
+# That hook is installed with: git config core.hooksPath .githooks
 repos:
   - repo: local
     hooks:
@@ -9,6 +10,8 @@ repos:
         language: system
         pass_filenames: false
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0
+    rev: v8.30.1
     hooks:
       - id: gitleaks
+        args:
+          - --config=.gitleaks.toml
