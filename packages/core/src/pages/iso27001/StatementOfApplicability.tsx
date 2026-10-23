@@ -45,6 +45,13 @@ import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { Shield, Upload, FileText } from "lucide-react";
 import { ISOLayout } from "./ISOLayout";
+import {
+    customCategoryLabel,
+    filterSoaEntries,
+    soaHeaderStats,
+    soaJustificationText,
+    soaListLayout,
+} from "@/lib/soaListing";
 
 export default function StatementOfApplicability() {
     const { id } = useParams<{ id: string }>();
@@ -69,6 +76,17 @@ export default function StatementOfApplicability() {
         }
     });
 
+    const adoptMutation = trpc.iso27001.adoptSoA.useMutation({
+        onSuccess: () => {
+            refetch();
+            setSelectedControl(null);
+            toast.success("Control updated successfully");
+        },
+        onError: (err) => {
+            toast.error(`Update failed: ${err.message}`);
+        }
+    });
+
     // Form State for Editing
     const [editForm, setEditForm] = useState({
         applicability: "applicable" as "applicable" | "not_applicable",
@@ -82,7 +100,9 @@ export default function StatementOfApplicability() {
         setEditForm({
             applicability: (item.clientControl.applicability || "applicable") as any,
             justification: item.clientControl.justification || "",
-            status: item.clientControl.status || "not_implemented",
+            status: !item.adopted || item.clientControl.status === "not_assessed"
+                ? "not_implemented"
+                : (item.clientControl.status || "not_implemented"),
             implementationNotes: item.clientControl.implementationNotes || ""
         });
     };
@@ -96,37 +116,45 @@ export default function StatementOfApplicability() {
             return;
         }
 
+        const payload = {
+            ...editForm,
+            status: editForm.applicability === 'not_applicable' ? 'not_applicable' : editForm.status
+        };
+        if (!selectedControl.adopted || !selectedControl.clientControl?.id) {
+            adoptMutation.mutate({
+                clientId,
+                controlRef: selectedControl.control.controlId,
+                ...payload,
+            });
+            return;
+        }
         updateMutation.mutate({
             clientId,
             controlId: selectedControl.clientControl.id,
-            ...editForm,
-            status: editForm.applicability === 'not_applicable' ? 'not_applicable' : editForm.status
+            ...payload,
         });
     };
 
     const categories = ["Organizational Controls", "People Controls", "Physical Controls", "Technological Controls"];
 
-    const filteredControls = useMemo(() => {
-        if (!soaData) return [];
-        return soaData.filter((item: any) =>
-            item.control.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.control.controlId.includes(searchQuery) ||
-            item.control.description.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [soaData, searchQuery]);
+    const filteredControls = useMemo(
+        () => filterSoaEntries(soaData || [], searchQuery),
+        [soaData, searchQuery]
+    );
 
-    const stats = useMemo(() => {
-        if (!soaData) return { total: 0, applicable: 0, implemented: 0, excluded: 0 };
-        return {
-            total: soaData.length,
-            applicable: soaData.filter((item: any) => item.clientControl.applicability !== 'not_applicable').length,
-            implemented: soaData.filter((item: any) => item.clientControl.status === 'implemented').length,
-            excluded: soaData.filter((item: any) => item.clientControl.applicability === 'not_applicable').length
-        };
-    }, [soaData]);
+    // Unassessed Annex A rows are their own count. Draft #27 swaps this memo for soaStats();
+    // keep notAssessed in the header when the two changes are merged.
+    const stats = useMemo(() => soaHeaderStats(soaData || []), [soaData]);
 
-    const getStatusUI = (status: string, applicability: string) => {
-        if (applicability === 'not_applicable') {
+    const getStatusUI = (status: string, applicability: string, adopted = true) => {
+        if (!adopted || status === 'not_assessed') {
+            return {
+                label: "Not yet assessed",
+                icon: <AlertCircle className="h-4 w-4 text-slate-400" />,
+                color: "bg-slate-50 text-slate-500 border-slate-200"
+            };
+        }
+        if (applicability === 'not_applicable' || status === 'not_applicable') {
             return {
                 label: "Excluded",
                 icon: <XCircle className="h-4 w-4 text-slate-400" />,
@@ -180,12 +208,13 @@ export default function StatementOfApplicability() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
                     {[
                         { label: "Total Controls", value: stats.total, color: "text-slate-900" },
                         { label: "Applicable", value: stats.applicable, color: "text-indigo-600" },
                         { label: "Implemented", value: stats.implemented, color: "text-emerald-600" },
-                        { label: "Excluded", value: stats.excluded, color: "text-slate-500" }
+                        { label: "Excluded", value: stats.excluded, color: "text-slate-500" },
+                        { label: "Not yet assessed", value: stats.notAssessed, color: "text-slate-500" }
                     ].map((stat, i) => (
                         <Card key={i} className="border-none shadow-sm bg-white/50 backdrop-blur-sm group hover:shadow-md transition-all duration-300">
                             <CardContent className="p-6">
@@ -232,30 +261,46 @@ export default function StatementOfApplicability() {
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="divide-y divide-slate-50">
+                        <div className={soaListLayout(viewMode)} data-testid={viewMode === "grid" ? "soa-grid" : "soa-list"}>
+                            {filteredControls.length === 0 && (
+                                <p className="p-8 text-sm text-slate-500">No controls match this search.</p>
+                            )}
                             {filteredControls.map((item: any) => {
-                                const ui = getStatusUI(item.clientControl.status, item.clientControl.applicability);
+                                const ui = getStatusUI(item.clientControl.status, item.clientControl.applicability, item.adopted);
+                                const customCategory = customCategoryLabel(item.control.category, item.control.theme);
                                 return (
                                     <div
-                                        key={item.clientControl.id}
-                                        className="group hover:bg-slate-50/50 transition-colors cursor-pointer p-6"
+                                        key={item.control.controlId}
+                                        className={cn(
+                                            "group hover:bg-slate-50/50 transition-colors cursor-pointer",
+                                            viewMode === "grid" ? "rounded-xl border border-slate-200 bg-white p-5 h-full" : "p-6"
+                                        )}
                                         onClick={() => handleEdit(item)}
                                     >
                                         <div className="flex items-start justify-between gap-6">
                                             <div className="space-y-3 flex-1">
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-3 flex-wrap">
                                                     <span className="font-mono text-xs font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded">
                                                         Annex A {item.control.controlId}
                                                     </span>
                                                     <Badge variant="outline" className="text-[10px] uppercase tracking-tighter font-semibold border-slate-200 text-slate-500">
-                                                        {item.control.category}
+                                                        {item.control.theme}
                                                     </Badge>
+                                                    {customCategory && (
+                                                        <Badge variant="secondary" className="text-[10px] uppercase tracking-tighter font-semibold">
+                                                            {customCategory}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
                                                     {item.control.name}
                                                 </h3>
                                                 <p className="text-slate-500 line-clamp-2 text-sm leading-relaxed max-w-3xl">
                                                     {item.control.description}
+                                                </p>
+                                                <p className="text-sm text-slate-600 leading-relaxed">
+                                                    <span className="font-medium text-slate-700">Justification: </span>
+                                                    {soaJustificationText(item.clientControl.justification)}
                                                 </p>
                                             </div>
                                             <div className="flex flex-col items-end gap-3">
@@ -288,6 +333,7 @@ export default function StatementOfApplicability() {
                             </SheetTitle>
                             <SheetDescription className="text-slate-500 pt-2">
                                 {selectedControl?.control.name}
+                                {!selectedControl?.adopted && " This control is not yet assessed. Saving includes or excludes it."}
                             </SheetDescription>
                         </SheetHeader>
 
@@ -437,10 +483,10 @@ export default function StatementOfApplicability() {
                                 </Button>
                                 <Button
                                     onClick={handleSave}
-                                    disabled={updateMutation.isLoading}
+                                    disabled={updateMutation.isLoading || adoptMutation.isLoading}
                                     className="h-10 px-8 bg-indigo-600 hover:bg-indigo-700 shadow-sm min-w-[140px]"
                                 >
-                                    {updateMutation.isLoading ? (
+                                    {updateMutation.isLoading || adoptMutation.isLoading ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <>
