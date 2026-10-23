@@ -25,7 +25,7 @@ Your JSON file must adhere to the [JSON Schema](/data/schemas/framework-plugin.s
       "name": "GRCompliance",
       "url": "https://grcompliance.com"
     },
-    "license": "CC-BY-4.0",
+    "license": "AGPL-3.0-only",
     "type": "standard",
     "tags": ["security", "privacy"]
   },

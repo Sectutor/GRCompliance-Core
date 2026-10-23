@@ -111,7 +111,7 @@ export const soarManifest: IntegrationManifest = {
     version: '1.0.0',
     description: 'Connect to SOAR platforms (Splunk SOAR, XSOAR) to automate security response and manage incidents',
     author: { name: 'GRCompliance', url: 'https://grcompliance.com' },
-    license: 'MIT',
+    license: 'AGPL-3.0-only',
     category: 'scanner',
     tags: ['soar', 'automation', 'orchestration', 'splunk', 'xsoar', 'response', 'playbook', 'iso27001'],
     icon: '🎯',

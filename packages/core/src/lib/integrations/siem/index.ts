@@ -283,7 +283,7 @@ export const siemManifest: IntegrationManifest = {
     version: '1.0.0',
     description: 'Connect to SIEM platforms (Splunk, QRadar, Azure Sentinel) to correlate security events and gather compliance evidence',
     author: { name: 'GRCompliance', url: 'https://grcompliance.com' },
-    license: 'MIT',
+    license: 'AGPL-3.0-only',
     category: 'scanner',
     tags: ['siem', 'security', 'splunk', 'qradar', 'sentinel', 'logging', 'compliance', 'iso27001'],
     icon: '🛡️',

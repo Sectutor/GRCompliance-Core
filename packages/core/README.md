@@ -22,4 +22,4 @@ Set `DATABASE_URL` to your own PostgreSQL database. Set `JWT_SECRET` and `ENCRYP
 
 ## License
 
-GNU Affero General Public License v3.0. See the repository [LICENSE](../../LICENSE).
+GNU Affero General Public License v3.0 only (SPDX `AGPL-3.0-only`). See the repository [LICENSE](../../LICENSE).

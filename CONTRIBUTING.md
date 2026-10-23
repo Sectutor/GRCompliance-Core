@@ -29,4 +29,4 @@ CI rejects those paths and fails on gitleaks findings in the tree you push.
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the GNU Affero General Public License v3.0, the same license as the rest of GRCompliance. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+By contributing, you agree that your contributions are licensed under the GNU Affero General Public License v3.0 only (SPDX `AGPL-3.0-only`), the same license as the rest of GRCompliance. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
