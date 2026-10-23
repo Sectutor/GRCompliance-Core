@@ -1,4 +1,5 @@
 import { Framework } from "./types";
+import { SOC2_CRITERIA_COUNT, SOC2_VERSION } from "./soc2";
 
 export const frameworks: Framework[] = [
     {
@@ -28,10 +29,14 @@ export const frameworks: Framework[] = [
     {
         id: "soc-2",
         name: "SOC 2 Type II",
-        description: "Service Organization Control 2 - Trust Services Criteria for security, availability, processing integrity, confidentiality and privacy.",
+        description: "Service Organization Control 2 - Trust Services Criteria for security, availability, processing integrity, confidentiality and privacy. Bundled rows are 2017 criterion IDs and short titles. The AICPA criterion text is not included.",
         type: "Security",
         isObligation: true,
-        logo: "/frameworks/soc2.svg"
+        logo: "/frameworks/soc2.svg",
+        version: SOC2_VERSION,
+        controlsCount: SOC2_CRITERIA_COUNT,
+        contentPolicy: "bundled",
+        contentLicense: "identifier-only (AICPA TSC text is not redistributed)"
     },
     {
         id: "nist-csf",

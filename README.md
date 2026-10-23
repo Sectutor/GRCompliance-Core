@@ -165,8 +165,10 @@ See [SECURITY.md](SECURITY.md). Do not commit `.env` files, credentials, or cust
 
 ## License
 
-GRCompliance is licensed under the GNU Affero General Public License v3.0. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+GRCompliance is licensed under the GNU Affero General Public License version 3 only (AGPL-3.0-only). The licensor is Intellfence. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 
-If you modify GRCompliance and offer it as a network service, AGPLv3 requires you to offer the corresponding source to users of that service.
+If you modify GRCompliance and offer it as a network service, AGPL-3.0-only requires you to offer the corresponding source to users of that service.
 
-A commercial license is available for organizations that need terms other than AGPLv3. The template is [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com.
+A commercial license is available for organizations that need terms other than AGPL-3.0-only. The template is [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com.
+
+Source checkout: [https://github.com/Sectutor/GRCompliance-Core.git](https://github.com/Sectutor/GRCompliance-Core.git).
