@@ -24,6 +24,12 @@ export interface SubArticle {
     title: string;
     description: string;
     mappedControls?: Record<string, string[]>;
+    /** HIPAA Security Rule: a standard, or an implementation specification under a standard. */
+    kind?: "standard" | "implementation-specification";
+    /** HIPAA Security Rule obligation. Standards are required. Specifications use the eCFR parenthetical. */
+    obligation?: "required" | "addressable";
+    /** Official citation, for example "45 CFR 164.308(a)(1)(ii)(A)". */
+    citation?: string;
 }
 
 export interface Question {
