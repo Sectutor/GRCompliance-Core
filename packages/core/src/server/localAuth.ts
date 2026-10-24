@@ -4,6 +4,9 @@ import type { Request, Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
 import { getDb } from '../db';
 import { users } from '../schema';
+import { appOrigin } from '../lib/publicUrl';
+
+export { appOrigin };
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
 
@@ -169,17 +172,6 @@ export async function localLoginHandler(req: Request, res: Response): Promise<vo
 }
 
 const RESET_TTL_SECONDS = 60 * 60 * 24;
-
-export function appOrigin(): string {
-    const raw = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
-    try {
-        const url = new URL(raw);
-        if (url.protocol === 'http:' || url.protocol === 'https:') return url.origin;
-    } catch {
-        /* ignore a malformed app URL */
-    }
-    return 'http://localhost:3001';
-}
 
 async function credentialFingerprint(userId: number): Promise<string> {
     const db = await getDb();

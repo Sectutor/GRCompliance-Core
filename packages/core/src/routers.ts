@@ -33,6 +33,7 @@ import { isPlatformAdmin, listAuthorizedClientIds, loadRowById, requireRecordWor
 import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { evidenceRequestAssigneeLabel } from "./lib/evidenceRequestAssignee";
+import { appOrigin } from "./lib/publicUrl";
 import { createEvidenceRequest, resolveEvidenceRequestListScope, updateEvidenceRequestStatus } from "./server/evidenceRequests";
 import { createSammRouter } from "./server/routers/samm";
 import { createEmployeesRouter } from "./server/routers/employees";
@@ -3059,7 +3060,7 @@ export const appRouter = router({
           status: 'pending'
         }).returning();
 
-        const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'}/questionnaire/${token}`;
+        const link = `${appOrigin()}/questionnaire/${token}`;
         return { success: true, token, link };
       }),
 

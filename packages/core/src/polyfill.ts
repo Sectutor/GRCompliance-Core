@@ -28,20 +28,22 @@ if (typeof (g as any).document === 'undefined') {
 }
 if (typeof (g as any).navigator === 'undefined') (g as any).navigator = { userAgent: 'Node.js' };
 if (typeof (g as any).location === 'undefined') {
+    // DOM stub only. User-facing links use appOrigin() and the operator's APP_URL.
+    const stub = 'http://127.0.0.1:3001/';
     (g as any).location = {
-        href: 'https://app.grcompliance.com/',
-        origin: 'https://app.grcompliance.com',
-        protocol: 'https:',
-        host: 'app.grcompliance.com',
-        hostname: 'app.grcompliance.com',
-        port: '',
+        href: stub,
+        origin: 'http://127.0.0.1:3001',
+        protocol: 'http:',
+        host: '127.0.0.1:3001',
+        hostname: '127.0.0.1',
+        port: '3001',
         pathname: '/',
         search: '',
         hash: '',
         assign: () => { },
         replace: () => { },
         reload: () => { },
-        toString: () => 'https://app.grcompliance.com/',
+        toString: () => stub,
     };
 }
 

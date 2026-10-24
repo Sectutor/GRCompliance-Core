@@ -13,3 +13,4 @@ tmp
 *.log
 *.md
 !README.md
+packages/core/src/i18n/locales/de

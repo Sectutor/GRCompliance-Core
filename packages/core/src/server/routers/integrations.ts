@@ -4,9 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { integrations, integrationDefinitions, evidenceFiles } from "../../schema";
 import * as db from "../../db";
 import { encrypt } from "../../lib/crypto";
-
-// Validate APP_URL - use default for development if not set
-const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+import { appOrigin } from "../../lib/publicUrl";
 
 // Known integration providers for validation
 const KNOWN_PROVIDERS = ['github', 'slack', 'smtp', 'jira', 'siem', 'soar', 'threat-intel', 'google-drive', 'vulnerability-scanner'] as const;
@@ -290,12 +288,11 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     let oauthRedirectUri = creds.redirectUri;
                     if (!oauthRedirectUri) {
                         if (provider === "github") {
-                            oauthRedirectUri = `${APP_URL}/api/oauth/github/callback`;
+                            oauthRedirectUri = `${appOrigin()}/api/oauth/github/callback`;
                         } else if (provider === "google-drive") {
-                            // For Google Drive, always use the full URL from APP_URL
-                            oauthRedirectUri = `${APP_URL}/auth/callback/google-drive`;
+                            oauthRedirectUri = `${appOrigin()}/auth/callback/google-drive`;
                         } else {
-                            oauthRedirectUri = `${APP_URL}/auth/callback/${provider}`;
+                            oauthRedirectUri = `${appOrigin()}/auth/callback/${provider}`;
                         }
                     }
                     console.log(`[OAuth] Using redirect URI for ${provider}: ${oauthRedirectUri}`);
@@ -341,7 +338,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                             "https://www.googleapis.com/auth/drive.metadata.readonly"
                         ];
                         // Get the base URL - try multiple sources (dev takes priority)
-                        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://grcompliance.com');
+                        const appUrl = appOrigin();
                         const oauthRedirectUri = creds.redirectUri || `${appUrl}/auth/callback/google-drive`;
                         let oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${creds.clientId}&redirect_uri=${encodeURIComponent(oauthRedirectUri)}&response_type=code&scope=${encodeURIComponent(scopes.join(" "))}&access_type=offline`;
 
@@ -449,7 +446,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     }
 
                     if (provider === "slack") {
-                        const oauthRedirectUri = creds.redirectUri || `${process.env.APP_URL}/auth/callback/slack`;
+                        const oauthRedirectUri = creds.redirectUri || `${appOrigin()}/auth/callback/slack`;
 
                         const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {
                             method: "POST",
@@ -503,7 +500,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     // Google Drive OAuth
                     if (provider === "google-drive") {
                         // Get the base URL - try multiple sources (dev takes priority)
-                        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://grcompliance.com');
+                        const appUrl = appOrigin();
                         const oauthRedirectUri = creds.redirectUri || `${appUrl}/auth/callback/google-drive`;
 
                         const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {

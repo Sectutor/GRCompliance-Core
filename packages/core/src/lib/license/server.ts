@@ -6,6 +6,7 @@
  */
 
 import { LicenseInfo, LicenseType, LicenseStatus } from './index';
+import { isVendorHostname } from '../publicUrl';
 
 export interface LicenseServerConfig {
   endpoint: string;
@@ -184,6 +185,18 @@ export class LicenseServerClient {
    * Make HTTP request to license server
    */
   private async makeRequest(path: string, options: RequestInit): Promise<any> {
+    if (!this.config.endpoint) {
+      throw new Error('License server endpoint is not configured');
+    }
+    let endpointHost = '';
+    try {
+      endpointHost = new URL(this.config.endpoint).hostname;
+    } catch {
+      throw new Error('License server endpoint must be an absolute http(s) URL');
+    }
+    if (isVendorHostname(endpointHost)) {
+      throw new Error("License server endpoint must be this instance's own address");
+    }
     const url = `${this.config.endpoint}${path}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -244,7 +257,7 @@ export class LicenseServerClient {
  * Default license server configuration
  */
 export const defaultLicenseServerConfig: LicenseServerConfig = {
-  endpoint: 'https://license.grcompliance.com',
+  endpoint: '',
   timeout: 10000,
   cacheDuration: 5 * 60 * 1000 // 5 minutes
 };

@@ -139,7 +139,7 @@ Community is the default. Leave `VITE_ENABLE_PREMIUM` unset or set it to `false`
 import { getLicenseServerClient } from '@/lib/license/server';
 
 const client = getLicenseServerClient({
-  endpoint: 'https://license.grcompliance.com',
+  endpoint: 'https://license.example.com',
   apiKey: 'your-api-key'
 });
 

@@ -10,6 +10,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { sendEmail } from '../../lib/email/transporter';
 import { rateLimiter } from "../../lib/redis";
 import { requireOwnedRow } from "../recordAccess";
+import { appOrigin } from "../../lib/publicUrl";
 
 // Rate limiting configuration for public vendor endpoints
 // Configurable via environment variables with sensible defaults
@@ -1134,7 +1135,7 @@ Generate a professional answer. Response format:
         );
 
         // Generate the shareable URL
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const baseUrl = appOrigin();
         const vendorLink = `${baseUrl}/questionnaire/${token}`;
 
         return {
@@ -1171,7 +1172,7 @@ Generate a professional answer. Response format:
           db, input.id, input.vendorEmail, input.vendorName, input.expiresInDays
         );
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const baseUrl = appOrigin();
         const vendorLink = `${baseUrl}/questionnaire/${token}`;
 
         // Create email record in the communication system

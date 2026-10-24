@@ -13,18 +13,19 @@
         if (typeof global !== 'undefined') (global as any).DOMMatrix = g.DOMMatrix;
     }
 
-    // Minimal Location for libraries that expect it
+    // DOM stub for libraries. Generated links use APP_URL via appOrigin().
     if (typeof (g as any).location === 'undefined') {
+        const stub = 'http://127.0.0.1:3001/';
         (g as any).location = {
-            href: 'http://localhost:3001/',
-            origin: 'http://localhost:3001',
+            href: stub,
+            origin: 'http://127.0.0.1:3001',
             protocol: 'http:',
-            host: 'localhost:3001',
-            hostname: 'localhost',
+            host: '127.0.0.1:3001',
+            hostname: '127.0.0.1',
             pathname: '/',
             search: '',
             hash: '',
-            toString: () => 'http://localhost:3001/',
+            toString: () => stub,
         };
     }
 })();
@@ -140,32 +141,41 @@ app.use(helmet({
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://*.supabase.co", "https://*.netlify.app", "https://grcompliance.com"],
+            connectSrc: ["'self'", "https://*.supabase.co"],
         },
     },
 }));
 
-// Configure CORS
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
-console.log('[CORS] Allowed Origins:', allowedOrigins);
+// CORS allows the operator's configured origins. Production does not add
+// loopback or a vendor host unless that address is configured.
+function corsAllowedOrigins(): Set<string> {
+    const allowed = new Set<string>();
+    for (const raw of (process.env.CORS_ORIGIN || '').split(',')) {
+        const trimmed = raw.trim();
+        if (trimmed) allowed.add(trimmed);
+    }
+    const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').trim();
+    if (appUrl) {
+        try {
+            allowed.add(new URL(appUrl).origin);
+        } catch {
+            /* a malformed APP_URL is rejected by appOrigin() when a link is built */
+        }
+    }
+    if (!process.env.CORS_ORIGIN && process.env.NODE_ENV !== 'production') {
+        allowed.add('http://localhost:5173');
+        allowed.add('http://localhost:3001');
+    }
+    return allowed;
+}
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        // Strict origin validation
-        const isLocal = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
-        const isAllowedProd =
-            allowedOrigins.indexOf(origin) !== -1 ||
-            origin.endsWith('.netlify.app') ||
-            origin === 'https://grcompliance.netlify.app' ||
-            origin === 'https://grcompliance.com' ||
-            origin === 'https://www.grcompliance.com';
-
-        // Always allow localhost/127.0.0.1 for local development ease, regardless of NODE_ENV
-        // This unblocks local testing where ports might vary (e.g., landing on 5174, app on 5173)
-        if (isAllowedProd || isLocal) {
+        const allowed = corsAllowedOrigins();
+        const isLoopback = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
+        if (allowed.has(origin) || (process.env.NODE_ENV !== 'production' && isLoopback)) {
             callback(null, true);
         } else {
             console.error(`[CORS] Rejected origin: ${origin}`);

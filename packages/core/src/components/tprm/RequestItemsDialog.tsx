@@ -61,7 +61,8 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
     };
 
     const copyLink = () => {
-        navigator.clipboard.writeText(`https://app.grcompliance.com/portal/request/mock-token`);
+        const origin = window.location.origin;
+        navigator.clipboard.writeText(`${origin}/portal/request/mock-token`);
         toast.success("Link copied to clipboard");
     };
 
@@ -151,7 +152,7 @@ export function RequestItemsDialog({ isOpen, onClose, vendorName, onSend, templa
                             </Label>
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <div className="flex-1 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 text-slate-500 text-xs truncate leading-6 font-mono min-w-0">
-                                    https://app.grcompliance.com/portal/request/secure_link_here
+                                    {`${window.location.origin}/portal/request/secure_link_here`}
                                 </div>
                                 <Button variant="outline" size="sm" onClick={copyLink} className="h-12 px-6 rounded-xl border-slate-200 hover:bg-slate-50 shrink-0">
                                     <Copy className="w-4 h-4 mr-2" />

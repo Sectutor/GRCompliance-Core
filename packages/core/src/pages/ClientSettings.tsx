@@ -415,7 +415,7 @@ export default function ClientSettings() {
                                                 <Button
                                                     variant="outline"
                                                     className="justify-start"
-                                                    onClick={() => window.open("https://docs.grcompliance.com", "_blank")}
+                                                    onClick={() => setLocation(`/clients/${clientId}/knowledge-base`)}
                                                 >
                                                     <FileText className="h-4 w-4 mr-2" />
                                                     View Documentation

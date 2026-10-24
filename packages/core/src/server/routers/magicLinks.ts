@@ -4,6 +4,7 @@ import { eq, desc, and, count, sql } from "drizzle-orm";
 import * as crypto from "crypto";
 import { sendEmail } from "../../lib/email/transporter";
 import { generateMagicLinkEmail } from "../../components/email/templates/MagicLinkInvite";
+import { appOrigin } from "../../lib/publicUrl";
 
 import * as db from "../../db";
 import { magicLinks, waitingList, magicLinkRedemptions, users } from "../../schema";
@@ -88,7 +89,7 @@ export const magicLinksRouter = router({
                 // Send Email if address is provided
                 if (input.email) {
                     console.log("[MagicLinks] Email provided, sending...");
-                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                    const baseUrl = appOrigin();
                     const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
 
                     try {
