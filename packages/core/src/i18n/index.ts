@@ -3,35 +3,21 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 import enTranslation from './locales/en/translation.json';
-import deTranslation from './locales/de/translation.json';
 
-// Supported languages
+/**
+ * Community is English-only. Other translation files may exist in the
+ * repository, but they are not registered and cannot be selected.
+ */
 export const supportedLanguages = [
     { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸' },
-    { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
-    { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
-    { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
-    { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹' },
-    { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱' },
-    { code: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱' },
-    { code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪' },
 ];
 
-// EU languages (for GDPR compliance)
 export const euLanguages = supportedLanguages.filter(lang =>
-    ['en', 'de', 'fr', 'es', 'it', 'nl', 'pl', 'sv'].includes(lang.code)
+    ['en'].includes(lang.code)
 );
 
 const resources = {
     en: { translation: enTranslation },
-    de: { translation: deTranslation },
-    // Add more languages as needed
-    fr: { translation: enTranslation }, // Fallback to English
-    es: { translation: enTranslation }, // Fallback to English
-    it: { translation: enTranslation }, // Fallback to English
-    nl: { translation: enTranslation }, // Fallback to English
-    pl: { translation: enTranslation }, // Fallback to English
-    sv: { translation: enTranslation }, // Fallback to English
 };
 
 i18n
@@ -40,6 +26,9 @@ i18n
     .init({
         resources,
         fallbackLng: 'en',
+        supportedLngs: ['en'],
+        nonExplicitSupportedLngs: true,
+        load: 'languageOnly',
         debug: false,
         interpolation: {
             escapeValue: false,
@@ -55,13 +44,15 @@ i18n
 export default i18n;
 
 export const changeLanguage = async (lang: string) => {
-    await i18n.changeLanguage(lang);
-    localStorage.setItem('complianceos-language', lang); // same key as lookupLocalStorage
+    const code = typeof lang === 'string' ? lang.toLowerCase().split('-')[0] : '';
+    if (code !== 'en') return;
+    await i18n.changeLanguage('en');
+    localStorage.setItem('complianceos-language', 'en');
 };
 
 export const getCurrentLanguage = () => i18n.language;
 
 export const getLanguageName = (code: string) => {
     const lang = supportedLanguages.find(l => l.code === code);
-    return lang?.nativeName || code;
+    return lang?.nativeName || 'English';
 };

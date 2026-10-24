@@ -12,6 +12,7 @@ import { createInviteToken } from "../../lib/security/inviteToken";
 import { gapInviteHtml } from "../../lib/security/gapInviteEmail";
 import { authorizeWorkspace, bindRecordWorkspace } from "../workspaceAccess";
 import { recordProcedure } from "../trpc";
+import { appOrigin } from "../../lib/publicUrl";
 
 function cosineSimilarity(vecA: number[], vecB: number[]) {
   let dotProduct = 0;
@@ -794,7 +795,7 @@ export const createComplianceRouter = (
           }).returning();
 
           // Send Real Notification
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+          const baseUrl = appOrigin();
           const inviteUrl = `${baseUrl}/portal/questionnaire/${token}`;
 
           await EmailService.send({

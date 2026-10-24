@@ -59,7 +59,7 @@ export default function ConsolidatedRequestPortal() {
 
     const handleFileUpload = (itemName: string) => {
         // Mock file upload for demo - in production this would use Supabase Storage
-        const mockUrl = `https://storage.grcompliance.com/files/${Math.random().toString(36).substring(7)}.pdf`;
+        const mockUrl = `${window.location.origin}/uploads/${Math.random().toString(36).substring(7)}.pdf`;
         uploadMutation.mutate({
             token: token!,
             itemName,

@@ -22,6 +22,7 @@ import crypto from "crypto";
 import * as dbHelpers from "../../db";
 import * as threatIntel from "../../lib/threatIntelligence";
 import { EmailService } from "../../lib/email/service";
+import { appOrigin } from "../../lib/publicUrl";
 import { requireOwnedRow } from "../recordAccess";
 
 export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any, premiumClientProcedure: any, adminProcedure: any, recordProcedure = clientProcedure) => {
@@ -116,7 +117,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 }).returning();
 
                 // 3. Send Real Email
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                const baseUrl = appOrigin();
                 const inviteLink = `${baseUrl}/portal/assessment/${token}`;
 
                 await EmailService.send({
@@ -274,7 +275,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 }).returning();
 
                 // Send Real Consolidated Email
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                const baseUrl = appOrigin();
                 const portalLink = `${baseUrl}/portal/request/${token}`;
 
                 await EmailService.send({

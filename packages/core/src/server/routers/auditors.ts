@@ -9,6 +9,7 @@ import { sendEmail } from "../../lib/email/transporter";
 import { generateMagicLinkEmail } from "../../components/email/templates/MagicLinkInvite";
 import * as crypto from "crypto";
 import { escapeHtml } from "../recordAccess";
+import { appOrigin } from "../../lib/publicUrl";
 
 export const createAuditorsRouter = (t: any, adminProcedure: any, clientProcedure: any) => {
     return t.router({
@@ -74,7 +75,7 @@ export const createAuditorsRouter = (t: any, adminProcedure: any, clientProcedur
             }).returning();
 
             // Send Email
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+            const baseUrl = appOrigin();
             const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}&clientId=${input.clientId}`; // Pass clientID to handle auto-join
 
             const { subject, html } = generateMagicLinkEmail({

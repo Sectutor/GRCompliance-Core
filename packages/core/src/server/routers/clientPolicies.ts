@@ -13,6 +13,7 @@ import { escapeHtml } from "../recordAccess";
 import { bindRecordWorkspace } from "../workspaceAccess";
 import { checkPremiumAccess, recordProcedure } from "../trpc";
 import { assertTemplateReadable } from "../templateAccess";
+import { appOrigin } from "../../lib/publicUrl";
 
 
 export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
@@ -391,7 +392,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                       ${safeMessage ? `<p><strong>Message:</strong> ${safeMessage}</p>` : ''}
                     </div>
                     <p>Please log in to the GRCompliance dashboard to review and provide your feedback.</p>
-                    <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
+                    <a href="${appOrigin()}/clients/${clientId}/policies/${id}" 
                        style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
                       View Policy
                     </a>
@@ -500,7 +501,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                           <p><strong>Decision:</strong> <span style="font-weight: bold; color: ${decision === 'approved' ? '#059669' : '#dc2626'}; text-transform: uppercase;">${escapeHtml(decision.replace('_', ' '))}</span></p>
                           ${safeNotes ? `<p><strong>Notes/Feedback:</strong> ${safeNotes}</p>` : ''}
                         </div>
-                        <a href="${process.env.VITE_APP_URL || ''}/clients/${clientId}/policies/${id}" 
+                        <a href="${appOrigin()}/clients/${clientId}/policies/${id}" 
                            style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
                           View Policy
                         </a>
