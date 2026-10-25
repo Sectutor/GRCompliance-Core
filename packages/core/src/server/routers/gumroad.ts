@@ -13,6 +13,7 @@ import { licenseDbService } from "../../lib/license/licenseDbService";
 import * as db from "../../db";
 import { clients } from "../../schema";
 import { eq } from "drizzle-orm";
+import { assertCanManageLicense, assertPlatformLicenseAdmin } from "../licenseAdmin";
 
 export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any, publicProcedure: any) => {
   return t.router({
@@ -53,13 +54,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
         offset: z.number().optional().default(0),
       }))
       .query(async ({ input, ctx }: any) => {
-        // Check if user is admin
-        if (!ctx.user?.isAdmin) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Admin access required'
-          });
-        }
+        assertPlatformLicenseAdmin(ctx);
 
         try {
           const gumroad = getGumroadClient({
@@ -89,13 +84,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
     getGumroadConfig: publicProcedure
       .use(isAuthed)
       .query(async ({ ctx }: any) => {
-        // Check if user is admin
-        if (!ctx.user?.isAdmin) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Admin access required'
-          });
-        }
+        assertPlatformLicenseAdmin(ctx);
 
         const isConfigured = !!config.gumroad?.accessToken;
         const validator = getEnhancedLicenseValidator();
@@ -118,13 +107,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
     testGumroadConnection: publicProcedure
       .use(isAuthed)
       .mutation(async ({ ctx }: any) => {
-        // Check if user is admin
-        if (!ctx.user?.isAdmin) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Admin access required'
-          });
-        }
+        assertPlatformLicenseAdmin(ctx);
 
         try {
           const gumroad = getGumroadClient({
@@ -243,6 +226,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
         productPermalink: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }: any) => {
+        assertCanManageLicense(ctx);
         try {
           // Check if license is already active
           const isAlreadyActive = await licenseDbService.isLicenseKeyActive(input.licenseKey);
@@ -351,6 +335,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
             activatedAt: activation.activatedAt?.toISOString(),
           };
         } catch (error) {
+          if (error instanceof TRPCError) throw error;
           console.error("License activation error:", error);
 
           // Log failed activation attempt
@@ -386,6 +371,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
         licenseKey: z.string().min(1, "License key is required"),
       }))
       .mutation(async ({ input, ctx }: any) => {
+        assertCanManageLicense(ctx);
         try {
           // Get the active license for this client
           const activeLicense = await licenseDbService.getActiveLicenseForClient(input.clientId);
@@ -451,6 +437,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
             licenseKey: input.licenseKey.substring(0, 8) + '...',
           };
         } catch (error) {
+          if (error instanceof TRPCError) throw error;
           console.error("License deactivation error:", error);
 
           // Log failed deactivation attempt
@@ -485,13 +472,7 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
         endDate: z.date().optional(),
       }))
       .query(async ({ input, ctx }: any) => {
-        // Check if user is admin
-        if (!ctx.user?.isAdmin) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Admin access required'
-          });
-        }
+        assertPlatformLicenseAdmin(ctx);
 
         try {
           return await licenseDbService.getLicenseAnalytics({
@@ -549,7 +530,8 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
       .input(z.object({
         days: z.number().optional().default(30),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }: any) => {
+        assertPlatformLicenseAdmin(ctx);
         try {
           const expiringLicenses = await licenseDbService.getExpiringLicenses(input.days);
 
@@ -573,7 +555,8 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
      */
     getExpiredLicenses: publicProcedure
       .use(isAuthed)
-      .query(async () => {
+      .query(async ({ ctx }: any) => {
+        assertPlatformLicenseAdmin(ctx);
         try {
           const expiredLicenses = await licenseDbService.getExpiredLicenses();
 
@@ -602,7 +585,8 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
         offset: z.number().optional().default(0),
         days: z.number().optional(),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }: any) => {
+        assertCanManageLicense(ctx);
         try {
           const logs = await licenseDbService.getValidationLogsForClient(input.clientId, {
             limit: input.limit,

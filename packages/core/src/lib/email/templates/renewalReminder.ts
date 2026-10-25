@@ -3,6 +3,7 @@
  */
 
 import { EmailService } from '../service';
+import { appOrigin } from '../../publicUrl';
 
 interface LicenseData {
   id: number;
@@ -111,9 +112,13 @@ function getHtmlContent(daysLeft: number, license: LicenseData): string {
       })
     : 'Unknown date';
   
-  const renewalUrl = `https://app.grcompliance.com/license/renew/${license.licenseKey}`;
-  const supportUrl = 'https://support.grcompliance.com';
-  const billingUrl = 'https://billing.grcompliance.com';
+  const renewalUrl = license.clientId
+    ? `${appOrigin()}/clients/${license.clientId}/license`
+    : `${appOrigin()}/login`;
+  const supportUrl = `${appOrigin()}/login`;
+  const billingUrl = license.clientId
+    ? `${appOrigin()}/clients/${license.clientId}/settings`
+    : `${appOrigin()}/login`;
   
   let urgencyClass = '';
   let urgencyText = '';
@@ -328,9 +333,7 @@ function getHtmlContent(daysLeft: number, license: LicenseData): string {
             123 Security Street, Suite 100<br>
             San Francisco, CA 94107</p>
             <p>
-                <a href="https://grcompliance.com/privacy">Privacy Policy</a> | 
-                <a href="https://grcompliance.com/terms">Terms of Service</a> | 
-                <a href="https://grcompliance.com/unsubscribe">Unsubscribe</a>
+                <a href="${appOrigin()}/login">Open GRCompliance</a>
             </p>
         </div>
     </div>

@@ -609,28 +609,11 @@ function VendorsAlias() {
 }
 
 /**
- * RootHub handles domain-based routing for the landing page vs. application entrance.
- * Main domain (grcompliance.com) serves the marketing landing page.
- * App subdomain (app.grcompliance.com) serves the login page directly.
- * 
- * SECURITY: This component acts as a gatekeeper to ensure functional app code
- * is only executed on the designated app subdomain.
+ * Self-hosted installs serve the application on this instance's own host.
+ * The marketing page stays at /landing.
  */
 function RootHub() {
-  const hostname = window.location.hostname;
-  const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
-
-  // If on main domain but trying to access the app, redirect to proper subdomain
-  if (!isAppDomain && (hostname.includes('grcompliance.com') || hostname.includes('grcompliance.com'))) {
-    window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
-    return null;
-  }
-
-  if (isAppDomain) {
-    return <LoginPage />;
-  }
-
-  return <Home />;
+  return <LoginPage />;
 }
 
 
@@ -647,18 +630,6 @@ function PageLoader() {
 function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
-      {/* Domain Enforcement for App Routes - Outside Switch to avoid blocking matches */}
-      <Route path="/(login|signup|auth|dashboard|clients|controls|settings|evidence|policy-templates)">
-        {() => {
-          const hostname = window.location.hostname;
-          const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
-          if (!isAppDomain && hostname.includes('grcompliance.com')) {
-            window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
-          }
-          return null;
-        }}
-      </Route>
-
       <Switch>
         {/* Public Routes */}
         <Route path="/login" component={LoginPage} />

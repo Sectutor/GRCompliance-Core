@@ -3,6 +3,7 @@ import { getDb } from "../../db";
 import { vendorAuthorizations, vendors, clients, users, userClients } from "../../schema";
 import { eq, and } from "drizzle-orm";
 import { EmailService } from "../../lib/email/service";
+import { appOrigin } from "../../lib/publicUrl";
 
 export class AuthorizationEngine {
 
@@ -80,7 +81,7 @@ export class AuthorizationEngine {
                         <p><strong>Objection Deadline:</strong> ${new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
                         
                         <div style="margin: 24px 0;">
-                            <a href="${process.env.NEXT_PUBLIC_APP_URL}/clients/${auth.clientId}/vendors/${auth.vendorId}" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Review Vendor Details</a>
+                            <a href="${appOrigin()}/clients/${auth.clientId}/vendors/${auth.vendorId}" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Review Vendor Details</a>
                         </div>
                     </div>
                 `,

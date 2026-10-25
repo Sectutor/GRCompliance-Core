@@ -11,6 +11,7 @@ import { recalculateRiskScore } from "../services/riskService";
 import { authorizeEvidenceLink } from "../linkEvidence";
 import { requireWorkspaceMember } from "../requireWorkspaceMember";
 import { loadRowById, requireRecordWorkspace, requireWorkspaceRole } from "../recordAccess";
+import { appOrigin } from "../../lib/publicUrl";
 
 function requireEvidenceRow(user: any, id: number, minRole: "viewer" | "editor", suppliedClientId?: unknown) {
     return requireRecordWorkspace({
@@ -769,7 +770,7 @@ export const createEvidenceRouter = (
 
                 return new Promise((resolve, reject) => {
                     output.on('close', () => {
-                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
+                        const baseUrl = appOrigin();
                         resolve({
                             url: `${baseUrl}/uploads/${filename}`,
                             filename,

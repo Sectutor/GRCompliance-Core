@@ -6,6 +6,7 @@ import { notifyOwner } from "../../notification";
 import { sendInternalSystemEmail } from "../../lib/email/internalSender";
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
+import { appOrigin } from "../../lib/publicUrl";
 
 export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedure: any) => {
     return t.router({
@@ -112,7 +113,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                                 usageLimit: 1
                             }).returning();
                             await d2.update(waitingList).set({ status: 'invited' }).where(eq(waitingList.id, lead.id));
-                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                            const baseUrl = appOrigin();
                             const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
                             try {
                                 const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
@@ -211,7 +212,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
 
                     await d.update(waitingList).set({ status: 'invited', updatedAt: new Date() }).where(eq(waitingList.id, lead.id));
 
-                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+                    const baseUrl = appOrigin();
                     const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
                     try {
                         const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");

@@ -3,6 +3,7 @@ import { and, gte, lte, or, isNull, sql, eq, lt } from "drizzle-orm";
 import { clientPolicies, users, employees } from "../../schema";
 import { EmailService } from "../../lib/email/service";
 import { notifyUsers } from "../../lib/notificationService";
+import { appOrigin } from "../../lib/publicUrl";
 
 let policyReviewCheckInterval: NodeJS.Timeout | null = null;
 
@@ -96,7 +97,7 @@ export async function checkUpcomingPolicyReviews() {
                     <p><strong>Days Remaining:</strong> ${daysLeft}</p>
                   </div>
                   <p>Please log in to the GRCompliance dashboard to review the policy content and update its status.</p>
-                  <a href="${process.env.VITE_APP_URL || 'https://app.grcompliance.com'}/clients/${policy.clientId}/policies/${policy.id}" 
+                  <a href="${appOrigin()}/clients/${policy.clientId}/policies/${policy.id}" 
                      style="display: inline-block; background-color: #1c4d8d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
                     View Policy
                   </a>

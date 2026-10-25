@@ -10,6 +10,7 @@ import { sendEmail } from "../../lib/email/transporter";
 import { sql } from "drizzle-orm";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
 import { createLocalAccount, generateLocalPassword, isLocalAuthMode, signLocalToken, upsertLocalCredential } from "../localAuth";
+import { appOrigin } from "../../lib/publicUrl";
 
 import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure, protectedProcedure } from "../trpc";
 import { communityAllowsAnotherWorkspace, loadOwnedWorkspaceNames } from "../communityLimits";
@@ -707,7 +708,7 @@ export const usersSubRouter = router({
             });
 
             // Send actual email
-            const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/accept-invite?token=${token}`;
+            const inviteLink = `${appOrigin()}/auth/accept-invite?token=${token}`;
 
             await sendEmail({
                 to: input.email,

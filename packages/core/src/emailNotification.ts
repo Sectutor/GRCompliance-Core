@@ -4,6 +4,7 @@ import { CalendarEvent } from "./db";
 import * as schema from "./schema";
 import { eq, and } from "drizzle-orm";
 import { createInAppNotification } from "./lib/notificationService";
+import { appOrigin } from "./lib/publicUrl";
 
 /**
  * Format a list of calendar events into a readable notification
@@ -573,7 +574,7 @@ export async function sendThreatAlert(clientId: number, threats: any[]): Promise
     content += `### ${t.cveId} (Score: ${t.score})\n`;
     content += `**Asset:** ${t.assetName}\n`;
     content += `**Description:** ${t.description.substring(0, 200)}...\n`;
-    content += `[View Details](${process.env.NEXT_PUBLIC_APP_URL}/clients/${clientId}/risks/vuln-workbench)\n\n`;
+    content += `[View Details](${appOrigin()}/clients/${clientId}/risks/vuln-workbench)\n\n`;
   });
 
   content += `\n---\n*Immediate investigation is recommended.*`;
@@ -600,7 +601,7 @@ export async function sendThreatAlert(clientId: number, threats: any[]): Promise
       `).join('')}
 
       <div style="margin-top: 20px;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL}/clients/${clientId}/risks/vuln-workbench" 
+        <a href="${appOrigin()}/clients/${clientId}/risks/vuln-workbench" 
            style="background-color: #dc2626; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">
            View Vulnerability Workbench
         </a>

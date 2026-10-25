@@ -3,6 +3,7 @@
  */
 
 import { EmailService } from '../service';
+import { appOrigin } from '../../publicUrl';
 
 interface LicenseData {
   id: number;
@@ -90,8 +91,8 @@ function getHtmlContent(notificationType: string, license: LicenseData): string 
       })
     : 'Unknown date';
   
-  const adminUrl = `https://admin.grcompliance.com/licenses/${license.id}`;
-  const clientUrl = license.clientId ? `https://admin.grcompliance.com/clients/${license.clientId}` : '#';
+  const adminUrl = `${appOrigin()}/admin/license`;
+  const clientUrl = license.clientId ? `${appOrigin()}/clients/${license.clientId}` : `${appOrigin()}/login`;
   
   let alertClass = '';
   let alertTitle = '';
@@ -332,10 +333,10 @@ function getHtmlContent(notificationType: string, license: LicenseData): string 
         <div class="footer">
             <p>This is an automated admin notification. Please do not reply to this email.</p>
             <p>GRCompliance Inc.<br>
-            Admin Portal: <a href="https://admin.grcompliance.com">https://admin.grcompliance.com</a></p>
+            <a href="${appOrigin()}/admin/license">License dashboard</a></p>
             <p>
-                <a href="https://admin.grcompliance.com/settings/notifications">Notification Settings</a> | 
-                <a href="https://admin.grcompliance.com/licenses">License Dashboard</a>
+                <a href="${appOrigin()}/admin/license">Notification settings</a> | 
+                <a href="${appOrigin()}/admin/license">License dashboard</a>
             </p>
         </div>
     </div>
