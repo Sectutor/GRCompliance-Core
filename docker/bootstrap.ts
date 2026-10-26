@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { hashPassword } from '../packages/core/src/server/localAuth';
 import { ensureDefaultDataSeeded, getDb, getUserByEmail, seedSampleData } from '../packages/core/src/db';
+import { ensureAnnexACatalog } from '../packages/core/src/server/ensureAnnexACatalog';
 import { users } from '../packages/core/src/schema';
 
 function sslOption(databaseUrl: string) {
@@ -117,6 +118,10 @@ async function main() {
         const user = await ensureAdmin();
         await ensureLatore(user.id);
     }
+    // After the demo seed so a fresh Latore workspace is not bulk-assigned the
+    // whole catalog. Existing client_controls are left untouched.
+    const catalog = await ensureAnnexACatalog();
+    console.log(`[bootstrap] Annex A catalog ready (inserted ${catalog.inserted}, renamed ${catalog.renamed}, titles ${catalog.titlesAligned})`);
     console.log('[bootstrap] Ready');
 }
 

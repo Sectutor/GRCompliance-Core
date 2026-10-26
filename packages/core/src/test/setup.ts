@@ -2,8 +2,10 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// Mock scrollTo
-window.scrollTo = vi.fn();
+// Mock scrollTo (browser tests only; node-environment tests have no window)
+if (typeof window !== "undefined") {
+    window.scrollTo = vi.fn();
+}
 
 // Mock IntersectionObserver
 const MockIntersectionObserver = vi.fn(() => ({
