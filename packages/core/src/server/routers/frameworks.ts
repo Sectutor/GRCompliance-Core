@@ -15,7 +15,7 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
         importCustom: protectedProcedure
             .input(z.object({
                 clientId: z.number(),
-                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system", "owasp_aisvs", "owasp_asvs", "owasp_masvs", "owasp_samm", "owasp_api_top10", "owasp_top10", "owasp_top10_2021", "owasp_ml_top10", "owasp_scvs"]),
+                type: z.enum(["pci_dss_v4", "cis_v8", "ccm_v4", "iso22301", "hitrust", "fedramp", "fedramp_low", "fedramp_high", "cyber_essentials", "nist_ai_rmf", "iso27001", "soc2", "cis_v8_system", "owasp_aisvs", "owasp_asvs", "owasp_masvs", "owasp_samm", "owasp_api_top10", "owasp_top10", "owasp_top10_2021", "owasp_ml_top10", "owasp_scvs", "nist_csf_2", "essential_eight", "nist_800_161", "soc1", "tisax", "scf"]),
                 fileContent: z.string().optional(), // Base64, optional for system frameworks
             }))
             .mutation(async ({ ctx, input }: any) => {
@@ -297,34 +297,61 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                         version: 1,
                         grouping: "CIS v8"
                     }));
-                } else if (input.type === "owasp_aisvs") {
-                    frameworkName = "OWASP AISVS (AI Security)";
-                    // Use bulkAssign later
-                } else if (input.type === "owasp_asvs") {
-                    frameworkName = "OWASP ASVS (App Security)";
-                    // Use bulkAssign later
-                } else if (input.type === "owasp_masvs") {
-                    frameworkName = "OWASP MASVS (Mobile Security)";
-                    // Use bulkAssign later
-                } else if (input.type === "owasp_samm") {
-                    frameworkName = "OWASP SAMM (Maturity Model)";
-                    // Use bulkAssign later
-                } else if (input.type === "owasp_api_top10") {
-                    frameworkName = "OWASP API Security Top 10";
-                    // Use bulkAssign later
-                } else if (input.type === "owasp_top10") {
-                    frameworkName = "OWASP Web Top 10";
-                } else if (input.type === "owasp_top10_2021") {
-                    frameworkName = "OWASP Web Top 10 (2021)";
-                } else if (input.type === "owasp_ml_top10") {
-                    frameworkName = "OWASP ML Security Top 10";
                 } else if (input.type === "owasp_scvs") {
                     frameworkName = "OWASP SCVS (Supply Chain Security)";
+                } else {
+                    const { bundledFramework, bringYourOwnFrameworks } = await import('../../data/frameworks/bundledCatalogs');
+                    const bundled = bundledFramework(input.type);
+                    if (bundled) {
+                        frameworkName = bundled.frameworkName;
+                        newControls = bundled.controls.map(c => ({
+                            controlId: c.id,
+                            name: c.name.slice(0, 255),
+                            description: c.description,
+                            framework: frameworkName,
+                            category: c.category,
+                            implementationGuidance: c.implementationGuidance || bundled.guidance,
+                            clientId: input.clientId,
+                            status: "active",
+                            version: bundled.version,
+                            grouping: c.grouping || bundled.grouping
+                        }));
+                    } else if (bringYourOwnFrameworks[input.type]) {
+                        const byo = bringYourOwnFrameworks[input.type];
+                        frameworkName = byo.frameworkName;
+                        if (!input.fileContent) {
+                            throw new TRPCError({
+                                code: "BAD_REQUEST",
+                                message: "Upload the workbook you obtained from the publisher. This framework's requirement text is not bundled."
+                            });
+                        }
+                        const { parseBringYourOwnCatalog } = await import('./bringYourOwnCatalog');
+                        try {
+                            const parsed = parseBringYourOwnCatalog(Buffer.from(input.fileContent, "base64"));
+                            newControls = parsed.map(c => ({
+                                controlId: c.controlId,
+                                name: c.name,
+                                description: c.description,
+                                framework: frameworkName,
+                                category: byo.grouping,
+                                implementationGuidance: "Imported from the publisher workbook supplied for this workspace.",
+                                clientId: input.clientId,
+                                status: "active",
+                                version: 1,
+                                grouping: byo.grouping
+                            }));
+                        } catch (parseError: unknown) {
+                            throw new TRPCError({
+                                code: "BAD_REQUEST",
+                                message: parseError instanceof Error ? parseError.message : "Could not read the workbook."
+                            });
+                        }
+                    }
                 }
 
                 try {
                     const d = await db.getDb();
-                    if (input.type === "owasp_aisvs" || input.type === "owasp_asvs" || input.type === "owasp_masvs" || input.type === "owasp_samm" || input.type === "owasp_api_top10" || input.type === "owasp_top10" || input.type === "owasp_top10_2021" || input.type === "owasp_ml_top10" || input.type === "owasp_scvs") {
+                    if (input.type === "owasp_scvs") {
                         await db.bulkAssignControls(input.clientId, frameworkName);
                         // Count how many were assigned
                         const count = await d.select({ count: sql<number>`count(*)` })
