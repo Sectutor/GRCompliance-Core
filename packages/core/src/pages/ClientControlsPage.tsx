@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Shield, Plus, Trash2, Edit, Download, ClipboardList, LayoutGrid, List, AlertCircle } from "lucide-react";
+import { ArrowLeft, Shield, Plus, Trash2, Edit, ClipboardList, LayoutGrid, List, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@complianceos/ui/ui/tooltip";
 import ControlDetailsDialog from "@/components/ControlDetailsDialog";
 import { EvidenceSuggestionsPopover } from "@/components/controls/EvidenceSuggestionsPopover";
@@ -32,6 +32,7 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 import { NISTBaselineWizard } from "@/components/frameworks/NISTBaselineWizard";
+import { SoaExportButton } from "@/components/soa/SoaExportButton";
 
 export default function ClientControlsPage() {
     const params = useParams<{ id?: string; clientId?: string }>();
@@ -236,16 +237,7 @@ export default function ClientControlsPage() {
                             </Select>
                         </div>
 
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                window.location.assign(`/api/export/soa/${client?.id}`);
-                            }}
-                            title="Export SoA to Word"
-                        >
-                            <Download className="mr-2 h-4 w-4" />
-                            Export SoA
-                        </Button>
+                        <SoaExportButton clientId={client?.id || clientId} />
 
                         <Button
                             className="bg-green-600 hover:bg-green-700 text-white border-green-700"

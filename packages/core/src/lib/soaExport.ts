@@ -117,8 +117,12 @@ export async function generateSoADocx(data: SoAExportData): Promise<Buffer> {
                                     new TableCell({
                                         children: [new Paragraph({
                                             children: [new TextRun({
-                                                text: control.applicability === 'not_applicable' ? "Excluded" : "Included",
-                                                color: control.applicability === 'not_applicable' ? "999999" : "000000"
+                                                text: control.applicability === 'not_applicable'
+                                                    ? "Excluded"
+                                                    : control.applicability === 'not_assessed'
+                                                        ? "Not yet assessed"
+                                                        : "Included",
+                                                color: control.applicability === 'applicable' ? "000000" : "999999"
                                             })]
                                         })]
                                     }),

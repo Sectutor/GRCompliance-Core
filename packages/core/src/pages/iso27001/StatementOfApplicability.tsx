@@ -7,7 +7,6 @@ import {
     ChevronRight,
     Search,
     Filter,
-    FileDown,
     CheckCircle2,
     Circle,
     XCircle,
@@ -52,6 +51,7 @@ import {
     soaJustificationText,
     soaListLayout,
 } from "@/lib/soaListing";
+import { SoaExportButton } from "@/components/soa/SoaExportButton";
 
 export default function StatementOfApplicability() {
     const { id } = useParams<{ id: string }>();
@@ -201,9 +201,7 @@ export default function StatementOfApplicability() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="h-11 px-4 border-slate-200 shadow-sm hover:bg-white">
-                            <FileDown className="mr-2 h-4 w-4" /> Export SoA
-                        </Button>
+                        <SoaExportButton clientId={clientId} className="h-11 px-4 border-slate-200 shadow-sm hover:bg-white" />
                     </div>
                 </div>
 

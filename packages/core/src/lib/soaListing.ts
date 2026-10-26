@@ -294,3 +294,48 @@ export function soaApplicabilityValue(entry: { adopted: boolean; clientControl: 
     if (isSoaEntryExcluded(entry.clientControl)) return "not_applicable";
     return "applicable";
 }
+
+export function soaApplicabilityLabel(entry: { adopted: boolean; clientControl: { applicability?: string | null; status?: string | null } }): "Included" | "Excluded" | "Not yet assessed" {
+    const value = soaApplicabilityValue(entry);
+    if (value === "not_assessed") return "Not yet assessed";
+    if (value === "not_applicable") return "Excluded";
+    return "Included";
+}
+
+export function soaStatusLabel(entry: { adopted: boolean; clientControl: { status?: string | null } }): string {
+    if (!entry.adopted || entry.clientControl.status === "not_assessed") return "Not yet assessed";
+    switch (entry.clientControl.status) {
+        case "implemented": return "Implemented";
+        case "in_progress": return "In progress";
+        case "not_applicable": return "Excluded";
+        default: return "Not started";
+    }
+}
+
+function csvCell(value: string): string {
+    const guarded = /^[=+\-@]/.test(value) ? `'${value}` : value;
+    if (/[",\n\r]/.test(guarded)) return `"${guarded.replace(/"/g, '""')}"`;
+    return guarded;
+}
+
+export function soaToCsv(entries: readonly SoaListEntry[]): string {
+    const header = ["Reference", "Title", "Theme", "Category", "Applicability", "Status", "Justification"];
+    const lines = [header.join(",")];
+    for (const entry of entries) {
+        lines.push([
+            entry.control.controlId,
+            entry.control.name,
+            entry.control.theme,
+            customCategoryLabel(entry.control.category, entry.control.theme) ?? "",
+            soaApplicabilityLabel(entry),
+            soaStatusLabel(entry),
+            entry.clientControl.justification ?? "",
+        ].map((value) => csvCell(value)).join(","));
+    }
+    return `${lines.join("\r\n")}\r\n`;
+}
+
+export function soaExportFilename(clientName: string, extension: "docx" | "csv"): string {
+    const safe = clientName.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "workspace";
+    return `${safe}-Statement-of-Applicability.${extension}`;
+}
