@@ -41,4 +41,6 @@ export interface Question {
     section?: string;
     subSection?: string;
     boolean?: boolean;
+    /** Existing questionnaire hint. Not part of the legal requirement text. */
+    failureGuidance?: string;
 }

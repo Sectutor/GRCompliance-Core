@@ -1,4 +1,16 @@
 import { Regulation } from "./types";
+import { nis2AnnexSubArticles } from "./nis2Annex";
+
+/**
+ * Article 21(2) sub-articles are the Annex to Commission Implementing Regulation
+ * (EU) 2024/2690 (OJ L, 2024/2690, 17 October 2024), EU law, reusable:
+ * https://eur-lex.europa.eu/eli/reg_impl/2024/2690/oj
+ * An annex section whose heading cites more than one Article 21(2) point is
+ * listed under each of those points. The annex sentences are unchanged, including
+ * a sentence that names only one of the points. Section 11 (access control) is
+ * under points (i) and (j). Section 13 (environmental and physical security) is
+ * under points (c), (e), and (i).
+ */
 
 export const nis2: Regulation = {
     id: "nis2",
@@ -113,70 +125,80 @@ export const nis2: Regulation = {
             numericId: "21.2(a)",
             title: "Policies on risk analysis and information system security",
             description: "Entities must implement and maintain documented policies on risk analysis and information system security. This includes: 1) A methodology for identifying and assessing cybersecurity risks. 2) Regular review and updates of security policies. 3) Approval of policies by management bodies.",
-            mappedControls: { "NIST 800-53": ["RA-1", "PL-2", "CA-1"], "ISO 27001": ["A.5.1.1", "A.8.2"] }
+            mappedControls: { "NIST 800-53": ["RA-1", "PL-2", "CA-1"], "ISO 27001": ["A.5.1.1", "A.8.2"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-a"]
         },
         {
             id: "nis2-art-21-2-b",
             numericId: "21.2(b)",
             title: "Incident handling",
             description: "Entities must have an incident handling process to prevent, detect, and respond to incidents. Requirements enable: 1) Detection of cyber threats and incidents. 2) Reporting channels for security events. 3) A defined response plan to mitigate impact. 4) Post-incident analysis to learn and improve defenses.",
-            mappedControls: { "NIST 800-53": ["IR-1", "IR-4", "IR-6"], "ISO 27001": ["A.16.1"] }
+            mappedControls: { "NIST 800-53": ["IR-1", "IR-4", "IR-6"], "ISO 27001": ["A.16.1"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-b"]
         },
         {
             id: "nis2-art-21-2-c",
             numericId: "21.2(c)",
             title: "Business continuity and crisis management",
             description: "Entities must ensure business continuity and crisis management capabilities. This requires: 1) Regular backups of data and critical systems. 2) Disaster recovery plans that are tested periodically. 3) Crisis management procedures to ensure operational resilience during severe disruptions.",
-            mappedControls: { "NIST 800-53": ["CP-1", "CP-2", "CP-9"], "ISO 27001": ["A.17.1"] }
+            mappedControls: { "NIST 800-53": ["CP-1", "CP-2", "CP-9"], "ISO 27001": ["A.17.1"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-c"]
         },
         {
             id: "nis2-art-21-2-d",
             numericId: "21.2(d)",
             title: "Supply chain security",
             description: "Entities must manage security risks in their supply chain. This involves: 1) Assessing the security practices of direct suppliers and service providers. 2) Addressing security in contractual arrangements. 3) Considering the broader ecosystem risks and dependencies.",
-            mappedControls: { "NIST 800-53": ["SR-1", "SR-3"], "ISO 27001": ["A.15.1", "A.15.2"] }
+            mappedControls: { "NIST 800-53": ["SR-1", "SR-3"], "ISO 27001": ["A.15.1", "A.15.2"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-d"]
         },
         {
             id: "nis2-art-21-2-e",
             numericId: "21.2(e)",
             title: "Security in network and information systems acquisition",
             description: "Security must be integrated into the acquisition, development, and maintenance of network and information systems. Requirements include: 1) Handling and disclosing vulnerabilities. 2) Secure coding and development practices. 3) Security testing before system deployment.",
-            mappedControls: { "NIST 800-53": ["SA-3", "SA-8", "SI-2"] }
+            mappedControls: { "NIST 800-53": ["SA-3", "SA-8", "SI-2"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-e"]
         },
         {
             id: "nis2-art-21-2-f",
             numericId: "21.2(f)",
             title: "Policies and procedures to assess effectiveness",
             description: "Entities must establish policies and procedures to regularly assess the effectiveness of cybersecurity risk-management measures. This includes: 1) Conducting regular security audits and assessments. 2) Metrics to measure control performance. 3) Management reviews of the effectiveness of the security program.",
-            mappedControls: { "NIST 800-53": ["CA-2", "CA-7"] }
+            mappedControls: { "NIST 800-53": ["CA-2", "CA-7"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-f"]
         },
         {
             id: "nis2-art-21-2-g",
             numericId: "21.2(g)",
             title: "Basic cyber hygiene and training",
             description: "Entities must implement basic cyber hygiene practices and cybersecurity training. This involves: 1) Mandatory cybersecurity training for staff. 2) Promoting a security culture. 3) Implementing hygiene basics like patch management, password policies, and software updates.",
-            mappedControls: { "NIST 800-53": ["AT-2", "AT-3", "SI-2"] }
+            mappedControls: { "NIST 800-53": ["AT-2", "AT-3", "SI-2"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-g"]
         },
         {
             id: "nis2-art-21-2-h",
             numericId: "21.2(h)",
             title: "Cryptography and encryption",
             description: "Entities must have policies and procedures regarding the use of cryptography. This includes: 1) Implementing encryption for data at rest and in transit where appropriate. 2) Managing cryptographic keys securely. 3) Justifying cases where encryption is not used.",
-            mappedControls: { "NIST 800-53": ["SC-13", "SC-28"] }
+            mappedControls: { "NIST 800-53": ["SC-13", "SC-28"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-h"]
         },
         {
             id: "nis2-art-21-2-i",
             numericId: "21.2(i)",
             title: "Human resources security",
             description: "Entities must ensure human resources security, access control policies, and asset management. Requirements include: 1) Background checks for sensitive roles. 2) Secure onboarding and offboarding procedures. 3) Strict access control policies based on least privilege and asset management lifecycles.",
-            mappedControls: { "NIST 800-53": ["PS-1", "AC-1", "CM-8"] }
+            mappedControls: { "NIST 800-53": ["PS-1", "AC-1", "CM-8"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-i"]
         },
         {
             id: "nis2-art-21-2-j",
             numericId: "21.2(j)",
             title: "Multi-factor authentication",
             description: "Entities must use multi-factor authentication (MFA) or continuous authentication solutions. This applies to: 1) Remote access to systems. 2) Privileged accounts. 3) Secured voice, video, and text communications where appropriate.",
-            mappedControls: { "NIST 800-53": ["IA-2", "AC-17"] }
+            mappedControls: { "NIST 800-53": ["IA-2", "AC-17"] },
+            subArticles: nis2AnnexSubArticles["nis2-art-21-2-j"]
         },
         {
             id: "nis2-art-23",
