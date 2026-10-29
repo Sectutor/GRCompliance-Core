@@ -31,3 +31,29 @@ jobs:
       env:
         # Ensure build passes without premium files
         CI: true
+
+  truth-file:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Validate truth files
+      run: npm run truth:validate
+
+    - name: Truth-file unit tests
+      run: npm test -w @complianceos/core -- src/lib/truthFile/validate.test.ts
+
+    - name: Monthly readiness report test
+      run: npm test -w @complianceos/core -- src/lib/readiness/model.test.ts
+
+    - name: Render the Latore monthly readiness sample
+      run: npm run readiness:latore

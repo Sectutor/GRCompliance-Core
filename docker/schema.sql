@@ -17476,4 +17476,35 @@ ALTER TABLE ONLY public.threat_asset_mappings
 -- PostgreSQL database dump complete
 --
 
+-- Monthly readiness drafts. Applied on a fresh install with this file.
+-- Existing databases receive the same statements from docker/bootstrap.ts on every boot.
+-- Nothing here drops or deletes rows.
+
+CREATE TABLE IF NOT EXISTS monthly_readiness_settings (
+    client_id integer PRIMARY KEY REFERENCES public.clients(id) ON DELETE CASCADE,
+    enabled boolean NOT NULL DEFAULT false,
+    day_of_month integer NOT NULL DEFAULT 1,
+    truth_file_path text,
+    updated_at timestamp DEFAULT now(),
+    CONSTRAINT monthly_readiness_settings_day_check CHECK (day_of_month >= 1 AND day_of_month <= 28)
+);
+
+CREATE TABLE IF NOT EXISTS monthly_readiness_reports (
+    id serial PRIMARY KEY,
+    client_id integer NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
+    period_start date NOT NULL,
+    period_end date NOT NULL,
+    generated_at timestamp DEFAULT now() NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'draft',
+    filename varchar(255) NOT NULL,
+    pdf bytea NOT NULL,
+    summary jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS monthly_readiness_reports_period_idx
+    ON monthly_readiness_reports (client_id, period_start, period_end);
+
+CREATE INDEX IF NOT EXISTS monthly_readiness_reports_client_idx
+    ON monthly_readiness_reports (client_id);
+
 

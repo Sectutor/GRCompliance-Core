@@ -56,6 +56,43 @@ async function ensureLocalCredentialsTable() {
     `);
 }
 
+/** Additive only. Runs on every boot because schema.sql is applied only when public.users is missing. */
+async function ensureMonthlyReadinessTables() {
+    const db = await getDb();
+    await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS monthly_readiness_settings (
+            client_id integer PRIMARY KEY REFERENCES public.clients(id) ON DELETE CASCADE,
+            enabled boolean NOT NULL DEFAULT false,
+            day_of_month integer NOT NULL DEFAULT 1,
+            truth_file_path text,
+            updated_at timestamp DEFAULT now(),
+            CONSTRAINT monthly_readiness_settings_day_check CHECK (day_of_month >= 1 AND day_of_month <= 28)
+        )
+    `);
+    await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS monthly_readiness_reports (
+            id serial PRIMARY KEY,
+            client_id integer NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
+            period_start date NOT NULL,
+            period_end date NOT NULL,
+            generated_at timestamp DEFAULT now() NOT NULL,
+            status varchar(20) NOT NULL DEFAULT 'draft',
+            filename varchar(255) NOT NULL,
+            pdf bytea NOT NULL,
+            summary jsonb
+        )
+    `);
+    await db.execute(sql`
+        CREATE UNIQUE INDEX IF NOT EXISTS monthly_readiness_reports_period_idx
+            ON monthly_readiness_reports (client_id, period_start, period_end)
+    `);
+    await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS monthly_readiness_reports_client_idx
+            ON monthly_readiness_reports (client_id)
+    `);
+    console.log('[bootstrap] Monthly readiness tables ready');
+}
+
 async function ensureAdmin() {
     const email = process.env.ADMIN_EMAIL || 'admin@grcompliance.local';
     const password = process.env.ADMIN_PASSWORD;
@@ -114,6 +151,7 @@ async function main() {
     await ensureEvidenceRequestAssignees();
     await ensureDefaultDataSeeded();
     await ensureLocalCredentialsTable();
+    await ensureMonthlyReadinessTables();
     if (process.env.AUTH_MODE === 'local') {
         const user = await ensureAdmin();
         await ensureLatore(user.id);

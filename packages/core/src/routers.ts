@@ -115,6 +115,7 @@ import { createLearningRouter } from "./server/routers/learning";
 import { createTaskAssignmentsRouter } from "./server/routers/taskAssignments";
 import { createPolicyTemplatesRouter } from "./server/routers/policyTemplates";
 import { createReportsRouter } from "./server/routers/reports";
+import { createMonthlyReadinessRouter } from "./server/routers/monthlyReadiness";
 // import { createStrategicReportsRouter } from "./server/routers/strategicReports";
 import { createFindingsRouter } from "./server/routers/findings";
 import { createTrustCenterRouter } from "./server/routers/trustCenter";
@@ -236,6 +237,7 @@ export const appRouter = router({
   subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
   policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed),
   reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
+  monthlyReadiness: createMonthlyReadinessRouter(t, clientProcedure, clientEditorProcedure),
   // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
 

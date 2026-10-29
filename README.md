@@ -155,6 +155,37 @@ The first page does not show a cookie or advertising consent dialog. GRComplianc
 
 `AUTH_MODE=local` does not call Supabase. The process log says user administration uses the local database. Invited people who set a password, and an administrator password reset, are stored in `local_credentials`. Reset shows the new password once to the administrator and does not email a Supabase link. Impersonation starts a local session. Local authentication has no MFA enrollment, so privileged API routes are not blocked for lack of a second factor. Hosted Supabase magic links are unused in this mode. The generated administrator is created with role `admin`.
 
+## Client truth files
+
+Each CaaS client has one truth file: the facts a report is allowed to quote. The Latore LTD demo file is [`truth-files/latore-ltd.yaml`](truth-files/latore-ltd.yaml). The JSON Schema and the checker are described in [`truth-files/README.md`](truth-files/README.md).
+
+```bash
+npm run truth:validate
+```
+
+The command checks files under `truth-files/`. It does not connect to a database. To compare a file with a workspace's frameworks, scope, gap control ids, roadmap title, business processes, and risk labels, pass `--client-name` or `--client-id` as documented in that README. The comparison only reads.
+
+## Monthly readiness report
+
+Each workspace can store a monthly readiness PDF. The layout covers the reporting period, what is on record this month, what changed, overdue items, the next three actions, risks, incident readiness, and a sign-off box for Emmanuel. Figures come from the workspace. When `truth-files/<workspace-name>.yaml` exists, or a path inside `truth-files/` is saved on the workspace, approved wording is taken from that file. Differences between the file and the workspace are listed in the annex. They are not treated as approved facts.
+
+The PDF is produced with PDFKit, which is already installed in the server image and uses the standard Helvetica fonts. The image has no Chromium, so a browser renderer is not used. The file is stored in Postgres (`monthly_readiness_reports.pdf`) and shown for download on the workspace Reports page, Monthly readiness tab. It is not emailed.
+
+The schedule is off unless both of these are true:
+
+- `ENABLE_MONTHLY_READINESS_SCHEDULER=true` on the server (`docker-compose.yml` sets it to `false`)
+- the workspace opts in (the settings row defaults to off; the day of the month is 1–28)
+
+A manual "Generate draft now" stores a draft even when the schedule is off. It still does not send email. A scheduled run does not replace a draft that already exists for that period.
+
+`docker/schema.sql` creates the two tables on a fresh database. `docker/bootstrap.ts` runs the same `CREATE TABLE IF NOT EXISTS` statements on every boot, because the SQL dump is applied only when `public.users` is missing. Startup does not drop or delete rows.
+
+```bash
+npm run readiness:latore
+```
+
+That writes `tmp/MRR-demo-2026-10.pdf` from the Latore demo seed rows and `truth-files/latore-ltd.yaml`. It does not need a database.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
