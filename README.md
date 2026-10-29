@@ -149,7 +149,7 @@ Community is the default. Premium APIs stay forbidden until the paid edition reg
 
 The image omits premium navigation such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge.
 
-A community instance can keep the seeded **Latore LTD** demo plus one other workspace. Latore does not consume that one real workspace, and administrators are counted the same way as every other owner. The server enforces that cap on create and on switching. `VITE_ENABLE_PREMIUM`, a client-supplied plan, and `users.maxClients` do not raise it. Workspaces that already exist are left in place; the owner can still open Latore and the earliest other workspace. Another real workspace needs a commercial license from [grcompliance.com](https://grcompliance.com/). Putting a license key in the environment, or writing `planTier`, modules, or branding through the client update API, does not upgrade the workspace. The plan changes only after Gumroad verifies a purchase. The workspace cap does not consult the premium entitlement provider.
+A community instance can keep the seeded **Latore LTD** demo plus one other workspace. Latore does not consume that one real workspace, and administrators are counted the same way as every other owner. The server enforces that cap on create and on switching. `VITE_ENABLE_PREMIUM`, a client-supplied plan, and `users.maxClients` do not raise it. Workspaces that already exist are left in place; the owner can still open Latore and the earliest other workspace. Putting a license key in the environment, or writing `planTier`, modules, or branding through the client update API, does not upgrade the workspace. The plan changes only after Gumroad verifies a purchase. The workspace cap does not consult the premium entitlement provider.
 
 The first page does not show a cookie or advertising consent dialog. GRCompliance does not load third-party tracking, analytics, or advertising scripts. Sign-in uses strictly necessary session storage. Set `GRC_COOKIE_CONSENT=1` only if you want an optional notice that records a browser preference and still loads no third-party scripts.
 
@@ -165,10 +165,8 @@ See [SECURITY.md](SECURITY.md). Do not commit `.env` files, credentials, or cust
 
 ## License
 
-GRCompliance is licensed under the GNU Affero General Public License version 3 only (AGPL-3.0-only). The licensor is Intellfence. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+Licensed under the terms in LICENSE
 
 If you modify GRCompliance and offer it as a network service, AGPL-3.0-only requires you to offer the corresponding source to users of that service.
-
-A commercial license is available for organizations that need terms other than AGPL-3.0-only. The template is [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com.
 
 Source checkout: [https://github.com/Sectutor/GRCompliance-Core.git](https://github.com/Sectutor/GRCompliance-Core.git).
