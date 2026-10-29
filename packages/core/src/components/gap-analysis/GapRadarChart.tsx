@@ -1,4 +1,5 @@
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { NIS2_GAP_DOMAINS } from "@/data/frameworks/nis2Gap";
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 
 interface DomainScore {
@@ -38,6 +39,7 @@ const frameworkDomains: Record<string, string[]> = {
     'ISO 27001': ['Context', 'Leadership', 'Planning', 'Support', 'Operation', 'Performance', 'Improvement'],
     'ISO 27001:2022': ['Context', 'Leadership', 'Planning', 'Support', 'Operation', 'Performance', 'Improvement'],
     'SOC 2': ['Security', 'Availability', 'Processing Integrity', 'Confidentiality', 'Privacy'],
+    'NIS2': NIS2_GAP_DOMAINS,
 };
 
 export function GapRadarChart({ controls, responses, framework }: GapRadarChartProps) {

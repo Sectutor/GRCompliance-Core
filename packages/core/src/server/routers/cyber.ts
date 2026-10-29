@@ -7,6 +7,7 @@ import {
 import { getDb } from "../../db";
 import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { withNis2ReportingDeadlines } from "../../lib/nis2ReportingDeadlines";
 
 export const createCyberRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -129,7 +130,7 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                     // In a real scenario, this might trigger emails to CSIRT
                     console.log(`[INCIDENT] New incident reported: ID ${incident.id} for Client ${input.clientId}`);
 
-                    return { success: true, incidentId: incident.id };
+                    return { success: true, incidentId: incident.id, incident: withNis2ReportingDeadlines(incident) };
                 } catch (e: any) {
                     console.error("Failed to report incident:", e);
                     throw new TRPCError({
@@ -143,9 +144,10 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: any) => {
                 const db = await getDb();
-                return await db.select().from(incidents)
+                const rows = await db.select().from(incidents)
                     .where(eq(incidents.clientId, input.clientId))
                     .orderBy(incidents.createdAt);
+                return rows.map((row: any) => withNis2ReportingDeadlines(row));
             }),
 
         getIncident: clientProcedure
@@ -168,7 +170,7 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                         message: "Incident not found"
                     });
                 }
-                return incident[0];
+                return withNis2ReportingDeadlines(incident[0]);
             }),
 
         updateIncident: clientProcedure

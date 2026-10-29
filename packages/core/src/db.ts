@@ -6,6 +6,7 @@ import postgres from "postgres";
 import { encrypt } from "./lib/crypto";
 import { getSecret } from "./lib/secrets";
 import { policyCoverage, postureScore } from "./lib/postureScore";
+import { NIS2_GAP_FRAMEWORK, nis2GapControls, nis2GapSeedValues } from "./data/frameworks/nis2Gap";
 
 import {
 
@@ -1212,6 +1213,50 @@ export async function getPolicyTemplateById(id: number) {
 
 // ==================== DEFAULT SEEDING ====================
 
+/**
+ * Inserts missing NIS2 gap items and corrects rows that were seeded with the
+ * old Article 21(2) labels. Point (j) was stored as access and asset management.
+ */
+async function reconcileNis2GapControls(db: Awaited<ReturnType<typeof getDb>>) {
+  const existing = await db.select().from(controls).where(and(
+    eq(controls.framework, NIS2_GAP_FRAMEWORK),
+    isNull(controls.clientId),
+  ));
+  const byCode = new Map(existing.map((row: any) => [row.controlId, row]));
+  let inserted = 0;
+  let updated = 0;
+  for (const item of nis2GapControls) {
+    const values = nis2GapSeedValues(item);
+    const row = byCode.get(item.controlId) as any;
+    if (!row) {
+      await db.insert(controls).values(values);
+      inserted++;
+      continue;
+    }
+    if (
+      row.name !== values.name
+      || row.description !== values.description
+      || row.category !== values.category
+      || row.implementationGuidance !== values.implementationGuidance
+    ) {
+      await db.update(controls).set({
+        name: values.name,
+        description: values.description,
+        category: values.category,
+        owner: values.owner,
+        frequency: values.frequency,
+        evidenceType: values.evidenceType,
+        implementationGuidance: values.implementationGuidance,
+        status: "active",
+      }).where(eq(controls.id, row.id));
+      updated++;
+    }
+  }
+  if (inserted || updated) {
+    logger.info(`[Seed] NIS2 gap controls inserted=${inserted} updated=${updated}`);
+  }
+}
+
 export async function ensureDefaultDataSeeded() {
 
   const db = await getDb();
@@ -1341,16 +1386,6 @@ export async function ensureDefaultDataSeeded() {
       { controlId: "A.8.15", name: "Logging", description: "Logs that record activities, exceptions, and security events are produced and stored.", framework: "ISO 27001", owner: "Security", frequency: "Continuous", evidenceType: "Log", status: "active", category: "Operations" },
       { controlId: "A.8.16", name: "Monitoring", description: "Networks, systems, and applications are monitored for anomalous behaviour.", framework: "ISO 27001", owner: "Security", frequency: "Continuous", evidenceType: "Alert review", status: "active", category: "Operations" },
       { controlId: "A.8.24", name: "Cryptography", description: "Rules for effective use of cryptography are defined and implemented.", framework: "ISO 27001", owner: "Security", frequency: "Annual", evidenceType: "Standard", status: "active", category: "Operations" },
-      { controlId: "NIS2-21-a", name: "Risk analysis policies", description: "Policies on risk analysis and information system security are adopted.", framework: "NIS2", owner: "CISO", frequency: "Annual", evidenceType: "Policy", status: "active", category: "Governance" },
-      { controlId: "NIS2-21-b", name: "Incident handling", description: "Incident handling procedures, including detection and reporting, are in place.", framework: "NIS2", owner: "Security", frequency: "Annual", evidenceType: "Procedure", status: "active", category: "Incident" },
-      { controlId: "NIS2-21-c", name: "Business continuity", description: "Backup management and disaster recovery are maintained.", framework: "NIS2", owner: "Operations", frequency: "Annual", evidenceType: "Plan", status: "active", category: "Continuity" },
-      { controlId: "NIS2-21-d", name: "Supply chain security", description: "Security aspects of relationships with direct suppliers are assessed.", framework: "NIS2", owner: "Procurement", frequency: "Annual", evidenceType: "Assessment", status: "active", category: "Suppliers" },
-      { controlId: "NIS2-21-e", name: "Secure acquisition", description: "Security is considered in the acquisition, development, and maintenance of systems.", framework: "NIS2", owner: "Engineering", frequency: "Annual", evidenceType: "Standard", status: "active", category: "Development" },
-      { controlId: "NIS2-21-f", name: "Vulnerability handling", description: "Procedures to assess and disclose vulnerabilities are maintained.", framework: "NIS2", owner: "Security", frequency: "Monthly", evidenceType: "Register", status: "active", category: "Operations" },
-      { controlId: "NIS2-21-g", name: "Cyber hygiene training", description: "Basic cyber hygiene practices and cybersecurity training are provided.", framework: "NIS2", owner: "HR", frequency: "Annual", evidenceType: "Training record", status: "active", category: "People" },
-      { controlId: "NIS2-21-h", name: "Cryptography policies", description: "Policies and procedures on the use of cryptography are established.", framework: "NIS2", owner: "Security", frequency: "Annual", evidenceType: "Policy", status: "active", category: "Operations" },
-      { controlId: "NIS2-21-i", name: "Human resources security", description: "Human resources security, access control, and asset management are applied.", framework: "NIS2", owner: "HR", frequency: "Annual", evidenceType: "Procedure", status: "active", category: "People" },
-      { controlId: "NIS2-21-j", name: "Access and asset management", description: "Access control policies and asset management practices are enforced.", framework: "NIS2", owner: "IT Security", frequency: "Quarterly", evidenceType: "Review", status: "active", category: "Access Control" },
     ];
 
     await db.insert(controls).values([...defaultControls, ...catalogControls]);
@@ -1564,6 +1599,8 @@ export async function ensureDefaultDataSeeded() {
     logger.info(`[Seed] Inserted ${nistControls.length} NIST CSF controls`);
 
   }
+
+  await reconcileNis2GapControls(db);
 
 
 
@@ -3138,11 +3175,11 @@ async function applyDemoControlMix(clientId: number) {
 
 const DEMO_POLICY_CONTROL_LINKS: Record<string, string[]> = {
   "Information Security Policy": ["A.5.1", "A.5.2", "NIS2-21-a"],
-  "Access Control Policy": ["A.5.15", "A.8.2", "A.8.5", "NIS2-21-j"],
+  "Access Control Policy": ["A.5.15", "A.8.2", "A.8.5", "NIS2-21-i"],
   "Incident Response Policy": ["A.5.24", "NIS2-21-b"],
   "Vendor Risk Management Policy": ["A.5.19", "A.5.23", "NIS2-21-d"],
   "Business Continuity Policy": ["A.5.30", "A.8.13", "NIS2-21-c"],
-  "NIS2 Incident Notification Policy": ["NIS2-21-b", "A.5.24"],
+  "NIS2 Incident Notification Policy": ["NIS2-23", "A.5.24"],
 };
 
 async function seedDemoPolicyLinks(clientId: number) {

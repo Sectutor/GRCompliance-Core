@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { nis2 } from "./nis2";
+import { nis2Article21Controls } from "../frameworks/nis2Gap";
 
 const points = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"] as const;
 const expected: Record<(typeof points)[number], number> = {
@@ -14,6 +15,17 @@ const expected: Record<(typeof points)[number], number> = {
   i: 53,
   j: 21,
 };
+
+describe("NIS2 Article 21(2) requirement text", () => {
+  it("uses the same official labels as the gap-analysis catalog", () => {
+    for (const item of nis2Article21Controls) {
+      const article = nis2.articles.find((entry) => entry.id === `nis2-art-21-2-${item.point}`);
+      expect(article?.title).toBe(item.name);
+      expect(article?.description).toContain(item.requirement);
+      expect(article?.description).toContain("https://eur-lex.europa.eu/eli/dir/2022/2555/oj");
+    }
+  });
+});
 
 describe("NIS2 Implementing Regulation (EU) 2024/2690 annex", () => {
   it("attaches every annex point under the Article 21(2) item named in the annex heading", () => {

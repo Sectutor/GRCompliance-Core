@@ -14,6 +14,7 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { PageGuide } from "@/components/PageGuide";
+import { nis2ReportingDeadlines } from "@/lib/nis2ReportingDeadlines";
 import { cn } from "@/lib/utils";
 
 type Severity = "low" | "medium" | "high" | "critical";
@@ -242,6 +243,26 @@ export default function CyberIncidentReporting() {
                                     </div>
                                 </div>
                             </div>
+                            {formData.detectedAt && (() => {
+                                const awareAt = new Date(formData.detectedAt);
+                                if (Number.isNaN(awareAt.getTime())) return null;
+                                const clocks = nis2ReportingDeadlines({ awareAt });
+                                return (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <div className="text-xs font-bold text-slate-400 uppercase">Early warning due (24h from awareness)</div>
+                                            <div className="font-bold text-slate-900">{clocks.earlyWarningDue.toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-slate-400 uppercase">Incident notification due (72h from awareness)</div>
+                                            <div className="font-bold text-slate-900">{clocks.incidentNotificationDue.toLocaleString()}</div>
+                                        </div>
+                                        <div className="md:col-span-2 text-slate-600">
+                                            The 72-hour incident notification uses the same awareness time as the early warning. The final report is due one month after that incident notification is submitted (Article 23(4)(d)), not after the early warning.
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             <div className="flex items-center gap-4 p-6 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800">
                                 <ShieldAlert className="h-6 w-6 flex-shrink-0" />
                                 <p className="text-sm font-medium">

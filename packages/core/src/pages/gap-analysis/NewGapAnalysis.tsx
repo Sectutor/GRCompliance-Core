@@ -90,6 +90,7 @@ export default function NewGapAnalysis() {
                                     <SelectItem value="HIPAA Security Rule">HIPAA Security Rule</SelectItem>
                                     <SelectItem value="GDPR">GDPR</SelectItem>
                                     <SelectItem value="PCI DSS 4.0">PCI DSS 4.0</SelectItem>
+                                    <SelectItem value="NIS2">NIS2 (Directive (EU) 2022/2555)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -12,6 +12,7 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { toast } from "sonner";
 import { useLocation, useParams } from "wouter";
 import { format } from "date-fns";
+import { nis2ReportingDeadlines } from "@/lib/nis2ReportingDeadlines";
 import { PageGuide } from "@/components/PageGuide";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,18 @@ export default function CyberIncidentDetail() {
         });
     };
 
+    const reportingDeadlines = incident?.detectedAt
+        ? (incident.reportingDeadlines
+            ? {
+                earlyWarningDue: new Date(incident.reportingDeadlines.earlyWarningDue),
+                incidentNotificationDue: new Date(incident.reportingDeadlines.incidentNotificationDue),
+                finalReportDue: incident.reportingDeadlines.finalReportDue
+                    ? new Date(incident.reportingDeadlines.finalReportDue)
+                    : null,
+            }
+            : nis2ReportingDeadlines({ awareAt: new Date(incident.detectedAt) }))
+        : null;
+
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -106,7 +119,7 @@ export default function CyberIncidentDetail() {
                     <PageGuide
                         title={`Incident Analysis: ID-${incidentId}`}
                         description="Track investigative findings and manage the formal reporting lifecycle."
-                        rationale="NIS2 Article 23 requires a detailed report within 72 hours of the early warning."
+                        rationale="NIS2 Article 23(4)(b) requires the incident notification within 72 hours of becoming aware of the significant incident, the same moment as the 24-hour early warning in Article 23(4)(a). The final report is due one month after that incident notification is submitted (Article 23(4)(d)), not after the early warning."
                         howToUse={[
                             { step: "Status", description: "Keep the incident status updated as the investigation progresses." },
                             { step: "Evidence", description: "Document all affected assets and containment actions." },
@@ -296,9 +309,31 @@ export default function CyberIncidentDetail() {
                         </CardHeader>
                         <CardContent className="p-6 space-y-4">
                             <div className="space-y-1">
-                                <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Detection Date</div>
+                                <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Awareness / detection</div>
                                 <div className="text-sm font-medium">{incident?.detectedAt && format(new Date(incident.detectedAt), "PPP p")}</div>
+                                <p className="text-xs text-white/70">Article 23(4)(a) and (b) both run from this time.</p>
                             </div>
+                            {reportingDeadlines && (
+                                <>
+                                    <div className="space-y-1">
+                                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Early warning due (24h)</div>
+                                        <div className="text-sm font-medium">{format(reportingDeadlines.earlyWarningDue, "PPP p")}</div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Incident notification due (72h)</div>
+                                        <div className="text-sm font-medium">{format(reportingDeadlines.incidentNotificationDue, "PPP p")}</div>
+                                        <p className="text-xs text-white/70">72 hours after awareness, not after the early warning.</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Final report due (1 month)</div>
+                                        <div className="text-sm font-medium">
+                                            {reportingDeadlines.finalReportDue
+                                                ? format(reportingDeadlines.finalReportDue, "PPP p")
+                                                : "One month after the incident notification is submitted (Article 23(4)(d))."}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                             <div className="space-y-1">
                                 <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Initial Report</div>
                                 <div className="text-sm font-medium">{incident?.createdAt && format(new Date(incident.createdAt), "PPP p")}</div>
