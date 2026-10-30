@@ -1,5 +1,6 @@
 import { Framework } from "./types";
 import { SOC2_CRITERIA_COUNT, SOC2_VERSION } from "./soc2";
+import { nis2GapControls } from "./nis2Gap";
 
 export const frameworks: Framework[] = [
     {
@@ -237,6 +238,18 @@ export const frameworks: Framework[] = [
         controlsCount: 297,
         contentPolicy: "bundled",
         contentLicense: "NIST SP 800-161r1-upd1 (public domain)"
+    },
+    {
+        id: "nis2",
+        name: "NIS2",
+        description: "Directive (EU) 2022/2555. Gap-analysis items are Article 21(2)(a)–(j), plus Article 20 (governance) and Article 23 (reporting obligations). Requirement text is the Official Journal wording.",
+        type: "Security",
+        isObligation: true,
+        logo: "/frameworks/eu_flag.svg",
+        version: "2022/2555",
+        controlsCount: nis2GapControls.length,
+        contentPolicy: "bundled",
+        contentLicense: "Directive (EU) 2022/2555 (EUR-Lex; EU law, reusable)"
     },
     {
         id: "scf",

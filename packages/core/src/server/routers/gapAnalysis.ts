@@ -6,6 +6,7 @@ import * as schema from "../../schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { requireOwnedRow } from "../recordAccess";
+import { nis2GapControlIdScore } from "../../data/frameworks/nis2Gap";
 // import { generateGapAnalysisDocx } from "../lib/reporting/gapAnalysisReport";
 // import { llmService } from "../../lib/llm/service";
 
@@ -316,6 +317,8 @@ function getDomainScore(category: string): number {
 }
 
 function getControlIdScore(controlId: string): number {
+    const nis2Score = nis2GapControlIdScore(controlId);
+    if (nis2Score !== null) return nis2Score;
     const id = controlId.toUpperCase();
     // NIST CSF v2 — Protect.Access Control is highest priority
     if (id.startsWith('PR.AA') || id.startsWith('PR.AC')) return 20;

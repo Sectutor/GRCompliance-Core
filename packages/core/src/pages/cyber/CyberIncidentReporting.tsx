@@ -14,6 +14,7 @@ import { useClientContext } from "@/contexts/ClientContext";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { PageGuide } from "@/components/PageGuide";
+import { nis2ReportingDeadlines } from "@/lib/nis2ReportingDeadlines";
 import { cn } from "@/lib/utils";
 
 type Severity = "low" | "medium" | "high" | "critical";
@@ -44,8 +45,8 @@ export default function CyberIncidentReporting() {
 
     const reportMutation = trpc.cyber.reportIncident.useMutation({
         onSuccess: () => {
-            toast.success("Incident Reported", {
-                description: "The official notification has been logged for compliance.",
+            toast.success("Incident recorded", {
+                description: "Saved in this workspace. This does not send a report to a CSIRT or competent authority.",
             });
             setLocation(`/clients/${selectedClientId}/cyber/incidents`);
         },
@@ -92,12 +93,12 @@ export default function CyberIncidentReporting() {
                 </Button>
                 <PageGuide
                     title="Report Cyber Incident"
-                    description="Mandatory 24h/72h reporting wizard for NIS2 compliance."
-                    rationale="Article 23 requires entities to notify the CSIRT or competent authority of significant incidents without undue delay."
+                    description="Records your 24h/72h NIS2 reporting steps (it does not send the report)."
+                    rationale="Article 23 requires entities to notify the CSIRT or, where applicable, the competent authority of significant incidents without undue delay. This wizard only records those steps."
                     howToUse={[
                         { step: "Details", description: "Provide the basic 'who, what, when' of the incident." },
                         { step: "Impact", description: "Assess severity and cross-border significance." },
-                        { step: "Submit", description: "Review and file the report for immediate attention." }
+                        { step: "Submit", description: "Review the record. Saving it here does not send it." }
                     ]}
                 />
             </div>
@@ -131,9 +132,9 @@ export default function CyberIncidentReporting() {
                                 "Step 3: Verification"}
                     </CardTitle>
                     <CardDescription className="text-slate-500 text-lg">
-                        {step === 0 ? "When was it detected and what is the nature of the event?" :
+                        {step === 0 ? "When did you become aware of it, and what is the nature of the event?" :
                             step === 1 ? "Assess the scale and cross-border implications." :
-                                "Final review before alerting the authorities."}
+                                "Final review before you submit to your CSIRT or competent authority."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-8">
@@ -148,6 +149,7 @@ export default function CyberIncidentReporting() {
                                         value={formData.detectedAt}
                                         onChange={(e) => setFormData({ ...formData, detectedAt: e.target.value })}
                                     />
+                                    <p className="text-xs text-slate-500">Enter when you became aware of the significant incident. The 24h and 72h clocks run from this time.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm font-bold text-slate-700">Initial Severity Estimate</Label>
@@ -223,8 +225,9 @@ export default function CyberIncidentReporting() {
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-1">
-                                        <div className="text-xs font-bold text-slate-400 uppercase">Detection Time</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase">Awareness time</div>
                                         <div className="font-bold text-slate-900">{new Date(formData.detectedAt).toLocaleString()}</div>
+                                        <p className="text-xs text-slate-500">Enter when you became aware of the significant incident. The 24h and 72h clocks run from this time.</p>
                                     </div>
                                     <div className="space-y-1">
                                         <div className="text-xs font-bold text-slate-400 uppercase">Severity</div>
@@ -242,11 +245,32 @@ export default function CyberIncidentReporting() {
                                     </div>
                                 </div>
                             </div>
+                            {formData.detectedAt && (() => {
+                                const awareAt = new Date(formData.detectedAt);
+                                if (Number.isNaN(awareAt.getTime())) return null;
+                                const clocks = nis2ReportingDeadlines({ awareAt });
+                                return (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <div className="text-xs font-bold text-slate-500">Early warning: without undue delay, at the latest by</div>
+                                            <div className="font-bold text-slate-900">{clocks.earlyWarningDue.toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-slate-500">Incident notification: without undue delay, at the latest by</div>
+                                            <div className="font-bold text-slate-900">{clocks.incidentNotificationDue.toLocaleString()}</div>
+                                            <p className="text-xs text-slate-500 mt-1">Trust service providers: 24 hours for significant incidents affecting your trust services (Art. 23(4), second subparagraph).</p>
+                                        </div>
+                                        <div className="md:col-span-2 text-slate-600">
+                                            The 72-hour incident notification uses the same awareness time as the early warning. The indicative final-report date is one month after that incident notification is submitted (Article 23(4)(d)), not after the early warning. National rules may count that month differently.
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             <div className="flex items-center gap-4 p-6 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800">
                                 <ShieldAlert className="h-6 w-6 flex-shrink-0" />
                                 <p className="text-sm font-medium">
-                                    By clicking 'Submit Formal Report', you are formally notifying the incident response team.
-                                    This action will be logged for NIS2 compliance auditing.
+                                    By clicking 'Submit Formal Report', you record this incident here.
+                                    This action will be logged. It does not send the report to your CSIRT or competent authority.
                                 </p>
                             </div>
                         </div>
