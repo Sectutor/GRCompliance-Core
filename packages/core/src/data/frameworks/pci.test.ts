@@ -137,8 +137,8 @@ describe("PCI DSS v4.0.1 catalog", () => {
         expect(byId.get("11.4.7")?.applicability).toBe("multi-tenant-service-providers");
         expect(byId.get("A2.1")?.applicability).toBe("ssl-early-tls-pos-poi");
         expect(byId.get("A2.1.1")?.applicability).toBe("ssl-early-tls-pos-poi");
-        expect(byId.get("A2.1.2")?.applicability).toBe("service-providers");
-        expect(byId.get("A2.1.3")?.applicability).toBe("service-providers");
+        expect(byId.get("A2.1.2")?.applicability).toBe("ssl-early-tls-pos-poi-service-providers");
+        expect(byId.get("A2.1.3")?.applicability).toBe("ssl-early-tls-pos-poi-service-providers");
         expect(byId.get("8.3.10")?.supersededBy).toBe("8.3.10.1");
         for (const entry of pciControls.filter((row) => row.id.startsWith("A1"))) {
             expect(entry.applicability, entry.id).toBe("multi-tenant-service-providers");
