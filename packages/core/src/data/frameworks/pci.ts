@@ -16,7 +16,8 @@ export type PciApplicability =
     | "service-providers"
     | "issuers"
     | "multi-tenant-service-providers"
-    | "designated-entities";
+    | "designated-entities"
+    | "ssl-early-tls-pos-poi";
 
 /** "item" means the whole requirement; "part" means only some of its bullets. */
 export type PciBestPracticeUntil31March2025 = "item" | "part" | null;
@@ -360,8 +361,8 @@ export const pciControls: PciCatalogEntry[] = [
     {"id":"A1.2.1","parentId":"A1.2","isHeading":false,"topic":"Multi-tenant service providers","applicability":"multi-tenant-service-providers","bestPracticeUntil31March2025":null,"supersededBy":null},
     {"id":"A1.2.2","parentId":"A1.2","isHeading":false,"topic":"Multi-tenant service providers","applicability":"multi-tenant-service-providers","bestPracticeUntil31March2025":null,"supersededBy":null},
     {"id":"A1.2.3","parentId":"A1.2","isHeading":false,"topic":"Multi-tenant service providers","applicability":"multi-tenant-service-providers","bestPracticeUntil31March2025":"item","supersededBy":null},
-    {"id":"A2.1","parentId":null,"isHeading":true,"topic":"SSL and early TLS","applicability":"all-entities","bestPracticeUntil31March2025":null,"supersededBy":null},
-    {"id":"A2.1.1","parentId":"A2.1","isHeading":false,"topic":"SSL and early TLS","applicability":"all-entities","bestPracticeUntil31March2025":null,"supersededBy":null},
+    {"id":"A2.1","parentId":null,"isHeading":true,"topic":"SSL and early TLS","applicability":"ssl-early-tls-pos-poi","bestPracticeUntil31March2025":null,"supersededBy":null},
+    {"id":"A2.1.1","parentId":"A2.1","isHeading":false,"topic":"SSL and early TLS","applicability":"ssl-early-tls-pos-poi","bestPracticeUntil31March2025":null,"supersededBy":null},
     {"id":"A2.1.2","parentId":"A2.1","isHeading":false,"topic":"SSL and early TLS","applicability":"service-providers","bestPracticeUntil31March2025":null,"supersededBy":null},
     {"id":"A2.1.3","parentId":"A2.1","isHeading":false,"topic":"SSL and early TLS","applicability":"service-providers","bestPracticeUntil31March2025":null,"supersededBy":null},
     {"id":"A3.1","parentId":null,"isHeading":true,"topic":"Designated entities supplemental validation","applicability":"designated-entities","bestPracticeUntil31March2025":null,"supersededBy":null},
