@@ -145,14 +145,14 @@ export default function ComplianceJourneyDashboard() {
 
     return (
         <DashboardLayout>
-            <div className="min-h-screen bg-slate-50/50 pb-20 overflow-hidden">
+            <div className="min-h-screen bg-slate-50/50 pb-8 overflow-hidden">
                 {/* Premium Header / Hero */}
-                <div id="journey-hero" className="relative bg-white border-b border-slate-200 pt-10 pb-16 px-4 md:px-20 overflow-hidden">
+                <div id="journey-hero" className="relative bg-white border-b border-slate-200 pt-4 pb-8 overflow-hidden">
                     {/* Background glow effects */}
                     <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 blur-3xl opacity-50 z-0 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-gradient-to-tr from-blue-100 to-emerald-100 blur-3xl opacity-50 z-0 pointer-events-none" />
 
-                    <div className="w-full relative z-10 max-w-7xl mx-auto">
+                    <div className="w-full relative z-10">
                         <Breadcrumb
                             items={[
                                 { label: "Dashboard", href: "/dashboard" },
@@ -201,8 +201,8 @@ export default function ComplianceJourneyDashboard() {
                             ]}
                         />
 
-                        <div className="flex flex-col lg:flex-row justify-between items-start gap-8 mt-8">
-                            <div className="max-w-2xl">
+                        <div className="flex flex-col lg:flex-row lg:flex-wrap justify-between items-start gap-8 mt-6">
+                            <div className="max-w-2xl min-w-0">
                                 <motion.div
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -230,9 +230,9 @@ export default function ComplianceJourneyDashboard() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.5, delay: 0.3 }}
-                                className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch gap-4"
+                                className="grid w-full min-w-0 grid-cols-1 gap-4 lg:w-auto lg:min-w-[520px] lg:grid-cols-2"
                             >
-                                <div id="journey-ai-prediction" className="bg-white/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 min-w-[280px] flex-1">
+                                <div id="journey-ai-prediction" className="bg-white/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 min-w-0">
                                     <div className="flex justify-between items-center mb-4">
                                         <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm">
                                             <BrainCircuit className="w-4 h-4" />
@@ -250,7 +250,7 @@ export default function ComplianceJourneyDashboard() {
                                     </p>
                                 </div>
 
-                                <div id="journey-overall-progress" className="bg-gradient-to-br from-slate-900 to-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl min-w-[240px] flex-1 relative overflow-hidden text-white flex flex-col justify-center">
+                                <div id="journey-overall-progress" className="bg-gradient-to-br from-slate-900 to-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl min-w-0 relative overflow-hidden text-white flex flex-col justify-center">
                                     <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10" />
                                     <div className="relative z-10">
                                         <div className="flex justify-between text-sm font-medium mb-3 text-slate-300">
@@ -269,7 +269,7 @@ export default function ComplianceJourneyDashboard() {
                     </div>
                 </div>
 
-                <div className="w-full max-w-7xl mx-auto px-4 md:px-20 py-16">
+                <div className="w-full py-8">
 
                     {/* Next Best Action Banner */}
                     {overallProgress < 100 && (
@@ -277,7 +277,7 @@ export default function ComplianceJourneyDashboard() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.4 }}
-                            className="mb-12 bg-white border border-indigo-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden"
+                            className="mb-10 bg-white border border-indigo-100 rounded-2xl p-6 flex flex-col items-stretch justify-between gap-4 shadow-sm relative overflow-hidden sm:gap-6 lg:flex-row lg:items-center"
                             id="journey-next-action"
                         >
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
@@ -296,7 +296,7 @@ export default function ComplianceJourneyDashboard() {
                             </div>
                             <Button
                                 onClick={() => setLocation(readinessScore < 100 ? `/clients/${clientId}/readiness/wizard` : `/clients/${clientId}/evidence`)}
-                                className="bg-slate-900 text-white hover:bg-slate-800 rounded-xl px-6 py-5 whitespace-nowrap"
+                                className="bg-slate-900 text-white hover:bg-slate-800 rounded-xl px-6 py-5 whitespace-nowrap w-full lg:w-auto"
                             >
                                 Take Action <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
@@ -306,7 +306,7 @@ export default function ComplianceJourneyDashboard() {
                     {/* Journey Map */}
                     <div className="relative mt-8">
                         {/* Connecting Line (Animated) */}
-                        <div className="hidden lg:block absolute top-[130px] left-[10%] right-[10%] h-1 bg-slate-200 -z-0 rounded-full overflow-hidden">
+                        <div className="hidden xl:block absolute top-[130px] left-[10%] right-[10%] h-1 bg-slate-200 -z-0 rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${overallProgress}%` }}
@@ -319,7 +319,7 @@ export default function ComplianceJourneyDashboard() {
                             variants={containerVariants}
                             initial="hidden"
                             animate="visible"
-                            className="grid lg:grid-cols-3 gap-8"
+                            className="grid gap-6 lg:grid-cols-2 lg:gap-8 xl:grid-cols-3"
                             id="journey-stages"
                         >
                             {stages.map((stage, index) => {
@@ -330,7 +330,7 @@ export default function ComplianceJourneyDashboard() {
                                     <motion.div variants={itemVariants} key={stage.id} className="relative group z-10 h-full">
 
                                         {/* Level Node Connector */}
-                                        <div className="hidden lg:flex absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white border-4 border-slate-50 items-center justify-center z-30 pointer-events-none">
+                                        <div className="hidden xl:flex absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white border-4 border-slate-50 items-center justify-center z-30 pointer-events-none">
                                             <div className={cn(
                                                 "w-4 h-4 rounded-full transition-colors duration-500",
                                                 isCompleted ? "bg-emerald-500" : isLocked ? "bg-slate-300" : "bg-indigo-500 animate-pulse"
@@ -443,7 +443,7 @@ export default function ComplianceJourneyDashboard() {
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.6 }}
-                        className="mt-20 grid md:grid-cols-3 gap-6"
+                        className="mt-8 grid gap-6 lg:grid-cols-2 xl:grid-cols-3"
                     >
                         <div className="group p-5 bg-white border border-slate-200 hover:border-indigo-200 rounded-2xl flex gap-4 items-start transition-colors">
                             <div className="bg-indigo-50 group-hover:bg-indigo-100 p-2.5 rounded-xl text-indigo-600 transition-colors">
