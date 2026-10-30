@@ -1,4 +1,5 @@
 import { Framework } from "./types";
+import { PCI_DSS_NOTICE } from "./pci";
 import { SOC2_CRITERIA_COUNT, SOC2_VERSION } from "./soc2";
 
 export const frameworks: Framework[] = [
@@ -60,8 +61,8 @@ export const frameworks: Framework[] = [
     },
     {
         id: "pci-dss-v4",
-        name: "PCI DSS v4.0",
-        description: "Payment Card Industry Data Security Standard v4.0.",
+        name: "PCI DSS v4.0.1",
+        description: `Payment Card Industry Data Security Standard v4.0.1. ${PCI_DSS_NOTICE}`,
         type: "Security",
         isObligation: true,
         logo: "/frameworks/pci.svg"
