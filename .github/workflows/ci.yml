@@ -31,3 +31,8 @@ jobs:
       env:
         # Ensure build passes without premium files
         CI: true
+
+    # Vite does not load server_entry.ts, so a bad relative import there
+    # still typechecks the client and only fails when the server starts.
+    - name: Import server entry
+      run: npx tsx scripts/check-server-entry.ts
