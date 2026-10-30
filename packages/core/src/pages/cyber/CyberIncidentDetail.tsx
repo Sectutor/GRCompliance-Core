@@ -118,12 +118,12 @@ export default function CyberIncidentDetail() {
                     </Button>
                     <PageGuide
                         title={`Incident Analysis: ID-${incidentId}`}
-                        description="Track investigative findings and manage the formal reporting lifecycle."
-                        rationale="NIS2 Article 23(4)(b) requires the incident notification within 72 hours of becoming aware of the significant incident, the same moment as the 24-hour early warning in Article 23(4)(a). The final report is due one month after that incident notification is submitted (Article 23(4)(d)), not after the early warning."
+                        description="Track investigative findings and the Article 23 reporting record."
+                        rationale="NIS2 Article 23(4)(a) and (b) require an early warning and an incident notification without undue delay and in any event within 24 hours and 72 hours of becoming aware of the significant incident. The final-report date is indicative: one month after that incident notification is submitted (Article 23(4)(d)), not after the early warning. Trust service providers: 24 hours for significant incidents affecting your trust services (Art. 23(4), second subparagraph)."
                         howToUse={[
                             { step: "Status", description: "Keep the incident status updated as the investigation progresses." },
                             { step: "Evidence", description: "Document all affected assets and containment actions." },
-                            { step: "Report", description: "Trigger official reporting once findings are solidified." }
+                            { step: "Report", description: "Record whether you have submitted the report to your CSIRT or competent authority. This screen does not send it." }
                         ]}
                     />
                 </div>
@@ -261,7 +261,7 @@ export default function CyberIncidentDetail() {
                                     </Badge>
                                 </div>
                                 <p className="text-sm font-bold text-slate-900">
-                                    {reportedToAuthorities ? "Reported to national CSIRT" : "Not yet reported to CSIRT"}
+                                    {reportedToAuthorities ? "Marked as reported to your CSIRT / competent authority" : "Not yet marked as reported to your CSIRT or competent authority"}
                                 </p>
                             </div>
 
@@ -311,26 +311,28 @@ export default function CyberIncidentDetail() {
                             <div className="space-y-1">
                                 <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Awareness / detection</div>
                                 <div className="text-sm font-medium">{incident?.detectedAt && format(new Date(incident.detectedAt), "PPP p")}</div>
-                                <p className="text-xs text-white/70">Article 23(4)(a) and (b) both run from this time.</p>
+                                <p className="text-xs text-white/70">This time is when you became aware of the significant incident. The 24h and 72h clocks run from this time.</p>
                             </div>
                             {reportingDeadlines && (
                                 <>
                                     <div className="space-y-1">
-                                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Early warning due (24h)</div>
+                                        <div className="text-xs font-bold text-white/80">Early warning: without undue delay, at the latest by</div>
                                         <div className="text-sm font-medium">{format(reportingDeadlines.earlyWarningDue, "PPP p")}</div>
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Incident notification due (72h)</div>
+                                        <div className="text-xs font-bold text-white/80">Incident notification: without undue delay, at the latest by</div>
                                         <div className="text-sm font-medium">{format(reportingDeadlines.incidentNotificationDue, "PPP p")}</div>
                                         <p className="text-xs text-white/70">72 hours after awareness, not after the early warning.</p>
+                                        <p className="text-xs text-white/70">Trust service providers: 24 hours for significant incidents affecting your trust services (Art. 23(4), second subparagraph).</p>
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Final report due (1 month)</div>
+                                        <div className="text-xs font-bold text-white/80">Indicative final report (1 month)</div>
                                         <div className="text-sm font-medium">
                                             {reportingDeadlines.finalReportDue
                                                 ? format(reportingDeadlines.finalReportDue, "PPP p")
                                                 : "One month after the incident notification is submitted (Article 23(4)(d))."}
                                         </div>
+                                        <p className="text-xs text-white/70">Indicative date. Article 23(4)(d) says no later than one month after the incident notification is submitted. National rules may count that month differently.</p>
                                     </div>
                                 </>
                             )}

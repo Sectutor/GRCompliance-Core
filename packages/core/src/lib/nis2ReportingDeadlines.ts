@@ -7,9 +7,16 @@
  *     early warning does not start the 72-hour clock.
  * (d) Final report: not later than one month after submission of the incident
  *     notification under point (b). Not from awareness, and not from the early warning.
+ *     The date returned here is indicative. It keeps the time of day and uses the
+ *     last valid day when the next month is shorter. National transposition decides
+ *     how "one month" is counted.
  * (e) If the incident is still ongoing when that final report is due, a progress
  *     report is due then and the final report is due within one month of handling
  *     the incident. That later anchor is not computed here.
+ *
+ * Callers pass detectedAt as awareAt. Detection is no later than awareness of
+ * significance, so the clocks stay conservative. The time the user enters should
+ * be when the entity became aware of the significant incident.
  *
  * A trust service provider's 24-hour notification for incidents that affect its
  * trust services (Article 23(4), second subparagraph) is a separate derogation
@@ -22,7 +29,7 @@ export const NIS2_INCIDENT_NOTIFICATION_HOURS = 72;
 const HOUR_MS = 60 * 60 * 1000;
 
 export interface Nis2ReportingClockInput {
-    /** When the entity became aware of the significant incident (detection time). */
+    /** When the entity became aware of the significant incident. */
     awareAt: Date;
     /**
      * When the Article 23(4)(a) early warning was submitted.

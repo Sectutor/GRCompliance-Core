@@ -4,7 +4,7 @@ import { nis2GapById } from "../frameworks/nis2Gap";
 
 /**
  * Article 21(2) sub-articles are the Annex to Commission Implementing Regulation
- * (EU) 2024/2690 (OJ L, 2024/2690, 17 October 2024), EU law, reusable:
+ * (EU) 2024/2690 of 17 October 2024 (OJ L, 2024/2690, 18.10.2024), EU law, reusable:
  * https://eur-lex.europa.eu/eli/reg_impl/2024/2690/oj
  * An annex section whose heading cites more than one Article 21(2) point is
  * listed under each of those points. The annex sentences are unchanged, including
@@ -22,10 +22,10 @@ export const nis2: Regulation = {
     questions: [
         {
             id: "nis2-q1",
-            text: "Does the management body actively approve and oversee cybersecurity risk-management measures and accept accountability for breaches?",
+            text: "Does management approve the Art. 21 measures, oversee their implementation, and accept that it can be held liable for infringements (Art. 20(1))?",
             type: "boolean",
             relatedArticles: ["nis2-art-20"],
-            failureGuidance: "Establish a charter for the Board/Management that explicitly includes cybersecurity oversight duties. Schedule quarterly security reviews with leadership."
+            failureGuidance: "Good practice (not a NIS2 requirement): Establish a charter for the Board/Management that explicitly includes cybersecurity oversight duties. Schedule quarterly security reviews with leadership."
         },
         {
             id: "nis2-q2",
@@ -60,21 +60,21 @@ export const nis2: Regulation = {
             text: "Are security measures integrated into the acquisition, development, and maintenance of network systems (including vulnerability handling)?",
             type: "boolean",
             relatedArticles: ["nis2-art-21-2-e"],
-            failureGuidance: "Adopt a Vulnerability Management Policy. Scan systems regularly and patch critical vulnerabilities within 14 days. Use Secure Software Development Lifecycle (SSDLC) practices."
+            failureGuidance: "Good practice (not a NIS2 requirement): Adopt a Vulnerability Management Policy. Scan systems regularly and patch critical vulnerabilities within 14 days. Use Secure Software Development Lifecycle (SSDLC) practices."
         },
         {
             id: "nis2-q7",
             text: "Do you conduct regular audits and assessments to measure the effectiveness of your security controls?",
             type: "boolean",
             relatedArticles: ["nis2-art-21-2-f"],
-            failureGuidance: "Schedule an independent yearly security audit or penetration test. Define KPIs (e.g., Mean Time to Detect) to measure security performance."
+            failureGuidance: "Good practice (not a NIS2 requirement): Schedule an independent yearly security audit or penetration test. Define KPIs (e.g., Mean Time to Detect) to measure security performance."
         },
         {
             id: "nis2-q8",
-            text: "Is there a mandatory cybersecurity training program and basic cyber hygiene practice (e.g., strong passwords, updates) for all staff?",
+            text: "Do you have basic cyber hygiene practices and cybersecurity training?",
             type: "boolean",
             relatedArticles: ["nis2-art-21-2-g"],
-            failureGuidance: "Launch a Security Awareness Training platform. Enforce a Password Policy requiring complexity or passkeys. Run phishing simulations."
+            failureGuidance: "Good practice (not a NIS2 requirement): Launch a Security Awareness Training platform. Enforce a Password Policy requiring complexity or passkeys. Run phishing simulations."
         },
         {
             id: "nis2-q9",
@@ -95,14 +95,14 @@ export const nis2: Regulation = {
             text: "Where appropriate, do you use multi-factor or continuous authentication, secured voice, video and text communications, and secured emergency communication systems?",
             type: "boolean",
             relatedArticles: ["nis2-art-21-2-j"],
-            failureGuidance: "Enforce MFA on all remote access points (VPN, Cloud Email, SaaS). Require Phishing-Resistant MFA for administrators."
+            failureGuidance: "Good practice (not a NIS2 requirement): Where appropriate, use multi-factor or continuous authentication for remote access (VPN, cloud email, SaaS), including for administrators."
         },
         {
             id: "nis2-q12",
-            text: "Do you have a procedure to notify the competent authority/CSIRT of significant incidents without undue delay?",
+            text: "Do you have a procedure to notify your CSIRT or, where applicable, your competent authority of significant incidents without undue delay?",
             type: "boolean",
             relatedArticles: ["nis2-art-23"],
-            failureGuidance: "Identify your competent authority (CSIRT). Create a notification template to ensure you can report significant incidents within the 24-hour deadline."
+            failureGuidance: "Identify your CSIRT and, where applicable, your competent authority. Send an early warning without undue delay and within 24 hours, then an incident notification within 72 hours (24 hours for trust service providers)."
         }
     ],
     articles: [

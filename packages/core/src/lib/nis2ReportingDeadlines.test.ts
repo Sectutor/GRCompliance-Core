@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
     nis2ReportingDeadlines,
@@ -55,5 +57,38 @@ describe("NIS2 Article 23 reporting clocks", () => {
         expect(withDeadlines.reportingDeadlines?.incidentNotificationDue.toISOString()).toBe("2026-03-04T10:00:00.000Z");
         expect(withDeadlines.reportingDeadlines?.finalReportDue).toBeNull();
         expect(withNis2ReportingDeadlines({ detectedAt: null }).reportingDeadlines).toBeNull();
+    });
+});
+
+describe("NIS2 reporting screen copy", () => {
+    const detail = readFileSync(path.resolve(import.meta.dirname, "../pages/cyber/CyberIncidentDetail.tsx"), "utf8");
+    const wizard = readFileSync(path.resolve(import.meta.dirname, "../pages/cyber/CyberIncidentReporting.tsx"), "utf8");
+
+    it("shows the trust-service 24-hour note and the outer-limit wording", () => {
+        for (const source of [detail, wizard]) {
+            expect(source).toContain("Early warning: without undue delay, at the latest by");
+            expect(source).toContain("Incident notification: without undue delay, at the latest by");
+            expect(source).toContain("Trust service providers: 24 hours for significant incidents affecting your trust services (Art. 23(4), second subparagraph).");
+            expect(source).not.toContain("Incident notification due (72h");
+        }
+    });
+
+    it("tells the user the clocks run from awareness and that the final date is indicative", () => {
+        expect(wizard).toContain("Detected at (UTC)");
+        expect(wizard).toContain("Enter when you became aware of the significant incident. The 24h and 72h clocks run from this time.");
+        expect(wizard).not.toContain("Detection Time");
+        expect(detail).toContain("This time is when you became aware of the significant incident. The 24h and 72h clocks run from this time.");
+        expect(detail).toContain("Indicative final report (1 month)");
+        expect(wizard).toContain("indicative final-report date");
+        expect(detail).toContain("National rules may count that month differently.");
+    });
+
+    it("does not claim the wizard notifies a national CSIRT", () => {
+        expect(detail).toContain("Marked as reported to your CSIRT / competent authority");
+        expect(detail).not.toContain("national CSIRT");
+        expect(wizard).toContain("Records your 24h/72h NIS2 reporting steps (it does not send the report).");
+        expect(wizard).toContain("Final review before you submit to your CSIRT or competent authority.");
+        expect(wizard).not.toContain("for NIS2 compliance auditing");
+        expect(wizard).not.toContain("alerting the authorities");
     });
 });

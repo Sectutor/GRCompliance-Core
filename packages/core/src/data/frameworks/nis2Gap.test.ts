@@ -3,8 +3,10 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { frameworks } from "./index";
 import {
+    NIS2_ARTICLE_21_CHAPEAU,
     NIS2_ELI,
     NIS2_GAP_FRAMEWORK,
+    NIS2_SUGGESTED_REVIEW_FREQUENCY,
     nis2Article21Controls,
     nis2GapById,
     nis2GapControlIdScore,
@@ -69,10 +71,41 @@ describe("NIS2 gap-analysis catalog", () => {
         expect(nis2GapControls).toHaveLength(12);
         expect(nis2GapById("NIS2-20").name).toBe("Governance");
         expect(nis2GapById("NIS2-20").source).toContain("Article 20");
+        const governance = nis2GapById("NIS2-20").requirement;
+        expect(governance.startsWith("1. Member States shall ensure")).toBe(true);
+        expect(governance).toContain("\n\n2. Member States shall ensure");
         expect(nis2GapById("NIS2-23").name).toBe("Reporting obligations");
-        expect(nis2GapById("NIS2-23").requirement).toContain("within 72 hours of becoming aware");
-        expect(nis2GapById("NIS2-23").requirement).toContain("one month after the submission of the incident notification");
+        const reporting = nis2GapById("NIS2-23").requirement;
+        expect(reporting).toContain("without undue delay and in any event within 24 hours of becoming aware");
+        expect(reporting).toContain("without undue delay and in any event within 72 hours of becoming aware");
+        expect(reporting).toContain("submit to the CSIRT or, where applicable, the competent authority");
+        expect(reporting).toContain("an intermediate report on relevant status updates");
+        expect(reporting).toContain("one month after the submission of the incident notification");
+        expect(reporting).toContain("a trust service provider shall");
+        expect(reporting).not.toContain("For the purpose of that notification");
         expect(nis2GapById("NIS2-23").source).toContain("Article 23(1) and Article 23(4)");
+    });
+
+    it("uses the Official Journal chapeau and a suggested review cadence that NIS2 does not set", () => {
+        expect(NIS2_ARTICLE_21_CHAPEAU).toContain("The measures referred to in paragraph 1");
+        expect(NIS2_ARTICLE_21_CHAPEAU).not.toContain("Article 21(1)");
+        expect(NIS2_SUGGESTED_REVIEW_FREQUENCY.length).toBeLessThanOrEqual(50);
+        expect(NIS2_SUGGESTED_REVIEW_FREQUENCY).not.toBe("Annual");
+        for (const item of nis2GapControls) {
+            if (item.controlId === "NIS2-23") {
+                expect(item.frequency).toBe("Event-driven");
+                expect(item.implementationGuidance).not.toContain("Suggested review cadence");
+                continue;
+            }
+            expect(item.frequency).toBe(NIS2_SUGGESTED_REVIEW_FREQUENCY);
+            expect(item.implementationGuidance).toContain("Suggested review cadence (product default, not set by NIS2).");
+        }
+        expect(nis2GapById("NIS2-20").implementationGuidance).not.toContain("2024/2690");
+        expect(nis2GapById("NIS2-21-a").implementationGuidance).toContain("Art. 1 (scope), adopted under NIS2 Art. 21(5)");
+        const supplyChain = nis2GapById("NIS2-21-d").implementationGuidance;
+        expect(supplyChain).toContain("including their secure development procedures");
+        expect(supplyChain).toContain("coordinated security risk assessments of critical supply chains carried out in accordance with Article 22(1)");
+        expect(nis2GapById("NIS2-23").implementationGuidance).toContain("Articles 3 to 14");
     });
 
     it("is registered for the gap picker, scoring and the framework list", () => {

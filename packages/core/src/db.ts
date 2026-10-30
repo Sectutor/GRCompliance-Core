@@ -1237,6 +1237,7 @@ async function reconcileNis2GapControls(db: Awaited<ReturnType<typeof getDb>>) {
       row.name !== values.name
       || row.description !== values.description
       || row.category !== values.category
+      || row.frequency !== values.frequency
       || row.implementationGuidance !== values.implementationGuidance
     ) {
       await db.update(controls).set({
