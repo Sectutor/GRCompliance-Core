@@ -21,6 +21,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { PageGuide } from "@/components/PageGuide";
+import { filterWorkspaceControls, WORKSPACE_IMPLEMENTATION_STATUSES } from "@/lib/controlFilters";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -78,6 +79,7 @@ export default function ClientControlsPage() {
 
     const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
     const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
     const [isAddControlOpen, setIsAddControlOpen] = useState(false);
     const [isBaselineWizardOpen, setIsBaselineWizardOpen] = useState(false);
     const [selectedControlIds, setSelectedControlIds] = useState<string[]>([]);
@@ -91,10 +93,10 @@ export default function ClientControlsPage() {
     const uniqueFrameworks = Array.from(new Set(clientControls?.map((c: any) => c.control?.framework || 'Uncategorized') || [])).sort();
     const availableFrameworks = ["ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF"];
 
-    const filteredClientControls = (clientControls || []).filter(c => {
-        if (frameworkFilter !== 'all' && (c.control?.framework || 'Uncategorized') !== frameworkFilter) return false;
-        return true;
-    });
+    const filteredClientControls = filterWorkspaceControls(clientControls || [], {
+        framework: frameworkFilter,
+        status: statusFilter,
+    }) as any[];
 
     const addControlMutation = trpc.clientControls.create.useMutation({
         onSuccess: () => {
@@ -220,7 +222,8 @@ export default function ClientControlsPage() {
                             </Button>
                         </div>
 
-                        <div className="w-[200px]">
+                        <div className="flex items-center gap-2">
+                            <div className="w-[200px]">
                             <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
                                 <SelectTrigger className="h-8">
                                     <SelectValue placeholder="Filter Framework" />
@@ -232,6 +235,20 @@ export default function ClientControlsPage() {
                                     ))}
                                     {availableFrameworks.filter(f => !uniqueFrameworks.includes(f)).map(fw => (
                                         <SelectItem key={fw} value={fw} disabled className="opacity-50">{fw} (Not Assigned)</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            </div>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="h-8 w-[170px]">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All statuses</SelectItem>
+                                    {WORKSPACE_IMPLEMENTATION_STATUSES.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -479,7 +496,11 @@ export default function ClientControlsPage() {
                         <Skeleton className="h-16 w-full" />
                     </div>
                 ) : clientControls && clientControls.length > 0 ? (
-                    viewMode === 'card' ? (
+                    filteredClientControls.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground border rounded-xl bg-white">
+                            No controls match these filters.
+                        </div>
+                    ) : viewMode === 'card' ? (
                         <div className="space-y-6">
                             {Object.entries((filteredClientControls || [])
                                 .reduce((acc, item) => {
@@ -569,7 +590,7 @@ export default function ClientControlsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {clientControls.map((item) => (
+                                    {filteredClientControls.map((item) => (
                                         <TableRow key={item.clientControl.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm group cursor-pointer" onDoubleClick={() => setSelectedControl(item)}>
                                             <TableCell className="font-mono text-xs font-medium text-black py-4">
                                                 {item.clientControl.clientControlId}

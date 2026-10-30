@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+import { Search, ChevronDown, X } from 'lucide-react';
 import { Input } from '@complianceos/ui/ui/input';
 import { Button } from '@complianceos/ui/ui/button';
 import {
@@ -25,6 +25,7 @@ interface ControlFilterBarProps {
     onFilterChange: (type: keyof ControlFilterBarProps['filters'], value: string[]) => void;
     availableFrameworks: string[];
     availableOwners: string[];
+    availableStatuses?: string[];
 }
 
 export function ControlFilterBar({
@@ -33,7 +34,8 @@ export function ControlFilterBar({
     filters,
     onFilterChange,
     availableFrameworks,
-    availableOwners
+    availableOwners,
+    availableStatuses = []
 }: ControlFilterBarProps) {
 
     const toggleFilter = (type: keyof ControlFilterBarProps['filters'], value: string) => {
@@ -81,19 +83,15 @@ export function ControlFilterBar({
                     selected={filters.owner}
                     onToggle={(val) => toggleFilter('owner', val)}
                 />
-                 {/* Placeholders for other filters mentioned in design but maybe not fully backed by data yet */}
-                <Button variant="ghost" size="sm" className="text-slate-600 gap-1 font-normal">
-                    Domain <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-                 <Button variant="ghost" size="sm" className="text-slate-600 gap-1 font-normal">
-                    Source <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-                <Button variant="ghost" size="sm" className="text-slate-600 gap-1 font-normal">
-                    Status <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-                 <Button variant="ghost" size="sm" className="text-slate-600 gap-1 font-normal">
-                    Risk <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
+                {availableStatuses.length > 0 && (
+                    <FilterDropdown
+                        label="Status"
+                        count={filters.status.length}
+                        items={availableStatuses}
+                        selected={filters.status}
+                        onToggle={(val) => toggleFilter('status', val)}
+                    />
+                )}
 
                 {hasActiveFilters && (
                     <Button
@@ -106,9 +104,6 @@ export function ControlFilterBar({
                     </Button>
                 )}
 
-                 <Button variant="outline" size="icon" className="ml-auto bg-white">
-                    <SlidersHorizontal className="h-4 w-4 text-slate-600" />
-                </Button>
             </div>
             
             {hasActiveFilters && (
@@ -123,10 +118,19 @@ export function ControlFilterBar({
                             Owner: {o} <X className="h-3 w-3 cursor-pointer" onClick={() => toggleFilter('owner', o)} />
                          </Badge>
                     ))}
+                     {filters.status.map(status => (
+                         <Badge key={`st-${status}`} variant="secondary" className="gap-1 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                            {statusLabel(status)} <X className="h-3 w-3 cursor-pointer" onClick={() => toggleFilter('status', status)} />
+                         </Badge>
+                    ))}
                  </div>
             )}
         </div>
     );
+}
+
+function statusLabel(value: string) {
+    return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function FilterDropdown({ label, count, items, selected, onToggle }: { label: string, count: number, items: string[], selected: string[], onToggle: (val: string) => void }) {
@@ -152,7 +156,7 @@ function FilterDropdown({ label, count, items, selected, onToggle }: { label: st
                             onSelect={(e) => e.preventDefault()}
                             className={`cursor-pointer ${selected.includes(item) ? "bg-violet-50 text-violet-900 font-medium focus:bg-violet-100" : ""}`}
                         >
-                            {item}
+                            {statusLabel(item)}
                         </DropdownMenuCheckboxItem>
                     ))
                 )}

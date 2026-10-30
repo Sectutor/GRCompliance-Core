@@ -6,6 +6,7 @@ import postgres from "postgres";
 import { encrypt } from "./lib/crypto";
 import { getSecret } from "./lib/secrets";
 import { policyCoverage, postureScore } from "./lib/postureScore";
+import { libraryStatusCondition } from "./lib/controlFilters";
 
 import {
 
@@ -991,7 +992,8 @@ export async function getControlsPaginated(
   clientId?: number,
   limit: number = 50,
   offset: number = 0,
-  search?: string
+  search?: string,
+  status?: string | string[]
 ) {
   const db = await getDb();
 
@@ -1003,6 +1005,12 @@ export async function getControlsPaginated(
       ilike(controls.controlId, searchLower),
       ilike(controls.description, searchLower)
     ));
+  }
+  const statuses = libraryStatusCondition(status);
+  if (statuses.length === 1) {
+    conditions.push(eq(controls.status, statuses[0] as any));
+  } else if (statuses.length > 1) {
+    conditions.push(inArray(controls.status, statuses as any));
   }
   if (framework && framework !== 'all') {
     if (Array.isArray(framework)) {
