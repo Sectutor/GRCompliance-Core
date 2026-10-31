@@ -123,9 +123,44 @@ assert_source_rules() {
     if grep -n 'complianceos' "${BACKUP}" "${RESTORE}"; then
         fail "backup or restore still names complianceos"
     fi
+    if grep -n 'COMPLIANCEOS' "${BACKUP}" "${RESTORE}" "${doc}"; then
+        fail "backup docs or scripts still name COMPLIANCEOS"
+    fi
     if grep -n '/root/.complianceos' "${BACKUP}" "${RESTORE}"; then
         fail "backup or restore still defaults AUTH_DIR to /root/.complianceos"
     fi
+    if grep -n 'alpine:3' "${doc}"; then
+        fail "docs still show the alpine cp -a helper"
+    fi
+    if grep -n 'cp -a /data' "${doc}"; then
+        fail "docs still show the alpine copy command"
+    fi
+    if grep -F -q -- "-v \"\$HOME/.grc-db-password\":/run/secrets/db_password:ro" "${doc}"; then
+        fail "docs still mount the host-owned password file into the uid 1001 container"
+    fi
+    if grep -nE -- '-e[[:space:]]+DB_PASSWORD=' "${doc}"; then
+        fail "docs put DB_PASSWORD on the docker command line"
+    fi
+    grep -q 'mktemp -d' "${doc}" || fail "docs do not copy the password into a private temp dir"
+    grep -q 'chmod 400' "${doc}" || fail "docs do not keep the uid 1001 password copy mode 0400"
+    grep -F -q "chown 1001:1001 \"\${secret_dir}/db_password\"" "${doc}" || fail "docs do not give the password copy to uid 1001"
+    grep -F -q "rm -rf -- \"\${secret_dir}\"" "${doc}" || fail "docs do not remove the password copy"
+    grep -q '0755' "${doc}" || fail "docs do not say the uploads directory is mode 0755"
+    grep -q 'mode 0600' "${doc}" || fail "docs do not say upload files are mode 0600"
+    python3 - "${doc}" <<'PY' || fail "sudo method command changed"
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+block = (
+    "sudo env \\\n"
+    "  DB_PASSWORD_FILE=\"$HOME/.grc-db-password\" \\\n"
+    "  UPLOADS_DIR=/path/root/can/read \\\n"
+    "  ./scripts/backup.sh\n"
+)
+if block not in text:
+    raise SystemExit(1)
+PY
+    grep -q 'exists but is not accessible' "${BACKUP}" || fail "backup.sh does not distinguish an inaccessible path"
+    grep -q 'does not exist' "${BACKUP}" || fail "backup.sh does not say when an optional path does not exist"
 }
 
 run_static_checks() {
@@ -356,6 +391,41 @@ run_behavior() {
     set -e
     [ "${status}" -ne 0 ] || fail "unreadable password file was accepted"
     printf '%s\n' "${out}" | grep -q 'cannot be read' || fail "unreadable password file was not explained"
+    printf '%s\n' "${out}" | grep -q 'uid 1001' || fail "unreadable password file did not name uid 1001"
+    printf '%s\n' "${out}" | grep -q '0400' || fail "unreadable password file did not name the mode 0400 copy"
+    printf '%s\n' "${out}" | grep -q 'world-readable' || fail "unreadable password file did not forbid a world-readable mode"
+    printf '%s\n' "${out}" | grep -q 'command line' || fail "unreadable password file did not forbid the command line"
+    assert_absent "${out}" "local-only"
+    chmod 400 "${secret_file}"
+    [ "$(stat -c '%a' -- "${secret_file}")" = "400" ] || fail "mode 0400 password file was not mode 0400"
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/mode400-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${work}/no-such-uploads" \
+        STORAGE_UPLOADS_DIR="${work}/no-such-storage" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "mode 0400 password file owned by this user was refused: ${out}"
+    printf '%s\n' "${out}" | grep -q "Uploads directory does not exist: ${work}/no-such-uploads" || fail "absent uploads path was not described as not existing"
+    printf '%s\n' "${out}" | grep -q "Storage uploads directory does not exist: ${work}/no-such-storage" || fail "absent storage path was not described as not existing"
+    printf '%s\n' "${out}" | grep -q 'Continuing without it' || fail "absent uploads path was not skipped"
+    if printf '%s\n' "${out}" | grep -q 'exists but is not accessible'; then
+        fail "absent path was reported as inaccessible"
+    fi
+    mode400_run="$(find "${work}/mode400-backups" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print)"
+    [ -n "${mode400_run}" ] || fail "mode 0400 password file did not write a backup"
+    [ ! -e "${mode400_run}/uploads.tgz" ] || fail "absent uploads path was archived"
+    [ ! -e "${mode400_run}/storage-uploads.tgz" ] || fail "absent storage path was archived"
+    (cd -- "${mode400_run}" && sha256sum -c SHA256SUMS) || fail "checksums failed for the mode 0400 run"
     assert_absent "${out}" "local-only"
     chmod 600 "${secret_file}"
 
@@ -747,7 +817,10 @@ PY
     set -e
     [ "${status}" -eq 0 ] || fail "missing or empty uploads failed the backup: ${out}"
     printf '%s\n' "${out}" | grep -q "Uploads directory is empty: ${empty_uploads}" || fail "empty uploads directory was not noted"
-    printf '%s\n' "${out}" | grep -q "Storage uploads directory is missing: ${missing_uploads}" || fail "missing storage uploads directory was not noted"
+    printf '%s\n' "${out}" | grep -q "Storage uploads directory does not exist: ${missing_uploads}" || fail "missing storage uploads directory was not noted"
+    if printf '%s\n' "${out}" | grep -q 'exists but is not accessible'; then
+        fail "absent storage path was reported as inaccessible"
+    fi
     empty_run="$(find "${work}/empty-upload-backups" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print)"
     [ -n "${empty_run}" ] || fail "backup without uploads was not written"
     [ ! -e "${empty_run}/uploads.tgz" ] || fail "empty uploads directory was archived"
@@ -953,7 +1026,7 @@ PY
     status=$?
     set -e
     [ "${status}" -eq 0 ] || fail "missing AUTH_DIR failed the backup: ${out}"
-    printf '%s\n' "${out}" | grep -q "Auth directory is missing: ${work}/missing-auth" || fail "missing auth directory was not noted"
+    printf '%s\n' "${out}" | grep -q "Auth directory does not exist: ${work}/missing-auth" || fail "missing auth directory was not noted"
     printf '%s\n' "${out}" | grep -q 'Continuing without an auth archive' || fail "missing auth directory was not skipped"
     missing_auth_run="$(find "${work}/missing-auth-backups" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print)"
     [ -n "${missing_auth_run}" ] || fail "backup with a missing AUTH_DIR was not written"
@@ -1012,6 +1085,123 @@ PY
     [ "${status}" -ne 0 ] || fail "unreadable auth directory was skipped"
     printf '%s\n' "${out}" | grep -q 'not readable by this user' || fail "unreadable auth directory was not explained"
     [ ! -e "${work}/locked-auth-backups" ] || fail "unreadable auth still created a backup directory"
+
+    blocked_parent="${work}/blocked-parent"
+    mkdir -p "${blocked_parent}/uploads/clients" "${blocked_parent}/auth" "${blocked_parent}/storage"
+    printf '%s\n' 'hidden-evidence' > "${blocked_parent}/uploads/clients/secret.pdf"
+    printf '%s\n' '{"users":[]}' > "${blocked_parent}/auth/local-users.json"
+    printf '%s\n' 'hidden-report' > "${blocked_parent}/storage/gap.pdf"
+    chmod 000 "${blocked_parent}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/blocked-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${blocked_parent}/uploads" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    chmod 700 "${blocked_parent}" || fail "could not restore mode on the blocked parent"
+    [ "${status}" -ne 0 ] || fail "inaccessible uploads path was treated as missing"
+    printf '%s\n' "${out}" | grep -q 'exists but is not accessible' || fail "inaccessible uploads path was not distinguished from a missing path: ${out}"
+    printf '%s\n' "${out}" | grep -q 'uid 1001' || fail "inaccessible uploads message did not name uid 1001"
+    printf '%s\n' "${out}" | grep -q 'world-readable' || fail "inaccessible uploads message did not forbid a world-readable mode"
+    printf '%s\n' "${out}" | grep -q '0755' || fail "inaccessible uploads message did not name directory mode 0755"
+    printf '%s\n' "${out}" | grep -q '0600' || fail "inaccessible uploads message did not name file mode 0600"
+    if printf '%s\n' "${out}" | grep -q 'does not exist'; then
+        fail "inaccessible uploads path was reported as not existing"
+    fi
+    if printf '%s\n' "${out}" | grep -q 'Continuing without'; then
+        fail "inaccessible uploads path was skipped"
+    fi
+    [ ! -e "${work}/blocked-backups" ] || fail "inaccessible uploads still created a backup directory"
+    assert_absent "${out}" "local-only"
+    assert_absent "${out}" "hidden-evidence"
+
+    chmod 000 "${blocked_parent}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/blocked-auth-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        AUTH_DIR="${blocked_parent}/auth" \
+        UPLOADS_DIR="${empty_uploads}" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    chmod 700 "${blocked_parent}" || fail "could not restore mode on the blocked auth parent"
+    [ "${status}" -ne 0 ] || fail "inaccessible auth path was treated as missing"
+    printf '%s\n' "${out}" | grep -q 'Auth directory exists but is not accessible' || fail "inaccessible auth path was not explained: ${out}"
+    if printf '%s\n' "${out}" | grep -q 'does not exist'; then
+        fail "inaccessible auth path was reported as not existing"
+    fi
+    if printf '%s\n' "${out}" | grep -q 'Continuing without an auth archive'; then
+        fail "inaccessible auth path was skipped"
+    fi
+    [ ! -e "${work}/blocked-auth-backups" ] || fail "inaccessible auth still created a backup directory"
+    assert_absent "${out}" "local-only"
+
+    chmod 000 "${blocked_parent}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/blocked-storage-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${work}/truly-absent-uploads" \
+        STORAGE_UPLOADS_DIR="${blocked_parent}/storage" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    chmod 700 "${blocked_parent}" || fail "could not restore mode on the blocked storage parent"
+    [ "${status}" -ne 0 ] || fail "inaccessible storage path was treated as missing"
+    printf '%s\n' "${out}" | grep -q 'Storage uploads directory exists but is not accessible' || fail "inaccessible storage path was not explained: ${out}"
+    if printf '%s\n' "${out}" | grep -q 'does not exist'; then
+        fail "inaccessible storage path was reported as not existing, or an absent sibling was skipped after the refusal"
+    fi
+    [ ! -e "${work}/blocked-storage-backups" ] || fail "inaccessible storage still created a backup directory"
+    assert_absent "${out}" "local-only"
+
+    mkdir -p "${work}/blocked-unknown"
+    chmod 000 "${work}/blocked-unknown"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/blocked-unknown-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${work}/blocked-unknown/no-such-uploads" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    chmod 700 "${work}/blocked-unknown" || fail "could not restore mode on the unknown blocked parent"
+    [ "${status}" -ne 0 ] || fail "a path behind an unsearchable parent was treated as missing"
+    printf '%s\n' "${out}" | grep -q 'exists but is not accessible' || fail "unsearchable parent was not refused: ${out}"
+    if printf '%s\n' "${out}" | grep -q 'does not exist'; then
+        fail "a path behind an unsearchable parent was reported as not existing"
+    fi
+    [ ! -e "${work}/blocked-unknown-backups" ] || fail "unsearchable parent still created a backup directory"
 
     mkdir -p "${work}/mixed/grc-keep"
     printf '%s\n' 'keep' > "${work}/mixed/grc-keep/marker"

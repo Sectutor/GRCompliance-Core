@@ -25,26 +25,33 @@
 #   DB_NAME                 Database to dump (default: grcompliance)
 #   DB_USER                 Database role (default: grc)
 #   DB_PASSWORD             Database password. Required unless DB_PASSWORD_FILE is set.
-#   DB_PASSWORD_FILE        File whose contents are the password. Mode should be 0600.
+#   DB_PASSWORD_FILE        File whose contents are the password. Mode should be 0600
+#                           when this user owns it. The file must be readable by
+#                           the user running the script. uid 1001 cannot read a
+#                           mode 0600 file owned by someone else; give that user
+#                           a mode 0400 copy instead. Never make it world-readable.
 #   BACKUP_DIR              Parent directory for this run (default: ./backups)
 #   BACKUP_RETENTION_DAYS   Delete grc-* directories in BACKUP_DIR older than
 #                           this many days (default: 14). 0 disables retention.
 #   AUTH_DIR                Auth directory to archive. Unset by default. This
 #                           edition stores local accounts in the database table
 #                           local_credentials, which pg_dump already includes.
-#                           There is no COMPLIANCEOS_DATA_DIR and no auth volume.
-#                           A missing, empty, or unset AUTH_DIR is logged and skipped.
+#                           Compose does not set AUTH_DIR and does not mount an
+#                           auth volume. An unset AUTH_DIR, a path that does not
+#                           exist, or an empty directory is logged and skipped.
 #   UPLOADS_DIR             Uploaded files (default: /app/uploads).
 #                           The server's working directory is /app, and compose
 #                           plus the image mount this path for /uploads.
 #   STORAGE_UPLOADS_DIR     Readiness report files (default: /app/storage/uploads).
 #                           LocalStorageProvider writes process.cwd()/storage/uploads.
 #
-# A missing or empty uploads directory is logged and skipped. It does not
-# fail the backup. A missing or empty auth directory is logged and skipped
-# the same way. A directory that exists but is not readable by this user
-# fails the run before any backup directory is created. Database name and
-# role default to this compose file (grcompliance / grc) and stay overridable.
+# A path that does not exist, or an empty directory, is logged and skipped.
+# It does not fail the backup. Auth is skipped the same way. A directory that
+# exists but is not readable by this user fails the run before any backup
+# directory is created. A path that exists but cannot be traversed (permission
+# denied on the path or on a parent) is refused the same way. It is not
+# reported as a path that does not exist. Database name and role default to
+# this compose file (grcompliance / grc) and stay overridable.
 #
 # pg_dump's major version must match the server. A newer client sends
 # SET transaction_timeout, which an older server rejects. That mismatch is
@@ -125,11 +132,12 @@ Common environment:
 Each run writes db.dump (pg_dump -Fc), SHA256SUMS, and checksums.sha256.
 auth-volume.tgz is added when AUTH_DIR exists and contains files.
 uploads.tgz and storage-uploads.tgz are added when those directories
-contain files. A missing or empty auth or uploads directory is logged
-and skipped. A directory that exists but is not readable fails the run
-before a backup directory is created. Do not chmod those files
-world-readable. Run this script as the owning user (uid 1001 in the
-app image), with docker compose exec -u 1001, or with sudo.
+contain files. A path that does not exist, or an empty directory, is
+logged and skipped. A directory that exists but is not readable, and a
+path that exists but is not accessible, both fail the run before a
+backup directory is created. Do not chmod those files world-readable.
+Run this script as the owning user (uid 1001 in the app image), with
+docker compose exec -u 1001, or with sudo.
 pg_dump's major version must match the server. The run directory is
 mode 0700 and the files are mode 0600. A failed run removes only the
 grc-* directory it created.
@@ -230,6 +238,7 @@ load_db_password() {
     if [ -z "${DB_PASSWORD:-}" ] && [ -n "${DB_PASSWORD_FILE:-}" ]; then
         if [ ! -r "${DB_PASSWORD_FILE}" ]; then
             error "DB_PASSWORD_FILE is set but cannot be read."
+            error "uid 1001 cannot read a mode 0600 file owned by another user. Copy it to a mode 0400 file owned by uid 1001 and point DB_PASSWORD_FILE at that copy. Do not make the file world-readable, and do not put the password on the command line."
             exit 1
         fi
         DB_PASSWORD="$(tr -d '\r\n' < "${DB_PASSWORD_FILE}")"
@@ -272,30 +281,115 @@ prepare_backup_root() {
 explain_unreadable() {
     local label="$1"
     local source="$2"
-    error "${label} directory is not readable by this user: ${source}"
-    error "The app image owns uploads as uid 1001 with mode 0700. cp -a keeps that owner and mode, so a different user cannot archive them."
+    local why="${3:-is not readable by this user}"
+    error "${label} directory ${why}: ${source}"
+    error "The app image owns /app/uploads as uid 1001. The directory is mode 0755 and the files are mode 0600, so a different user cannot read the files."
     error "Run backup.sh as that user, with docker compose exec -u 1001, or with sudo. Do not chmod the files world-readable."
 }
 
+# Print unset, absent, present, or inaccessible.
+# [ -e ] is false both when a path does not exist and when a parent directory
+# cannot be searched, so it cannot tell those cases apart. stat under LC_ALL=C
+# reports "No such file or directory" for a real absence and "Permission denied"
+# when this user cannot traverse the path. A parent that exists but is not
+# searchable is inaccessible even if the final component cannot be named.
+path_kind() {
+    local path="$1"
+    local cursor=""
+    local parent=""
+    local err=""
+
+    if [ -z "${path}" ]; then
+        printf 'unset\n'
+        return 0
+    fi
+    if LC_ALL=C stat -L -- "${path}" >/dev/null 2>&1; then
+        printf 'present\n'
+        return 0
+    fi
+
+    cursor="${path}"
+    while true; do
+        parent="$(dirname -- "${cursor}")"
+        if [ "${parent}" = "${cursor}" ]; then
+            printf 'inaccessible\n'
+            return 0
+        fi
+        if LC_ALL=C stat -L -- "${parent}" >/dev/null 2>&1; then
+            if [ ! -d "${parent}" ]; then
+                printf 'absent\n'
+                return 0
+            fi
+            if [ ! -x "${parent}" ]; then
+                printf 'inaccessible\n'
+                return 0
+            fi
+            err="$(LC_ALL=C stat -L -- "${cursor}" 2>&1 >/dev/null || true)"
+            case "${err}" in
+                *"No such file or directory"|*"Not a directory")
+                    printf 'absent\n'
+                    ;;
+                *)
+                    printf 'inaccessible\n'
+                    ;;
+            esac
+            return 0
+        fi
+        cursor="${parent}"
+    done
+}
+
+# Print unset, absent, or present. Refuse a path that exists but cannot be
+# traversed, so the caller does not report it as a path that does not exist.
+resolve_optional_path() {
+    local source="$1"
+    local label="$2"
+    local kind=""
+
+    kind="$(path_kind "${source}")"
+    case "${kind}" in
+        unset|absent|present)
+            printf '%s\n' "${kind}"
+            ;;
+        inaccessible)
+            explain_unreadable "${label}" "${source}" "exists but is not accessible"
+            exit 1
+            ;;
+        *)
+            error "Could not inspect ${label} directory: ${source}"
+            exit 1
+            ;;
+    esac
+}
+
 # Fail before any backup directory is created when a tree exists but this
-# user cannot read every directory and regular file in it. Missing paths and
-# non-directories are left for the archive step, which skips them.
+# user cannot read every directory and regular file in it. Paths that do not
+# exist, and paths that are not directories, are left for the archive step,
+# which skips them. An inaccessible path is refused here.
 preflight_readable_dir() {
     local source="$1"
     local label="$2"
+    local kind=""
     local resolved=""
     local blocked=""
     local find_status=0
 
-    if [ -z "${source}" ] || [ ! -e "${source}" ] || [ ! -d "${source}" ]; then
+    kind="$(resolve_optional_path "${source}" "${label}")" || exit $?
+    case "${kind}" in
+        unset|absent)
+            return 0
+            ;;
+        present)
+            ;;
+        *)
+            error "Could not inspect ${label} directory: ${source}"
+            exit 1
+            ;;
+    esac
+    if [ ! -d "${source}" ]; then
         return 0
     fi
-    if [ -L "${source}" ]; then
-        if [ ! -r "${source}" ] || [ ! -x "${source}" ]; then
-            explain_unreadable "${label}" "${source}"
-            exit 1
-        fi
-    elif [ ! -r "${source}" ] || [ ! -x "${source}" ]; then
+    if [ ! -r "${source}" ] || [ ! -x "${source}" ]; then
         explain_unreadable "${label}" "${source}"
         exit 1
     fi
@@ -456,22 +550,33 @@ tree_has_files() {
     return 1
 }
 
-# Archive one uploads tree. Missing and empty directories are notes, not failures.
+# Archive one uploads tree. A path that does not exist, and an empty directory,
+# are notes, not failures. An inaccessible path is a failure.
 archive_optional_tree() {
     local source="$1"
     local archive_name="$2"
     local label="$3"
     local resolved=""
     local status=0
+    local kind=""
 
-    if [ -z "${source}" ]; then
-        warn "${label} path is unset. Continuing without it."
-        return 0
-    fi
-    if [ ! -e "${source}" ]; then
-        warn "${label} directory is missing: ${source}. Continuing without it."
-        return 0
-    fi
+    kind="$(resolve_optional_path "${source}" "${label}")" || exit $?
+    case "${kind}" in
+        unset)
+            warn "${label} path is unset. Continuing without it."
+            return 0
+            ;;
+        absent)
+            warn "${label} directory does not exist: ${source}. Continuing without it."
+            return 0
+            ;;
+        present)
+            ;;
+        *)
+            error "Could not inspect ${label} directory: ${source}"
+            exit 1
+            ;;
+    esac
     if [ ! -d "${source}" ]; then
         warn "${label} path is not a directory: ${source}. Continuing without it."
         return 0
@@ -503,22 +608,33 @@ archive_optional_tree() {
 }
 
 # Archive AUTH_DIR when it exists and has files. This edition keeps local
-# accounts in local_credentials, so a missing directory is a note, not a failure.
+# accounts in local_credentials, so a path that does not exist is a note,
+# not a failure. An inaccessible path is a failure.
 archive_auth() {
     local source="${AUTH_DIR:-}"
     local resolved=""
     local parent=""
     local base=""
     local status=0
+    local kind=""
 
-    if [ -z "${source}" ]; then
-        warn "AUTH_DIR is unset. Local accounts in this edition live in the database table local_credentials and are included in db.dump. Continuing without an auth archive."
-        return 0
-    fi
-    if [ ! -e "${source}" ]; then
-        warn "Auth directory is missing: ${source}. Continuing without an auth archive."
-        return 0
-    fi
+    kind="$(resolve_optional_path "${source}" "Auth")" || exit $?
+    case "${kind}" in
+        unset)
+            warn "AUTH_DIR is unset. Local accounts in this edition live in the database table local_credentials and are included in db.dump. Continuing without an auth archive."
+            return 0
+            ;;
+        absent)
+            warn "Auth directory does not exist: ${source}. Continuing without an auth archive."
+            return 0
+            ;;
+        present)
+            ;;
+        *)
+            error "Could not inspect auth directory: ${source}"
+            exit 1
+            ;;
+    esac
     if [ ! -d "${source}" ]; then
         warn "Auth path is not a directory: ${source}. Continuing without an auth archive."
         return 0

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # End-to-end backup and restore against a throwaway pgvector/pgvector:pg16
-# container. Uploads are owned by uid 1001 and mode 0700. The restoring role
-# is not a superuser. A Postgres 17 client is refused. The database password
-# is generated at runtime into a mode-0600 file and is never printed.
-# Fictional rows only.
+# container. Uploads in this fixture are owned by uid 1001. The image itself
+# creates /app/uploads as mode 0755 and the files as mode 0600. The restoring
+# role is not a superuser. A Postgres 17 client is refused. The database
+# password is generated at runtime into a mode-0600 file and is never printed.
+# The uid 1001 container reads a mode-0400 copy of that file. Fictional rows only.
 set -euo pipefail
 set +x
 
@@ -59,6 +60,19 @@ as_1001() {
     sudo -n setpriv --reuid=1001 --regid=1001 --clear-groups --inh-caps=-all env "$@"
 }
 
+# Run backup.sh as uid 1001 in the Postgres 16 image. Extra docker options
+# are placed before the image. The password is never one of those options.
+pg16_backup_as_1001() {
+    sudo -n docker run --rm \
+        --user 1001:1001 \
+        --entrypoint bash \
+        -v "${ROOT}:/work:ro" \
+        -w /work \
+        "$@" \
+        "${IMAGE}" \
+        ./scripts/backup.sh
+}
+
 assert_absent() {
     if printf '%s\n' "$1" | grep -F -q -- "$2"; then
         fail "output contains the generated database password"
@@ -80,6 +94,13 @@ main() {
     local client_path=""
     local server_version=""
     local image_client=""
+    local secret_dir=""
+    local blocked=""
+    local naive_backups=""
+    local inaccessible_backups=""
+    local container_backups=""
+    local host_blocked=""
+    local host_absent=""
 
     command -v python3 >/dev/null 2>&1 || fail "python3 is required"
     command -v openssl >/dev/null 2>&1 || fail "openssl is required"
@@ -186,6 +207,190 @@ PY
     [ ! -e "${WORK}/denied-backups" ] || fail "unreadable uploads left a backup directory behind"
     assert_absent "${out}" "${secret}"
     printf '%s\n' "docker permission refusal: ok"
+
+    host_blocked="${WORK}/host-blocked"
+    mkdir -p "${host_blocked}/uploads"
+    printf '%s\n' 'fictional-hidden-bytes' > "${host_blocked}/uploads/hidden.pdf"
+    chmod 000 "${host_blocked}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${PASS}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT="${PORT}" \
+        DB_NAME=grcompliance \
+        DB_USER=grc \
+        BACKUP_DIR="${WORK}/host-blocked-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${host_blocked}/uploads" \
+        STORAGE_UPLOADS_DIR="${WORK}/host-absent-storage" \
+        PATH="${client_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    chmod 700 "${host_blocked}" || fail "could not restore mode on the blocked parent"
+    [ "${status}" -ne 0 ] || fail "inaccessible uploads path was treated as missing"
+    printf '%s\n' "${out}" | grep -q 'exists but is not accessible' || fail "inaccessible uploads path was not refused: ${out}"
+    printf '%s\n' "${out}" | grep -q 'uid 1001' || fail "inaccessible uploads message did not name uid 1001"
+    printf '%s\n' "${out}" | grep -q 'world-readable' || fail "inaccessible uploads message did not forbid a world-readable mode"
+    if printf '%s\n' "${out}" | grep -q 'does not exist'; then
+        fail "inaccessible uploads path was reported as not existing"
+    fi
+    if printf '%s\n' "${out}" | grep -q 'Continuing without'; then
+        fail "inaccessible uploads path was skipped"
+    fi
+    [ ! -e "${WORK}/host-blocked-backups" ] || fail "inaccessible uploads left a backup directory behind"
+    assert_absent "${out}" "${secret}"
+    printf '%s\n' "docker inaccessible path refusal: ok"
+
+    host_absent="${WORK}/host-absent-backups"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${PASS}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT="${PORT}" \
+        DB_NAME=grcompliance \
+        DB_USER=grc \
+        BACKUP_DIR="${host_absent}" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${WORK}/no-such-uploads" \
+        STORAGE_UPLOADS_DIR="${WORK}/no-such-storage" \
+        PATH="${client_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "absent uploads path failed the backup: ${out}"
+    printf '%s\n' "${out}" | grep -q "Uploads directory does not exist: ${WORK}/no-such-uploads" || fail "absent uploads path was not warned: ${out}"
+    printf '%s\n' "${out}" | grep -q "Storage uploads directory does not exist: ${WORK}/no-such-storage" || fail "absent storage path was not warned: ${out}"
+    printf '%s\n' "${out}" | grep -q 'Continuing without it' || fail "absent path was not skipped"
+    if printf '%s\n' "${out}" | grep -q 'exists but is not accessible'; then
+        fail "absent path was reported as inaccessible"
+    fi
+    run_dir="$(find "${host_absent}" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print)"
+    [ -n "${run_dir}" ] || fail "absent path did not write a backup"
+    [ ! -e "${run_dir}/uploads.tgz" ] || fail "absent uploads path was archived"
+    [ ! -e "${run_dir}/storage-uploads.tgz" ] || fail "absent storage path was archived"
+    (cd -- "${run_dir}" && sha256sum -c SHA256SUMS) || fail "absent-path backup checksums did not verify"
+    assert_absent "${out}" "${secret}"
+    printf '%s\n' "docker absent path warning: ok"
+
+    secret_dir="$(mktemp -d "${WORK}/secret.XXXXXX")"
+    chmod 700 "${secret_dir}"
+    cp -- "${PASS}" "${secret_dir}/db_password"
+    sudo -n chown 1001:1001 "${secret_dir}/db_password"
+    sudo -n chmod 400 "${secret_dir}/db_password"
+    [ "$(stat -c '%a' -- "${secret_dir}/db_password")" = "400" ] || fail "uid 1001 password copy is not mode 0400"
+    [ "$(stat -c '%u' -- "${secret_dir}/db_password")" = "1001" ] || fail "uid 1001 password copy is not owned by uid 1001"
+    [ "$(stat -c '%a' -- "${PASS}")" = "600" ] || fail "original password file mode changed"
+    [ "$(stat -c '%u' -- "${PASS}")" = "$(id -u)" ] || fail "original password file owner changed"
+
+    naive_backups="${WORK}/naive-backups"
+    mkdir -p "${naive_backups}"
+    set +e
+    out="$(
+        pg16_backup_as_1001 \
+            -v "${PASS}:/run/secrets/db_password:ro" \
+            -v "${naive_backups}:/backups" \
+            -e DB_PASSWORD_FILE=/run/secrets/db_password \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=1 \
+            -e BACKUP_DIR=/backups \
+            -e BACKUP_RETENTION_DAYS=0 \
+            -e UPLOADS_DIR=/no/such/uploads \
+            -e STORAGE_UPLOADS_DIR=/no/such/storage \
+            2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "uid 1001 read a mode 0600 password file owned by another user"
+    printf '%s\n' "${out}" | grep -q 'cannot be read' || fail "unreadable password file inside the container was not explained: ${out}"
+    [ -z "$(find "${naive_backups}" -mindepth 1 -name 'grc-*' -print -quit)" ] || fail "unreadable password file still created a backup"
+    assert_absent "${out}" "${secret}"
+    printf '%s\n' "docker uid 1001 rejects the host-owned password file: ok"
+
+    blocked="${WORK}/uid1001-blocked"
+    mkdir -p "${blocked}/uploads"
+    printf '%s\n' 'fictional-hidden-bytes' > "${blocked}/uploads/hidden.pdf"
+    chmod 700 "${blocked}"
+    inaccessible_backups="${WORK}/inaccessible-backups"
+    mkdir -p "${inaccessible_backups}"
+    set +e
+    out="$(
+        pg16_backup_as_1001 \
+            -v "${secret_dir}/db_password:/run/secrets/db_password:ro" \
+            -v "${blocked}:/host-blocked:ro" \
+            -v "${inaccessible_backups}:/backups" \
+            -e DB_PASSWORD_FILE=/run/secrets/db_password \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=1 \
+            -e BACKUP_DIR=/backups \
+            -e BACKUP_RETENTION_DAYS=0 \
+            -e UPLOADS_DIR=/host-blocked/uploads \
+            -e STORAGE_UPLOADS_DIR=/no/such/storage-uploads \
+            2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "uid 1001 treated an unsearchable uploads path as missing"
+    printf '%s\n' "${out}" | grep -q 'exists but is not accessible' || fail "container did not refuse the inaccessible uploads path: ${out}"
+    printf '%s\n' "${out}" | grep -q 'uid 1001' || fail "container inaccessible message did not name uid 1001"
+    if printf '%s\n' "${out}" | grep -q 'does not exist'; then
+        fail "container reported an inaccessible uploads path as not existing"
+    fi
+    if printf '%s\n' "${out}" | grep -q 'Continuing without'; then
+        fail "container skipped an inaccessible uploads path"
+    fi
+    [ -z "$(find "${inaccessible_backups}" -mindepth 1 -name 'grc-*' -print -quit)" ] || fail "inaccessible container path still created a backup"
+    assert_absent "${out}" "${secret}"
+    printf '%s\n' "docker uid 1001 inaccessible path refusal: ok"
+
+    # Share the database container's network namespace and use its localhost.
+    # The documented command joins grcompliance_default and sets DB_HOST=db.
+    # The password file, uid, and uploads mount are the same either way.
+    container_backups="${WORK}/container-backups"
+    mkdir -p "${container_backups}"
+    sudo -n chown 1001:1001 "${container_backups}"
+    sudo -n chmod 700 "${container_backups}"
+    set +e
+    out="$(
+        pg16_backup_as_1001 \
+            --network "container:${CONTAINER}" \
+            -v "${secret_dir}/db_password:/run/secrets/db_password:ro" \
+            -v "${uploads}:/app/uploads:ro" \
+            -v "${container_backups}:/backups" \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=5432 \
+            -e DB_NAME=grcompliance \
+            -e DB_USER=grc \
+            -e DB_PASSWORD_FILE=/run/secrets/db_password \
+            -e BACKUP_DIR=/backups \
+            -e BACKUP_RETENTION_DAYS=0 \
+            -e UPLOADS_DIR=/app/uploads \
+            -e STORAGE_UPLOADS_DIR=/no/such/storage-uploads \
+            2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "uid 1001 container backup failed: ${out}"
+    printf '%s\n' "${out}" | grep -q 'Backup completed successfully' || fail "uid 1001 container backup did not report success: ${out}"
+    printf '%s\n' "${out}" | grep -q 'matches PostgreSQL server 16' || fail "uid 1001 container backup did not confirm the client major version: ${out}"
+    printf '%s\n' "${out}" | grep -q 'Storage uploads directory does not exist: /no/such/storage-uploads' || fail "uid 1001 container did not warn for an absent storage path: ${out}"
+    printf '%s\n' "${out}" | grep -q 'Continuing without it' || fail "uid 1001 container did not skip the absent storage path"
+    if printf '%s\n' "${out}" | grep -q 'exists but is not accessible'; then
+        fail "uid 1001 container reported an absent path as inaccessible"
+    fi
+    assert_absent "${out}" "${secret}"
+    run_dir="$(sudo -n find "${container_backups}" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print)"
+    [ -n "${run_dir}" ] || fail "uid 1001 container did not create a backup directory"
+    [ "$(printf '%s\n' "${run_dir}" | wc -l)" -eq 1 ] || fail "uid 1001 container created more than one backup directory"
+    sudo -n bash -c "cd -- $(printf '%q' "${run_dir}") && sha256sum -c SHA256SUMS" || fail "uid 1001 container backup checksums did not verify"
+    sudo -n tar -tzf "${run_dir}/uploads.tgz" | grep -q 'clients/1/policy.pdf' || fail "uid 1001 container archive is missing the fictional upload"
+    [ ! -e "${run_dir}/storage-uploads.tgz" ] || fail "uid 1001 container archived an absent storage path"
+    sudo -n "${PG_BIN}/pg_restore" -l "${run_dir}/db.dump" | grep -q 'policy_notes' || fail "uid 1001 container dump is missing the fictional table"
+    rm -rf -- "${secret_dir}"
+    [ ! -e "${secret_dir}" ] || fail "password copy was left on disk"
+    printf '%s\n' "docker uid 1001 password copy backup: ok"
 
     cat > "${wrapper}/pg_dump" <<'EOF'
 #!/bin/sh
