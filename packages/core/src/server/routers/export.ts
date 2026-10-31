@@ -8,7 +8,7 @@ import puppeteer from 'puppeteer';
 import * as schema from '../../schema';
 import { generateSoADocx } from '../../lib/soaExport';
 import { loadAnnexAStatement } from '../soaData';
-import { handleSoaExport } from './soaExportHandler';
+import { handleSoaExport } from '../soaExportHandler';
 
 export const exportRouter = express.Router();
 
