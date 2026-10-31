@@ -48,14 +48,82 @@ DB_PASSWORD_FILE="$HOME/.grc-db-password" ./scripts/backup.sh
 
 `DB_HOST`, `DB_PORT`, `DB_USER`, and `DB_NAME` can stay unset for this stack. They default to `localhost`, `5432`, `grc`, and `grcompliance`. Keep `$HOME/.grc-db-password` outside the repository. Do not print the file and do not commit it.
 
-`/app/uploads` is inside the `grcompliance_grc_uploads` volume, so a backup started on the host skips that path and still dumps the database. To include the volume, copy it out and point `UPLOADS_DIR` at the copy:
+## Client tools must match the server
+
+This stack runs Postgres 16 (`pgvector/pgvector:pg16`). The `pg_dump` and `pg_restore` major version must be 16 as well. A Postgres 17 client sends `SET transaction_timeout`. Postgres 16 does not know that setting, and the dump or restore aborts.
+
+`backup.sh` compares `pg_dump --version` with the server and refuses a mismatch before it creates a backup directory. `restore.sh` compares `pg_restore --version` with the server after the checksum and empty-database checks, and before it writes any rows. Check the clients you are about to use:
 
 ```bash
-mkdir -p "$HOME/grc-uploads"
+pg_dump --version
+pg_restore --version
+docker compose exec -T db pg_dump --version
+docker compose exec -T db pg_restore --version
+```
+
+Use the database container's own tools, or the `postgres:16` image, so the major version matches. A one-off dump from the server container writes the archive on the host and does not put the password on the command line:
+
+```bash
+docker compose exec -T db pg_dump -U grc -d grcompliance -Fc > "$HOME/grc-db.dump"
+```
+
+`docker compose exec db pg_dump` is the server's `pg_dump`. Do not point `backup.sh` or `restore.sh` at PostgreSQL 17 client packages.
+
+`--allow-version-mismatch` continues only when the client is older than the server, and only if you have already confirmed that older client can read the dump. A newer client is refused with or without the flag, because that mismatch is the `transaction_timeout` failure. The flag does not skip checksum checks, the empty-database check, or the production-host check.
+
+## Uploads are owned by uid 1001
+
+`/app/uploads` is inside the `grcompliance_grc_uploads` volume. The image creates those files as uid 1001 (user `grc`) with mode 0700. A backup started on the host skips a missing `/app/uploads` and still dumps the database. To include the files, run `backup.sh` as a user who can already read them.
+
+`cp -a` is not that. It keeps uid 1001 and mode 0700, and `backup.sh` then stops with permission denied while it reads the tree. Do not fix this by making the files world-readable.
+
+`backup.sh` checks `AUTH_DIR`, `UPLOADS_DIR`, and `STORAGE_UPLOADS_DIR` before it creates a backup directory. If one of those paths exists and this user cannot read it, the script stops and says so. If a later step fails, the script removes the `grc-*` directory that this run created, and it removes `BACKUP_DIR` only when this run created that directory and left it empty. Other backups stay where they are.
+
+Three safe ways to run the backup:
+
+Run it as uid 1001, with the uploads volume mounted and a Postgres 16 `pg_dump` on `PATH`. `pgvector/pgvector:pg16` supplies that client. The backup directory must be writable by uid 1001.
+
+```bash
+mkdir -p -- "$HOME/grc-backups"
+chown 1001:1001 "$HOME/grc-backups"
+docker run --rm --network grcompliance_default \
+  --user 1001:1001 \
+  --entrypoint bash \
+  -v grcompliance_grc_uploads:/app/uploads:ro \
+  -v "$PWD":/work -w /work \
+  -v "$HOME/grc-backups":/backups \
+  -e DB_HOST=db \
+  -e DB_PASSWORD_FILE=/run/secrets/db_password \
+  -e UPLOADS_DIR=/app/uploads \
+  -e BACKUP_DIR=/backups \
+  -v "$HOME/.grc-db-password":/run/secrets/db_password:ro \
+  pgvector/pgvector:pg16 \
+  ./scripts/backup.sh
+```
+
+`docker compose exec -u 1001 db pg_dump` uses the server's client for the database. The `db` service does not mount the uploads volume, so it cannot archive those files. `docker compose exec -u 1001 app` runs as the owning user and can read `/app/uploads`, but the app image does not include `pg_dump`. Use the `db` service for the database tools and uid 1001 for the files.
+
+Or run the script with sudo. Root can read mode 0700 files. The backup directory is then owned by root and mode 0700.
+
+```bash
+sudo env \
+  DB_PASSWORD_FILE="$HOME/.grc-db-password" \
+  UPLOADS_DIR=/path/root/can/read \
+  ./scripts/backup.sh
+```
+
+A private copy onto the host is optional. Root in the helper reads the volume, and `chown` gives the copy to the user who will run `backup.sh`. The mode is unchanged, so the copy is not world-readable.
+
+```bash
+mkdir -p -- "$HOME/grc-uploads"
+chmod 700 "$HOME/grc-uploads"
+uid="$(id -u)"
+gid="$(id -g)"
 docker run --rm \
-  -v grcompliance_grc_uploads:/data \
+  -v grcompliance_grc_uploads:/data:ro \
   -v "$HOME/grc-uploads":/dest \
-  alpine cp -a /data/. /dest/
+  alpine:3 \
+  sh -c "cp -a /data/. /dest/ && chown -R ${uid}:${gid} /dest"
 
 DB_PASSWORD_FILE="$HOME/.grc-db-password" \
   UPLOADS_DIR="$HOME/grc-uploads" \
@@ -66,16 +134,25 @@ DB_PASSWORD_FILE="$HOME/.grc-db-password" \
 
 Restore only into a database you have already created and left empty. The script does not create a database and it never drops one. Leave `grcompliance` in place and restore into a new database.
 
-1. Create the empty database on the running Postgres service. These commands use the container's local socket, so the password is not on the command line. The image is `pgvector/pgvector:pg16`. Create the `vector` extension before restore.
+1. Create the empty database on the running Postgres service. These commands use the container's local socket, so the password is not on the command line. The image is `pgvector/pgvector:pg16`.
 
 ```bash
 docker compose exec -T db createdb -U grc grcompliance_restore
+```
+
+2. A superuser must create the `vector` extension in that empty database before `restore.sh`. The dump contains `CREATE EXTENSION vector`. That statement loads a C extension and is rejected when the restoring role is not a superuser. The role that owns the empty database often is not a superuser, and `restore.sh` connects as `DB_USER`, so the restore would stop on that statement. Creating the extension first adds types and functions, not tables, so the database is still empty for the script's table check. `restore.sh` then lists the dump with `pg_restore -l`, drops the `CREATE EXTENSION` entry from the list it passes to `pg_restore -L`, and restores the remaining objects as the non-superuser owner.
+
+In the default compose file, `POSTGRES_USER` (default `grc`) is the superuser the image creates. If the target database is owned by a different role that is not a superuser, run the command as a superuser instead of as that owner:
+
+```bash
 docker compose exec -T db psql -U grc -d grcompliance_restore -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 
-2. Reuse the password file from the backup section. `restore.sh` reads `DB_PASSWORD_FILE`. It does not take the password as an argument. Export `DB_PASSWORD` instead when you already have the password in the environment.
+The command a superuser runs is `CREATE EXTENSION IF NOT EXISTS vector;`. `restore.sh` checks the dump and the target. If the dump needs `vector` and the extension is missing, it stops before writing any data and prints that command. It does not create the extension itself.
 
-3. With the loopback port published, the default host is `localhost`. That name is allowed. `TARGET_DB` must be the empty database from step 1.
+3. Reuse the password file from the backup section. `restore.sh` reads `DB_PASSWORD_FILE`. It does not take the password as an argument. Export `DB_PASSWORD` instead when you already have the password in the environment.
+
+4. With the loopback port published, the default host is `localhost`. That name is allowed. `TARGET_DB` must be the empty database from step 1. `pg_restore` must be the same major version as the server. See [Client tools must match the server](#client-tools-must-match-the-server).
 
 ```bash
 TARGET_DB=grcompliance_restore \
@@ -85,7 +162,7 @@ TARGET_DB=grcompliance_restore \
 
 Replace `grc-YYYYMMDD-HHMMSS` with the backup directory you are restoring.
 
-4. The compose service hostname is `db`. `restore.sh` refuses host `db` unless you pass `--force-prod`. `--force-prod` allows that hostname only. The target database must still be empty, checksums must still match, and an uploads directory that already has files is still refused. Point `TARGET_DB` at `grcompliance_restore`.
+5. The compose service hostname is `db`. `restore.sh` refuses host `db` unless you pass `--force-prod`. `--force-prod` allows that hostname only. The target database must still be empty, checksums must still match, and an uploads directory that already has files is still refused. Point `TARGET_DB` at `grcompliance_restore`.
 
 ```bash
 TARGET_DB=grcompliance_restore \
@@ -94,7 +171,7 @@ TARGET_DB=grcompliance_restore \
   ./scripts/restore.sh --force-prod ./backups/grc-YYYYMMDD-HHMMSS
 ```
 
-5. Uploads stay in the archive until you name an empty directory. `--force` does not fill a directory that already has files.
+6. Uploads stay in the archive until you name an empty directory. `--force` does not fill a directory that already has files.
 
 ```bash
 mkdir -p "$HOME/grc-uploads-restore"
@@ -107,12 +184,14 @@ TARGET_DB=grcompliance_restore \
 
 Copy those files into an empty `grc_uploads` volume when you want the app to serve them.
 
-6. After you have checked `grcompliance_restore`, point `DATABASE_URL` in your private `.env` at that database and recreate the app container. For a disaster restore, build a new Postgres with a named volume and point the app at that database.
+7. After you have checked `grcompliance_restore`, point `DATABASE_URL` in your private `.env` at that database and recreate the app container. For a disaster restore, build a new Postgres with a named volume and point the app at that database.
 
 - `TARGET_DB` is required. If that database already has user tables, the script stops.
 - GRCompliance refuses host `db` and any host that looks like production unless you pass `--force-prod`. Use that only for a scratch database. Set `PROTECTED_DB_HOSTS` to a colon-separated list of extra exact host names to refuse. There is no built-in extra host.
 - `sha256sum -c` runs before the script connects to `TARGET_DB` and before it extracts uploads. A mismatch aborts the restore.
-- A custom-format dump is restored with `pg_restore --exit-on-error --no-owner --no-acl`. A plain `.sql` file is restored with `psql -v ON_ERROR_STOP=1`.
+- `pg_restore` must match the server's major version. `--allow-version-mismatch` does not allow a newer client and does not bypass a bad checksum, a database that already has tables, or a production host.
+- A custom-format dump is restored with `pg_restore --exit-on-error --no-owner --no-acl`. When the dump contains the `vector` extension and that extension is already installed, the `CREATE EXTENSION` entry is left out of the `pg_restore -L` list. A plain `.sql` file is restored with `psql -v ON_ERROR_STOP=1`, with that same `CREATE EXTENSION` statement removed when the extension is already installed.
+- If the dump needs `vector` and the extension is missing, restore stops before writing data. A superuser has to run `CREATE EXTENSION IF NOT EXISTS vector;` in the empty target database first.
 - Set `AUTH_RESTORE_DIR` to extract `auth-volume.tgz` there. A directory that already has files is left as it is unless you pass `--force`. A backup that skipped the auth archive has no `auth-volume.tgz`. `--force` does not bypass a bad checksum, a database that already has tables, or an uploads directory that already has files.
 - Uploads are not restored unless you set `UPLOADS_RESTORE_DIR` or pass `--uploads-dir`. There is no default destination. The directory must be empty or must not exist yet. GRCompliance does not delete or overwrite files that are already there, and `--force` does not change that. The same rules apply to `STORAGE_UPLOADS_RESTORE_DIR` and `--storage-uploads-dir` for `storage-uploads.tgz`. A host the production guard refuses is not written.
 

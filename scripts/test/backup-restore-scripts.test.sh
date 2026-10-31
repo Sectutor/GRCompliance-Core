@@ -103,6 +103,23 @@ assert_source_rules() {
     grep -q 'DB_USER:-grc' "${BACKUP}" || fail "backup.sh does not default DB_USER to grc"
     grep -q 'DB_USER:-grc' "${RESTORE}" || fail "restore.sh does not default DB_USER to grc"
     grep -q 'Continuing without an auth archive' "${BACKUP}" || fail "backup.sh does not skip a missing auth directory"
+    grep -q -- '--allow-version-mismatch' "${BACKUP}" || fail "backup.sh does not implement --allow-version-mismatch"
+    grep -q -- '--allow-version-mismatch' "${RESTORE}" || fail "restore.sh does not implement --allow-version-mismatch"
+    grep -q 'transaction_timeout' "${BACKUP}" || fail "backup.sh does not explain transaction_timeout"
+    grep -q 'transaction_timeout' "${RESTORE}" || fail "restore.sh does not explain transaction_timeout"
+    grep -q 'CREATE EXTENSION IF NOT EXISTS vector;' "${RESTORE}" || fail "restore.sh does not name the vector command"
+    grep -q 'pg_restore -l' "${RESTORE}" || fail "restore.sh does not list the dump with pg_restore -l"
+    grep -q -- '-L' "${RESTORE}" || fail "restore.sh does not pass a pg_restore list"
+    local doc="${ROOT}/docs/BACKUP-RESTORE.md"
+    grep -q 'transaction_timeout' "${doc}" || fail "docs do not mention transaction_timeout"
+    grep -q 'CREATE EXTENSION IF NOT EXISTS vector' "${doc}" || fail "docs do not give the vector command"
+    grep -q 'uid 1001' "${doc}" || fail "docs do not name uid 1001"
+    grep -q 'world-readable' "${doc}" || fail "docs do not warn against world-readable uploads"
+    grep -q 'postgres:16' "${doc}" || fail "docs do not point at the postgres:16 image"
+    grep -q 'docker compose exec' "${doc}" || fail "docs do not show docker compose exec"
+    if grep -nE 'chmod[[:space:]]+(-R[[:space:]]+)?(777|a\+r|o\+r)' "${doc}"; then
+        fail "docs recommend a world-readable mode"
+    fi
     if grep -n 'complianceos' "${BACKUP}" "${RESTORE}"; then
         fail "backup or restore still names complianceos"
     fi
@@ -117,7 +134,9 @@ run_static_checks() {
     bash -n "${BACKUP}"
     bash -n "${RESTORE}"
     bash -n "${BASH_SOURCE[0]}"
-    shellcheck "${BACKUP}" "${RESTORE}" "${BASH_SOURCE[0]}"
+    shellcheck "${BACKUP}" "${RESTORE}" "${BASH_SOURCE[0]}" \
+        "${ROOT}/scripts/test/backup-restore-e2e.sh" \
+        "${ROOT}/scripts/test/backup-restore-docker-e2e.sh"
     scan_password_literals || fail "password literal scan failed"
     assert_source_rules
     printf '%s\n' "static checks passed"
@@ -129,6 +148,10 @@ write_stubs() {
     cat > "${bin}/pg_dump" <<'EOF'
 #!/bin/sh
 set -eu
+if [ "${1:-}" = "--version" ]; then
+    printf '%s\n' "pg_dump (PostgreSQL) ${PG_CLIENT_VERSION:-16.4}"
+    exit 0
+fi
 echo "stub-stderr-visible" >&2
 if [ "${FAIL_PG_DUMP:-0}" = "1" ]; then
     echo "stub-dump-failed" >&2
@@ -152,20 +175,56 @@ EOF
     cat > "${bin}/pg_restore" <<'EOF'
 #!/bin/sh
 set -eu
-printf '%s\n' "$*" >> "${PG_RESTORE_LOG:?}"
+if [ "${1:-}" = "--version" ]; then
+    printf '%s\n' "pg_restore (PostgreSQL) ${PG_CLIENT_VERSION:-16.4}"
+    exit 0
+fi
+if [ "${1:-}" = "-l" ] || [ "${1:-}" = "--list" ]; then
+    if [ "${DUMP_LIST_FAIL:-0}" = "1" ]; then
+        echo "pg_restore: could not list archive" >&2
+        exit 1
+    fi
+    if [ "${DUMP_NEEDS_VECTOR:-0}" = "1" ]; then
+        printf '%s\n' "2; 3079 16396 EXTENSION - vector postgres"
+        printf '%s\n' "3; 0 0 COMMENT - EXTENSION vector postgres"
+    fi
+    printf '%s\n' "4; 1259 16415 TABLE public notes postgres"
+    exit 0
+fi
+if [ -n "${PG_RESTORE_LOG:-}" ]; then
+    printf '%s\n' "$*" >> "${PG_RESTORE_LOG}"
+    prev=""
+    for arg in "$@"; do
+        if [ "$prev" = "-L" ] || [ "$prev" = "--use-list" ]; then
+            printf '%s\n' "LIST" >> "${PG_RESTORE_LOG}"
+            cat "$arg" >> "${PG_RESTORE_LOG}"
+        fi
+        prev=$arg
+    done
+fi
 EOF
     cat > "${bin}/psql" <<'EOF'
 #!/bin/sh
 set -eu
-printf '%s\n' "$*" >> "${PSQL_LOG:?}"
+if [ -n "${PSQL_LOG:-}" ]; then
+    printf '%s\n' "$*" >> "${PSQL_LOG}"
+fi
 query=""
 prev=""
+sql_file=""
 for arg in "$@"; do
     if [ "$prev" = "-tAc" ]; then
         query=$arg
     fi
+    if [ "$prev" = "-f" ]; then
+        sql_file=$arg
+    fi
     prev=$arg
 done
+if [ -n "$sql_file" ] && [ -n "${PSQL_LOG:-}" ]; then
+    printf '%s\n' "SQLFILE ${sql_file}" >> "${PSQL_LOG}"
+    cat "$sql_file" >> "${PSQL_LOG}"
+fi
 case "$query" in
     "SELECT 1")
         if [ "${PSQL_DB_EXISTS:-1}" != "1" ]; then
@@ -177,7 +236,18 @@ case "$query" in
     *count\(*)
         printf '%s\n' "${PSQL_TABLE_COUNT:-0}"
         ;;
+    *server_version_num*)
+        printf '%s\n' "${PG_SERVER_VERSION_NUM:-160004}"
+        ;;
+    *pg_extension*)
+        if [ "${VECTOR_INSTALLED:-0}" = "1" ]; then
+            printf '%s\n' "1"
+        fi
+        ;;
     "")
+        if [ -n "$sql_file" ]; then
+            exit 0
+        fi
         printf '%s\n' "stub-psql"
         ;;
     *)
@@ -253,6 +323,8 @@ run_behavior() {
     printf '%s\n' "${out}" | grep -q 'DB_PASSWORD' || fail "backup --help missing password instructions"
     printf '%s\n' "${out}" | grep -F -q 'default: grcompliance' || fail "backup --help missing grcompliance default"
     printf '%s\n' "${out}" | grep -F -q 'role (default: grc)' || fail "backup --help missing grc default"
+    printf '%s\n' "${out}" | grep -q -- '--allow-version-mismatch' || fail "backup --help missing version flag"
+    printf '%s\n' "${out}" | grep -q 'world-readable' || fail "backup --help does not warn against world-readable uploads"
 
     out="$(bash "${RESTORE}" --help)" || fail "restore --help failed"
     printf '%s\n' "${out}" | grep -q 'TARGET_DB' || fail "restore --help missing TARGET_DB"
@@ -260,6 +332,8 @@ run_behavior() {
     printf '%s\n' "${out}" | grep -q 'GRCompliance' || fail "restore --help did not name GRCompliance"
     printf '%s\n' "${out}" | grep -q -- '--uploads-dir' || fail "restore --help missing --uploads-dir"
     printf '%s\n' "${out}" | grep -q 'PROTECTED_DB_HOSTS' || fail "restore --help missing PROTECTED_DB_HOSTS"
+    printf '%s\n' "${out}" | grep -q -- '--allow-version-mismatch' || fail "restore --help missing version flag"
+    printf '%s\n' "${out}" | grep -q 'transaction_timeout' || fail "restore --help missing transaction_timeout"
 
     set +e
     out="$(DB_HOST=127.0.0.1 DB_PORT=1 PATH="${env_path}" bash "${BACKUP}" 2>&1)"
@@ -304,7 +378,7 @@ run_behavior() {
     [ "${status}" -ne 0 ] || fail "failed pg_dump was treated as success"
     printf '%s\n' "${out}" | grep -q 'stub-dump-failed' || fail "pg_dump stderr was hidden"
     assert_absent "${out}" "local-only"
-    [ ! -d "${work}/failed-backups" ] || [ -z "$(find "${work}/failed-backups" -mindepth 1 -name 'grc-*' -print -quit)" ] || fail "partial backup was kept"
+    [ ! -e "${work}/failed-backups" ] || fail "empty backup parent was left behind"
 
     : > "${stub_log}"
     set +e
@@ -886,6 +960,373 @@ PY
     [ ! -e "${missing_auth_run}/auth-volume.tgz" ] || fail "missing AUTH_DIR was archived"
     (cd -- "${missing_auth_run}" && sha256sum -c SHA256SUMS) || fail "checksums failed when AUTH_DIR was missing"
     assert_absent "${out}" "local-only"
+
+    locked="${work}/locked-uploads"
+    mkdir -p "${locked}"
+    printf '%s\n' 'hidden-evidence' > "${locked}/policy.pdf"
+    chmod 000 "${locked}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/locked-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${locked}" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    chmod 700 "${locked}" || fail "could not restore mode on the locked uploads directory"
+    [ "${status}" -ne 0 ] || fail "unreadable uploads directory was archived"
+    printf '%s\n' "${out}" | grep -q 'not readable by this user' || fail "unreadable uploads directory was not explained"
+    printf '%s\n' "${out}" | grep -q 'uid 1001' || fail "unreadable uploads message did not name uid 1001"
+    printf '%s\n' "${out}" | grep -q 'world-readable' || fail "unreadable uploads message did not forbid a world-readable mode"
+    [ ! -e "${work}/locked-backups" ] || fail "unreadable uploads still created a backup directory"
+    assert_absent "${out}" "local-only"
+
+    locked_auth="${work}/locked-auth"
+    mkdir -p "${locked_auth}"
+    printf '%s\n' '{"users":[]}' > "${locked_auth}/local-users.json"
+    chmod 000 "${locked_auth}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/locked-auth-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        AUTH_DIR="${locked_auth}" \
+        UPLOADS_DIR="${empty_uploads}" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    chmod 700 "${locked_auth}" || fail "could not restore mode on the locked auth directory"
+    [ "${status}" -ne 0 ] || fail "unreadable auth directory was skipped"
+    printf '%s\n' "${out}" | grep -q 'not readable by this user' || fail "unreadable auth directory was not explained"
+    [ ! -e "${work}/locked-auth-backups" ] || fail "unreadable auth still created a backup directory"
+
+    mkdir -p "${work}/mixed/grc-keep"
+    printf '%s\n' 'keep' > "${work}/mixed/grc-keep/marker"
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        FAIL_PG_DUMP=1 \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/mixed" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${empty_uploads}" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "failed dump in a shared backup directory was treated as success"
+    [ -f "${work}/mixed/grc-keep/marker" ] || fail "failure cleanup removed a backup this run did not create"
+    [ -z "$(find "${work}/mixed" -mindepth 1 -maxdepth 1 -name 'grc-*' ! -name 'grc-keep' -print -quit)" ] || fail "failure cleanup left the partial backup beside grc-keep"
+
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        PG_CLIENT_VERSION=17.2 \
+        PG_SERVER_VERSION_NUM=160004 \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/new-client-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${empty_uploads}" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" --allow-version-mismatch 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "newer pg_dump was allowed"
+    printf '%s\n' "${out}" | grep -q 'transaction_timeout' || fail "newer pg_dump refusal did not name transaction_timeout"
+    printf '%s\n' "${out}" | grep -q 'does not match PostgreSQL server' || fail "newer pg_dump refusal did not name the mismatch"
+    printf '%s\n' "${out}" | grep -q 'not safe to override' || fail "newer pg_dump refusal did not say the override is unsafe"
+    [ ! -e "${work}/new-client-backups" ] || fail "newer pg_dump still created a backup directory"
+    if grep -q -- '-Fc' "${stub_log}"; then
+        fail "newer pg_dump still dumped the database"
+    fi
+
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        PG_CLIENT_VERSION=15.8 \
+        PG_SERVER_VERSION_NUM=160004 \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/old-client-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${empty_uploads}" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "older pg_dump was allowed without the flag"
+    printf '%s\n' "${out}" | grep -q -- '--allow-version-mismatch' || fail "older pg_dump refusal did not name the flag"
+    [ ! -e "${work}/old-client-backups" ] || fail "older pg_dump still created a backup directory"
+
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        PG_CLIENT_VERSION=15.8 \
+        PG_SERVER_VERSION_NUM=160004 \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/old-client-allowed" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${empty_uploads}" \
+        STORAGE_UPLOADS_DIR="${missing_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" --allow-version-mismatch 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "older pg_dump with the flag failed: ${out}"
+    printf '%s\n' "${out}" | grep -q 'Continuing because --allow-version-mismatch was passed' || fail "older pg_dump flag was not announced"
+    [ -n "$(find "${work}/old-client-allowed" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print -quit)" ] || fail "older pg_dump with the flag did not write a backup"
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        PG_CLIENT_VERSION=17.2 \
+        PG_SERVER_VERSION_NUM=160004 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" --allow-version-mismatch "${run_dir}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "newer pg_restore was allowed"
+    printf '%s\n' "${out}" | grep -q 'transaction_timeout' || fail "newer pg_restore refusal did not name transaction_timeout"
+    printf '%s\n' "${out}" | grep -q 'not safe to override' || fail "newer pg_restore refusal did not say the override is unsafe"
+    if grep -q -- '--exit-on-error' "${restore_log}"; then
+        fail "newer pg_restore still restored the dump"
+    fi
+    assert_absent "${out}" "local-only"
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        PG_CLIENT_VERSION=15.8 \
+        PG_SERVER_VERSION_NUM=160004 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" "${run_dir}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "older pg_restore was allowed without the flag"
+    printf '%s\n' "${out}" | grep -q -- '--allow-version-mismatch' || fail "older pg_restore refusal did not name the flag"
+    if grep -q -- '--exit-on-error' "${restore_log}"; then
+        fail "older pg_restore still restored the dump"
+    fi
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=db \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        PG_CLIENT_VERSION=15.8 \
+        PG_SERVER_VERSION_NUM=160004 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" --allow-version-mismatch --force "${run_dir}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "--allow-version-mismatch bypassed a production host"
+    printf '%s\n' "${out}" | grep -q 'GRCompliance treats this host as production' || fail "version flag hid the production guard"
+    [ ! -s "${psql_log}" ] || fail "version flag on a production host still connected"
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        PG_CLIENT_VERSION=15.8 \
+        PG_SERVER_VERSION_NUM=160004 \
+        PSQL_TABLE_COUNT=4 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" --allow-version-mismatch "${run_dir}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "--allow-version-mismatch restored into a non-empty database"
+    printf '%s\n' "${out}" | grep -q 'not empty' || fail "version flag hid the empty-database guard"
+    if grep -q -- '--exit-on-error' "${restore_log}"; then
+        fail "version flag restored into a non-empty database"
+    fi
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        PG_CLIENT_VERSION=15.8 \
+        PG_SERVER_VERSION_NUM=160004 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" --allow-version-mismatch "${work}/bad-checksum" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "--allow-version-mismatch ignored a checksum mismatch"
+    printf '%s\n' "${out}" | grep -q 'Checksum mismatch' || fail "version flag hid the checksum guard"
+    [ ! -s "${psql_log}" ] || fail "version flag on a bad checksum still connected"
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        DUMP_NEEDS_VECTOR=1 \
+        VECTOR_INSTALLED=0 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" "${run_dir}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "missing vector extension was restored"
+    printf '%s\n' "${out}" | grep -F -q 'CREATE EXTENSION IF NOT EXISTS vector;' || fail "missing vector extension did not name the command"
+    printf '%s\n' "${out}" | grep -q 'superuser' || fail "missing vector extension did not say a superuser must create it"
+    if grep -q -- '--exit-on-error' "${restore_log}"; then
+        fail "missing vector extension still called pg_restore"
+    fi
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        DUMP_NEEDS_VECTOR=1 \
+        VECTOR_INSTALLED=1 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" "${run_dir}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "restore with vector already installed failed: ${out}"
+    grep -q -- '--exit-on-error' "${restore_log}" || fail "vector restore missing --exit-on-error"
+    grep -q -- '--no-owner' "${restore_log}" || fail "vector restore missing --no-owner"
+    grep -q -- '--no-acl' "${restore_log}" || fail "vector restore missing --no-acl"
+    grep -q -- '-L ' "${restore_log}" || fail "vector restore did not pass -L"
+    grep -F -q ';2; 3079 16396 EXTENSION - vector postgres' "${restore_log}" || fail "vector CREATE EXTENSION entry was not excluded"
+    grep -F -q ';3; 0 0 COMMENT - EXTENSION vector postgres' "${restore_log}" || fail "vector extension comment was not excluded"
+    grep -F -q '4; 1259 16415 TABLE public notes postgres' "${restore_log}" || fail "vector restore dropped a table entry"
+    if grep -E '^[0-9]+; [0-9]+ [0-9]+ EXTENSION - vector' "${restore_log}"; then
+        fail "vector CREATE EXTENSION entry was left active in the list"
+    fi
+
+    vector_sql="${work}/vector-sql"
+    mkdir -p "${vector_sql}"
+    printf '%s\n' 'CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;' 'CREATE TABLE public.notes (id integer);' > "${vector_sql}/plain.sql"
+    (
+        cd -- "${vector_sql}"
+        sha256sum plain.sql > SHA256SUMS
+        cp -- SHA256SUMS checksums.sha256
+    )
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        VECTOR_INSTALLED=0 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" "${vector_sql}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -ne 0 ] || fail "plain SQL missing vector was restored"
+    printf '%s\n' "${out}" | grep -F -q 'CREATE EXTENSION IF NOT EXISTS vector;' || fail "plain SQL missing vector did not name the command"
+    if grep -q 'SQLFILE' "${psql_log}"; then
+        fail "plain SQL missing vector still executed the dump"
+    fi
+
+    : > "${psql_log}"
+    : > "${restore_log}"
+    set +e
+    out="$(
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        TARGET_DB=scratch_restore \
+        VECTOR_INSTALLED=1 \
+        PSQL_LOG="${psql_log}" \
+        PG_RESTORE_LOG="${restore_log}" \
+        PATH="${env_path}" \
+        bash "${RESTORE}" "${vector_sql}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "plain SQL with vector installed failed: ${out}"
+    grep -q 'ON_ERROR_STOP=1' "${psql_log}" || fail "filtered plain SQL was not run with ON_ERROR_STOP=1"
+    grep -q 'CREATE TABLE public.notes' "${psql_log}" || fail "filtered plain SQL dropped the table"
+    if grep -q 'CREATE EXTENSION' "${psql_log}"; then
+        fail "filtered plain SQL still created the extension"
+    fi
+    [ ! -s "${restore_log}" ] || fail "filtered plain SQL called pg_restore"
 
     printf '%s\n' "behavior checks passed"
 }
