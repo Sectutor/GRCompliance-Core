@@ -23,6 +23,7 @@
 #   ./scripts/restore.sh --uploads-dir /var/lib/grcompliance/uploads <backup>
 #   ./scripts/restore.sh --force-prod    # required when the host is refused
 #   ./scripts/restore.sh --force         # overwrite a non-empty AUTH_RESTORE_DIR
+#   ./scripts/restore.sh --allow-version-mismatch
 #   ./scripts/restore.sh --help
 #   DB_PASSWORD is read from the environment when DB_PASSWORD_FILE is unset.
 #
@@ -57,6 +58,18 @@
 # Plain .sql files use:
 #   psql -v ON_ERROR_STOP=1
 #
+# pg_restore's major version must match the server. A newer client sends
+# SET transaction_timeout, which an older server rejects. That mismatch is
+# refused. --allow-version-mismatch continues only when pg_restore is older
+# than the server. It does not skip checksum, empty-database, or
+# production-host checks, and it does not allow a newer client.
+#
+# Dumps from this stack include CREATE EXTENSION vector. A non-superuser
+# database owner cannot run that statement. A superuser must run
+# CREATE EXTENSION IF NOT EXISTS vector; in the empty target first. When
+# the extension is already installed, pg_restore -l / -L drops that entry
+# so the rest of the dump restores as the non-superuser owner.
+#
 set -euo pipefail
 # A trace would print the database password. Keep tracing off.
 set +x
@@ -75,13 +88,17 @@ error()   { printf '%b\n' "${RED}[ERROR]${NC} $*" >&2; }
 
 FORCE=0
 FORCE_PROD=0
+ALLOW_VERSION_MISMATCH=0
 BACKUP_ARG=""
 DUMP_FILE=""
 BACKUP_PATH=""
+SQL_TO_RESTORE=""
+TOC_LIST=""
+RESTORE_LIST=""
 
 usage() {
     cat <<'EOF'
-Usage: restore.sh [--force-prod] [--force] [--uploads-dir DIR] [--storage-uploads-dir DIR] <backup-dir-or-dump>
+Usage: restore.sh [--force-prod] [--force] [--allow-version-mismatch] [--uploads-dir DIR] [--storage-uploads-dir DIR] <backup-dir-or-dump>
 
 Restore a GRCompliance backup into an existing empty database.
 
@@ -96,6 +113,11 @@ Options:
   --force         Allow a non-empty AUTH_RESTORE_DIR to be overwritten.
                   Does not allow a non-empty database, a bad checksum,
                   or a non-empty uploads directory.
+  --allow-version-mismatch
+                  Continue when pg_restore is older than the server, and
+                  only then. A newer pg_restore is refused because it sends
+                  SET transaction_timeout. Does not skip checksum,
+                  empty-database, or production-host checks.
   --uploads-dir DIR
                   Extract uploads.tgz into DIR. DIR must be empty or must not
                   exist yet. Same as UPLOADS_RESTORE_DIR. No default.
@@ -112,10 +134,32 @@ Environment:
   STORAGE_UPLOADS_RESTORE_DIR    extract storage-uploads.tgz here (optional; no default)
 
 Custom-format dumps: pg_restore --exit-on-error --no-owner --no-acl
+                     The vector CREATE EXTENSION entry is omitted with
+                     pg_restore -l / -L when the extension is already installed.
 Plain .sql:          psql -v ON_ERROR_STOP=1
 Checksums:           sha256sum -c SHA256SUMS (and any .sha256 files) before restore.
+pg_restore's major version must match the server. Before restore, a superuser
+must run CREATE EXTENSION IF NOT EXISTS vector; in the empty target database
+when the dump needs pgvector.
 EOF
 }
+
+cleanup() {
+    local status=$?
+    set +e
+    unset PGPASSWORD
+    if [ -n "${TOC_LIST}" ]; then
+        rm -f -- "${TOC_LIST}"
+    fi
+    if [ -n "${RESTORE_LIST}" ]; then
+        rm -f -- "${RESTORE_LIST}"
+    fi
+    if [ -n "${SQL_TO_RESTORE}" ] && [ "${SQL_TO_RESTORE}" != "${DUMP_FILE}" ]; then
+        rm -f -- "${SQL_TO_RESTORE}"
+    fi
+    exit "${status}"
+}
+trap cleanup EXIT
 
 load_db_password() {
     if [ -z "${DB_PASSWORD:-}" ] && [ -n "${DB_PASSWORD_FILE:-}" ]; then
@@ -182,6 +226,9 @@ parse_args() {
                 ;;
             --force)
                 FORCE=1
+                ;;
+            --allow-version-mismatch)
+                ALLOW_VERSION_MISMATCH=1
                 ;;
             --uploads-dir)
                 shift
@@ -365,28 +412,191 @@ assert_target_empty() {
     fi
 }
 
-restore_dump() {
+tool_major_version() {
+    local tool="$1"
+    local line=""
+    local major=""
+    if ! line="$("${tool}" --version)"; then
+        error "Could not read ${tool} --version."
+        exit 1
+    fi
+    major="$(printf '%s\n' "${line}" | sed -n 's/.*PostgreSQL)[[:space:]]\{1,\}\([0-9]\{1,\}\)\..*/\1/p' | head -n 1)"
+    if [ -z "${major}" ]; then
+        error "Could not parse the major version from ${tool} --version: ${line}"
+        exit 1
+    fi
+    printf '%s\n' "${major}"
+}
+
+server_major_version() {
+    local raw=""
+    if ! raw="$(psql_exec "${TARGET_DB}" -tAc "SELECT current_setting('server_version_num')")"; then
+        error "Could not read the PostgreSQL server version on ${DB_HOST}:${DB_PORT}."
+        exit 1
+    fi
+    raw="${raw//[[:space:]]/}"
+    case "${raw}" in
+        ''|*[!0-9]*)
+            error "PostgreSQL server version was not a number."
+            exit 1
+            ;;
+    esac
+    if [ "${raw}" -lt 100000 ]; then
+        error "PostgreSQL server version ${raw} is older than 10. This script expects PostgreSQL 10 or newer."
+        exit 1
+    fi
+    printf '%s\n' "$((raw / 10000))"
+}
+
+# A newer pg_restore sends SET transaction_timeout and is refused even when
+# --allow-version-mismatch is set. An older client continues only with that flag.
+assert_tool_matches_server() {
+    local tool="$1"
+    local client_major=""
+    local server_major=""
+    client_major="$(tool_major_version "${tool}")"
+    server_major="$(server_major_version)"
+    if [ "${client_major}" -eq "${server_major}" ]; then
+        info "${tool} major version ${client_major} matches PostgreSQL server ${server_major}."
+        return 0
+    fi
+    if [ "${client_major}" -gt "${server_major}" ]; then
+        error "${tool} major version ${client_major} does not match PostgreSQL server major version ${server_major}."
+        error "A newer client sends SET transaction_timeout, which PostgreSQL ${server_major} rejects, and the command aborts."
+        error "Refusing to continue. A newer client is not safe to override."
+        error "Use ${tool} from the same major version as the server."
+        error "Example: docker compose exec db ${tool}"
+        error "or the postgres:${server_major} image."
+        exit 1
+    fi
+    if [ "${ALLOW_VERSION_MISMATCH}" -eq 1 ]; then
+        warn "${tool} major version ${client_major} is older than PostgreSQL server ${server_major}. Continuing because --allow-version-mismatch was passed."
+        return 0
+    fi
+    error "${tool} major version ${client_major} does not match PostgreSQL server major version ${server_major}."
+    error "Refusing to continue. Pass --allow-version-mismatch only if you have confirmed this older client is safe for this server."
+    error "That flag does not skip checksum, empty-database, or production-host checks, and it does not allow a newer client."
+    exit 1
+}
+
+vector_extension_installed() {
+    local present=""
+    if ! present="$(psql_exec "${TARGET_DB}" -tAc "SELECT 1 FROM pg_catalog.pg_extension WHERE extname = 'vector'")"; then
+        error "Could not check whether the vector extension is installed in '${TARGET_DB}'."
+        exit 1
+    fi
+    present="${present//[[:space:]]/}"
+    [ "${present}" = "1" ]
+}
+
+refuse_missing_vector() {
+    error "The dump requires the vector extension, but it is not installed in '${TARGET_DB}'."
+    error "CREATE EXTENSION vector needs a superuser. The database owner often is not one, so restore cannot create it."
+    error "A superuser must run this command in the empty target database before restore.sh:"
+    error "  CREATE EXTENSION IF NOT EXISTS vector;"
+    exit 1
+}
+
+# Comment out the extension object itself. Table rows that use the vector
+# type stay in the list; only CREATE EXTENSION and its comment/ACL do not.
+filter_vector_toc() {
+    awk '
+        /^[0-9]+; [0-9]+ [0-9]+ EXTENSION - vector([[:space:]]|$)/ { print ";" $0; next }
+        /^[0-9]+; [0-9]+ [0-9]+ COMMENT - EXTENSION vector([[:space:]]|$)/ { print ";" $0; next }
+        /^[0-9]+; [0-9]+ [0-9]+ ACL - EXTENSION vector([[:space:]]|$)/ { print ";" $0; next }
+        { print }
+    '
+}
+
+prepare_custom_vector_list() {
+    local toc=""
+    local filtered=""
+    require_cmd mktemp
+    toc="$(mktemp)"
+    TOC_LIST="${toc}"
+    if ! pg_restore -l "${DUMP_FILE}" > "${toc}"; then
+        error "Could not list dump contents with pg_restore -l. Restore aborted."
+        exit 1
+    fi
+    if ! grep -Eq '^[0-9]+; [0-9]+ [0-9]+ EXTENSION - vector([[:space:]]|$)' "${toc}"; then
+        return 0
+    fi
+    if ! vector_extension_installed; then
+        refuse_missing_vector
+    fi
+    filtered="$(mktemp)"
+    RESTORE_LIST="${filtered}"
+    filter_vector_toc < "${toc}" > "${filtered}"
+    info "The vector extension is already installed. Its CREATE EXTENSION entry will be skipped so a non-superuser can restore."
+}
+
+plain_sql_needs_vector() {
+    if grep -Eq '^[[:space:]]*CREATE[[:space:]]+EXTENSION[[:space:]]+(IF[[:space:]]+NOT[[:space:]]+EXISTS[[:space:]]+)?vector([[:space:]]|;|$)' "${DUMP_FILE}"; then
+        return 0
+    fi
+    if grep -Eq '^[[:space:]]*COMMENT[[:space:]]+ON[[:space:]]+EXTENSION[[:space:]]+vector([[:space:]]|;|$)' "${DUMP_FILE}"; then
+        return 0
+    fi
+    return 1
+}
+
+prepare_plain_vector_sql() {
+    local filtered=""
+    if ! plain_sql_needs_vector; then
+        return 0
+    fi
+    if ! vector_extension_installed; then
+        refuse_missing_vector
+    fi
+    require_cmd mktemp
+    filtered="$(mktemp)"
+    SQL_TO_RESTORE="${filtered}"
+    awk '
+        /^[[:space:]]*CREATE[[:space:]]+EXTENSION[[:space:]]+(IF[[:space:]]+NOT[[:space:]]+EXISTS[[:space:]]+)?vector([[:space:]]|;|$)/ { next }
+        /^[[:space:]]*COMMENT[[:space:]]+ON[[:space:]]+EXTENSION[[:space:]]+vector([[:space:]]|;|$)/ { next }
+        { print }
+    ' "${DUMP_FILE}" > "${filtered}"
+    info "The vector extension is already installed. Its CREATE EXTENSION statement will be skipped so a non-superuser can restore."
+}
+
+prepare_database_restore() {
     local magic=""
     magic="$(head -c 5 -- "${DUMP_FILE}")"
     if [ "${magic}" = "PGDMP" ]; then
         require_cmd pg_restore
+        assert_tool_matches_server pg_restore
+        prepare_custom_vector_list
+        return 0
+    fi
+    case "${DUMP_FILE}" in
+        *.sql)
+            prepare_plain_vector_sql
+            return 0
+            ;;
+    esac
+    error "Unsupported dump. Expected a pg_dump custom-format file or a plain .sql file."
+    exit 1
+}
+
+restore_dump() {
+    local magic=""
+    local -a args=()
+    magic="$(head -c 5 -- "${DUMP_FILE}")"
+    if [ "${magic}" = "PGDMP" ]; then
+        require_cmd pg_restore
         info "Restoring custom-format dump with pg_restore."
-        PGPASSWORD="${DB_PASSWORD}" pg_restore \
-            --exit-on-error \
-            --no-owner \
-            --no-acl \
-            -h "${DB_HOST}" \
-            -p "${DB_PORT}" \
-            -U "${DB_USER}" \
-            -d "${TARGET_DB}" \
-            --no-password \
-            "${DUMP_FILE}"
+        args+=(--exit-on-error --no-owner --no-acl)
+        if [ -n "${RESTORE_LIST}" ]; then
+            args+=(-L "${RESTORE_LIST}")
+        fi
+        args+=(-h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${TARGET_DB}" --no-password)
+        PGPASSWORD="${DB_PASSWORD}" pg_restore "${args[@]}" "${DUMP_FILE}"
         return 0
     fi
     case "${DUMP_FILE}" in
         *.sql)
             info "Restoring plain SQL with psql."
-            psql_exec "${TARGET_DB}" -f "${DUMP_FILE}"
+            psql_exec "${TARGET_DB}" -f "${SQL_TO_RESTORE:-${DUMP_FILE}}"
             return 0
             ;;
     esac
@@ -592,6 +802,8 @@ main() {
     require_cmd sha256sum
     require_cmd psql
     require_cmd head
+    require_cmd sed
+    require_cmd awk
 
     resolve_backup "${BACKUP_ARG}"
     dump_name="$(basename -- "${DUMP_FILE}")"
@@ -604,6 +816,7 @@ main() {
 
     info "Checking that ${TARGET_DB} on ${DB_HOST} exists and has no user tables."
     assert_target_empty
+    prepare_database_restore
     restore_dump
     restore_auth
     restore_tree "uploads.tgz" "${UPLOADS_RESTORE_DIR:-}" "Uploads restore directory"
