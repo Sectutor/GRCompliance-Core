@@ -5,6 +5,7 @@
  */
 
 import { integrationRegistry } from '../integrations/registry';
+import { isPremiumCollector } from '../integrations/premiumCollectors';
 import { getDb } from '../../db';
 import { integrations as integrationsTable } from '../../schema';
 import { eq, and } from 'drizzle-orm';
@@ -37,6 +38,7 @@ export class AgentService {
         const integrationTools: any[] = [];
 
         for (const conn of connections) {
+            if (isPremiumCollector(conn.provider)) continue;
             const manifest = integrationRegistry.get(conn.provider);
             if (manifest) {
                 integrationTools.push({
@@ -193,6 +195,14 @@ export class AgentService {
     }
 
     private static async executeIntegrationAction(clientId: number, userId: string, action: ProposedAction): Promise<IntegrationResult> {
+        if (isPremiumCollector(action.slug)) {
+            return {
+                success: false,
+                error: 'Automatic evidence collection is a Premium feature.',
+                timestamp: new Date()
+            };
+        }
+
         const db = await getDb();
         const connection = await db.query.integrations.findFirst({
             where: and(

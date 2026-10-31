@@ -42,7 +42,7 @@ export default function IntegrationsPage() {
                     >
                         <h1 className="text-3xl lg:text-5xl font-black text-slate-900 tracking-tight">Integrations</h1>
                         <p className="text-slate-600 font-medium mt-2 text-lg">
-                            Connect to external services to sync data, automate workflows, and enhance your compliance program.
+                            Send notifications to Slack or Jira, or import a file you choose from Google Drive.
                         </p>
                     </motion.div>
                 </div>

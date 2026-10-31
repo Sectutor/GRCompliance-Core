@@ -69,15 +69,6 @@ export function IntegrationConnections() {
         disconnectMutation.mutate({ id: connectionId, clientId, provider });
     };
 
-    const handleSync = (connectionId: number) => {
-        toast.info("Syncing integration data...");
-        // In production, this would trigger a sync
-        setTimeout(() => {
-            toast.success("Sync completed");
-            refetch();
-        }, 1500);
-    };
-
     const getStatusIndicator = (status: IntegrationConnection['status']) => {
         const colors = {
             connected: 'bg-emerald-500',
@@ -129,7 +120,7 @@ export function IntegrationConnections() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">No active connections</h3>
                     <p className="text-slate-500 font-medium max-w-sm mx-auto mb-8">
-                        Your workspace is currently isolated. Connect to an external service to begin automated monitoring.
+                        Connect Slack to send notifications, or import a file from Google Drive when you add evidence.
                     </p>
                     <Button
                         onClick={() => setIsAddDialogOpen(true)}
@@ -142,7 +133,7 @@ export function IntegrationConnections() {
             ) : (
                 <div className="grid gap-6">
                     {filteredConnections.map((connection, index) => {
-                        const integration = builtInIntegrations.find(i => i.slug === connection.integrationSlug);
+                        const integration = builtInIntegrations.find(i => i.slug === (connection.integrationSlug || connection.provider));
 
                         return (
                             <motion.div
@@ -169,7 +160,7 @@ export function IntegrationConnections() {
                                                         <div className="h-1 w-1 rounded-full bg-slate-300" />
                                                         <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                                                             <Clock className="w-3.5 h-3.5" />
-                                                            Last Sync: {new Date(connection.updatedAt || connection.createdAt || '').toLocaleDateString()}
+                                                            Updated: {new Date(connection.updatedAt || connection.createdAt || '').toLocaleDateString()}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -181,14 +172,6 @@ export function IntegrationConnections() {
                                                 </div>
 
                                                 <div className="flex gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className="w-11 h-11 rounded-xl border-slate-200 hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm"
-                                                        onClick={() => handleSync(connection.id)}
-                                                    >
-                                                        <RefreshCw className="h-5 w-5" />
-                                                    </Button>
                                                     <Button
                                                         variant="outline"
                                                         size="icon"

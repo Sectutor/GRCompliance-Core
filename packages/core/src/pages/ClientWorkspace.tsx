@@ -245,8 +245,8 @@ export default function ClientWorkspace() {
                             <Link href={`/clients/${clientId}/evidence`}>
                                 <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
                                     <div className="flex flex-col">
-                                        <div className="font-bold text-white group-hover:text-emerald-100">Automated Evidence</div>
-                                        <div className="text-xs text-emerald-200/80">Connect integrations & collectors</div>
+                                        <div className="font-bold text-white group-hover:text-emerald-100">Evidence</div>
+                                        <div className="text-xs text-emerald-200/80">Upload files and link them to controls</div>
                                     </div>
                                     <ArrowRight className="w-5 h-5 text-emerald-200 group-hover:translate-x-1 transition-transform" />
                                 </div>

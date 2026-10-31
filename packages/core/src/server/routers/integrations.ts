@@ -5,10 +5,20 @@ import { integrations, integrationDefinitions, evidenceFiles } from "../../schem
 import * as db from "../../db";
 import { encrypt } from "../../lib/crypto";
 import { appOrigin } from "../../lib/publicUrl";
+import { isPremiumCollector } from "../../lib/integrations/premiumCollectors";
 
-// Known integration providers for validation
-const KNOWN_PROVIDERS = ['github', 'slack', 'smtp', 'jira', 'siem', 'soar', 'threat-intel', 'google-drive', 'vulnerability-scanner'] as const;
+// Providers that do not collect evidence automatically.
+const KNOWN_PROVIDERS = ['slack', 'smtp', 'jira', 'google-drive'] as const;
 type KnownProvider = typeof KNOWN_PROVIDERS[number];
+
+function assertNotCollector(provider: string) {
+    if (isPremiumCollector(provider)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Automatic evidence collection is a Premium feature.",
+        });
+    }
+}
 
 export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure: any, isAuthed: any) => {
     return t.router({
@@ -18,21 +28,6 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                 try {
                     console.log("[Integrations] Fetching marketplace...");
                     return [
-                        {
-                            slug: "github",
-                            name: "GitHub",
-                            description: "Connect to GitHub to sync repositories, security alerts, and workflow status",
-                            category: "source-control",
-                            icon: "🐙",
-                            authType: "oauth2",
-                            requiresCredentials: true,
-                            actions: [
-                                { id: "list-repos", name: "List Repositories" },
-                                { id: "get-security-alerts", name: "Get Security Alerts" },
-                                { id: "list-issues", name: "List Issues" },
-                                { id: "get-workflow-runs", name: "Get Workflow Runs" }
-                            ]
-                        },
                         {
                             slug: "slack",
                             name: "Slack",
@@ -46,104 +41,27 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                             ]
                         },
                         {
-                            slug: "vulnerability-scanner",
-                            name: "Vulnerability Scanner",
-                            description: "Connect to Nessus, Qualys, or OpenVAS to automatically gather vulnerability data for ISO 27001 evidence",
-                            category: "scanner",
-                            icon: "🔍",
-                            authType: "apiKey",
-                            requiresCredentials: true,
-                            actions: [
-                                { id: "list-vulnerabilities", name: "List Vulnerabilities" },
-                                { id: "get-vulnerability-detail", name: "Get Vulnerability Detail" },
-                                { id: "list-scans", name: "List Scan History" },
-                                { id: "list-hosts", name: "List Scanned Hosts" },
-                                { id: "get-compliance-summary", name: "Get Compliance Summary" },
-                                { id: "get-evidence-report", name: "Generate Evidence Report" }
-                            ]
-                        },
-                        {
                             slug: "jira",
                             name: "Jira",
-                            description: "Sync compliance tasks and issues with Jira",
+                            description: "Create Jira issues for compliance tasks and findings",
                             category: "governance",
                             icon: "📋",
                             authType: "oauth2",
                             requiresCredentials: true,
                             actions: [
-                                { id: "create-issue", name: "Create Issue" },
-                                { id: "sync-tasks", name: "Sync Tasks" }
-                            ]
-                        },
-                        {
-                            slug: "siem",
-                            name: "SIEM",
-                            description: "Connect to SIEM platforms (Splunk, QRadar, Azure Sentinel) to correlate security events",
-                            category: "scanner",
-                            icon: "🛡️",
-                            authType: "apiKey",
-                            requiresCredentials: true,
-                            actions: [
-                                { id: "list-alerts", name: "List Security Alerts" },
-                                { id: "get-alert-details", name: "Get Alert Details" },
-                                { id: "list-incidents", name: "List Incidents" },
-                                { id: "get-incident-details", name: "Get Incident Details" },
-                                { id: "list-dashboards", name: "List Dashboards" },
-                                { id: "search-logs", name: "Search Logs" },
-                                { id: "get-threat-intelligence", name: "Lookup Threat Intel" },
-                                { id: "sync-alerts", name: "Sync Alerts" }
-                            ]
-                        },
-                        {
-                            slug: "soar",
-                            name: "SOAR",
-                            description: "Connect to SOAR platforms (Splunk SOAR, XSOAR) to automate security response",
-                            category: "scanner",
-                            icon: "🎯",
-                            authType: "apiKey",
-                            requiresCredentials: true,
-                            actions: [
-                                { id: "list-playbooks", name: "List Playbooks" },
-                                { id: "run-playbook", name: "Run Playbook" },
-                                { id: "list-cases", name: "List Cases" },
-                                { id: "get-case-details", name: "Get Case Details" },
-                                { id: "update-case", name: "Update Case" },
-                                { id: "create-case", name: "Create Case" },
-                                { id: "get-metrics", name: "Get Metrics" },
-                                { id: "list-artifacts", name: "List Artifacts" }
-                            ]
-                        },
-                        {
-                            slug: "threat-intel",
-                            name: "Threat Intelligence",
-                            description: "Connect to threat intel platforms (VirusTotal, AlienVault OTX, AbuseIPDB) for IOC data",
-                            category: "scanner",
-                            icon: "🕵️",
-                            authType: "apiKey",
-                            requiresCredentials: true,
-                            actions: [
-                                { id: "lookup-indicator", name: "Lookup Indicator" },
-                                { id: "list-iocs", name: "List IOCs" },
-                                { id: "add-ioc", name: "Add IOC" },
-                                { id: "list-reports", name: "List Reports" },
-                                { id: "get-report", name: "Get Report" },
-                                { id: "list-pulse-subscriptions", name: "List Pulse Subscriptions" },
-                                { id: "search-pulses", name: "Search Pulses" },
-                                { id: "get-threat-score", name: "Get Threat Score" }
+                                { id: "create-issue", name: "Create Issue" }
                             ]
                         },
                         {
                             slug: "google-drive",
                             name: "Google Drive",
-                            description: "Connect to Google Drive to fetch and sync evidence files directly into your compliance vault",
+                            description: "Import a file you choose from Google Drive into an evidence record",
                             category: "storage",
                             icon: "📁",
                             authType: "oauth2",
                             requiresCredentials: true,
                             actions: [
                                 { id: "list-files", name: "List Files" },
-                                { id: "get-file", name: "Get File Metadata" },
-                                { id: "download-file", name: "Download File" },
                                 { id: "import-to-evidence", name: "Import to Evidence" }
                             ]
                         }
@@ -165,6 +83,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
             }))
             .query(async ({ input }: any) => {
                 const { provider, clientId } = input;
+                assertNotCollector(provider);
                 console.log(`[Integrations] Fetching credentials for ${provider}, tenant ${clientId}`);
 
                 try {
@@ -208,6 +127,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
             }))
             .mutation(async ({ input }: any) => {
                 const { provider, clientId, credentials } = input;
+                assertNotCollector(provider);
 
                 try {
                     const dbConn = await db.getDb();
@@ -263,6 +183,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
             }))
             .mutation(async ({ input }: any) => {
                 const { provider, clientId, state } = input;
+                assertNotCollector(provider);
                 console.log(`[Integrations] Getting OAuth URL for ${provider}, tenant ${clientId}`);
 
                 try {
@@ -287,26 +208,13 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     // Use stored redirect URI or build from APP_URL
                     let oauthRedirectUri = creds.redirectUri;
                     if (!oauthRedirectUri) {
-                        if (provider === "github") {
-                            oauthRedirectUri = `${appOrigin()}/api/oauth/github/callback`;
-                        } else if (provider === "google-drive") {
+                        if (provider === "google-drive") {
                             oauthRedirectUri = `${appOrigin()}/auth/callback/google-drive`;
                         } else {
                             oauthRedirectUri = `${appOrigin()}/auth/callback/${provider}`;
                         }
                     }
                     console.log(`[OAuth] Using redirect URI for ${provider}: ${oauthRedirectUri}`);
-
-                    if (provider === "github") {
-                        const scopes = "repo read:org security_events";
-                        let oauthUrl = `https://github.com/login/oauth/authorize?client_id=${oauthClientId}&redirect_uri=${encodeURIComponent(oauthRedirectUri)}&scope=${encodeURIComponent(scopes)}`;
-
-                        if (state) {
-                            oauthUrl += `&state=${encodeURIComponent(state)}`;
-                        }
-
-                        return { url: oauthUrl };
-                    }
 
                     if (provider === "slack") {
                         const scopes = "chat:write chat:write.public incoming-webhook channels:read";
@@ -317,12 +225,6 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                         }
 
                         return { url: oauthUrl };
-                    }
-
-                    // API Key based integrations - return success without OAuth redirect
-                    // The credentials have already been validated above
-                    if (provider === "vulnerability-scanner") {
-                        return { url: null, message: "API Key configured successfully" };
                     }
 
                     // Google Drive OAuth - requires OAuth credentials in integration definitions
@@ -373,6 +275,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const { provider, code, clientId } = input;
+                assertNotCollector(provider);
                 console.log(`[Integrations] Handling callback for ${provider}, tenant ${clientId}`);
 
                 try {
@@ -387,63 +290,6 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
 
                     const creds = result[0];
                     if (!creds) throw new TRPCError({ code: "BAD_REQUEST", message: "Provider credentials not found" });
-
-                    if (provider === "github") {
-                        const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json"
-                            },
-                            body: JSON.stringify({
-                                client_id: creds.clientId,
-                                client_secret: creds.clientSecret,
-                                code
-                            })
-                        });
-
-                        const tokenData = await tokenResponse.json();
-                        if (tokenData.error) {
-                            throw new TRPCError({
-                                code: "BAD_REQUEST",
-                                message: `GitHub Error: ${tokenData.error_description || tokenData.error}`
-                            });
-                        }
-
-                        const accessToken = tokenData.access_token;
-                        const refreshToken = tokenData.refresh_token;
-
-                        // Get user info
-                        const userResponse = await fetch("https://api.github.com/user", {
-                            headers: { "Authorization": `Bearer ${accessToken}` }
-                        });
-                        const userData = await userResponse.json();
-
-                        // Save integration (tokens are encrypted)
-                        await dbConn.insert(integrations).values({
-                            clientId: clientId,
-                            provider: "github",
-                            accessToken: encrypt(accessToken),
-                            refreshToken: refreshToken ? encrypt(refreshToken) : null,
-                            externalAccountId: userData.id?.toString(),
-                            scopes: tokenData.scope,
-                            metadata: userData,
-                            isActive: true
-                        }).onConflictDoUpdate({
-                            target: [integrations.clientId, integrations.provider],
-                            set: {
-                                accessToken: encrypt(accessToken),
-                                refreshToken: refreshToken ? encrypt(refreshToken) : null,
-                                externalAccountId: userData.id?.toString(),
-                                scopes: tokenData.scope,
-                                metadata: userData,
-                                isActive: true,
-                                updatedAt: new Date()
-                            }
-                        });
-
-                        return { success: true };
-                    }
 
                     if (provider === "slack") {
                         const oauthRedirectUri = creds.redirectUri || `${appOrigin()}/auth/callback/slack`;
@@ -844,6 +690,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
             }))
             .query(async ({ input, ctx }: any) => {
                 const { clientId, provider } = input;
+                assertNotCollector(provider);
                 const dbConn = await db.getDb();
 
                 try {
@@ -899,6 +746,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const { clientId, provider, isEnabled, settings } = input;
+                assertNotCollector(provider);
 
                 // Note: Authorization handled by clientProcedure middleware via checkClientAccess
                 const dbConn = await db.getDb();
@@ -957,6 +805,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const { clientId, provider } = input;
+                assertNotCollector(provider);
 
                 // Note: Authorization handled by clientProcedure middleware via checkClientAccess
                 const dbConn = await db.getDb();

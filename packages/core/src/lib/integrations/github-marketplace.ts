@@ -10,6 +10,7 @@ import type {
     GitHubRegistryEntry,
     MarketplaceEntry
 } from './types';
+import { isPremiumCollector } from './premiumCollectors';
 
 const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com';
 const GITHUB_API_BASE = 'https://api.github.com';
@@ -108,8 +109,9 @@ export class GitHubMarketplaceClient {
             const batch = entries.slice(i, i + batchSize);
             const results = await Promise.all(
                 batch.map(async (entry) => {
+                    if (isPremiumCollector(entry.slug)) return null;
                     const manifest = await this.fetchManifest(entry.slug);
-                    if (!manifest) return null;
+                    if (!manifest || isPremiumCollector(manifest.slug)) return null;
 
                     return {
                         manifest,
@@ -147,8 +149,9 @@ export class GitHubMarketplaceClient {
      * Get integration by slug
      */
     async get(slug: string): Promise<MarketplaceEntry | null> {
+        if (isPremiumCollector(slug)) return null;
         const manifest = await this.fetchManifest(slug);
-        if (!manifest) return null;
+        if (!manifest || isPremiumCollector(manifest.slug)) return null;
 
         const entries = await this.fetchRegistry();
         const entry = entries.find(e => e.slug === slug);
