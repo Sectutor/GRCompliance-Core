@@ -13,18 +13,10 @@ import type {
     IntegrationResult
 } from './types';
 
-// Built-in integrations
-import { githubManifest, executeGitHubAction } from './github';
+// Built-in integrations that do not collect evidence automatically.
 import { slackManifest, executeSlackAction } from './slack';
 import { googleDriveManifest, executeGoogleDriveAction } from './google-drive';
-import { vulnerabilityScannerManifest, executeVulnerabilityScannerAction } from './vulnerability-scanner';
-import { siemManifest, executeSIEMAction } from './siem';
-import { soarManifest, executeSOARAction } from './soar';
-import { threatIntelManifest, executeThreatIntelAction } from './threat-intel';
-
-// Import other built-in integrations here as they are created
-// import { slackManifest } from './slack';
-// import { jiraManifest } from './jira';
+import { isPremiumCollector } from './premiumCollectors';
 
 type IntegrationExecutor = (
     actionId: string,
@@ -50,26 +42,8 @@ class IntegrationRegistry {
      * Register built-in integrations
      */
     private registerBuiltIns(): void {
-        // GitHub integration
-        this.register(githubManifest, executeGitHubAction, 'built-in');
-
-        // Slack integration
         this.register(slackManifest, executeSlackAction, 'built-in');
-
-        // Google Drive integration
         this.register(googleDriveManifest, executeGoogleDriveAction, 'built-in');
-
-        // Vulnerability Scanner integration
-        this.register(vulnerabilityScannerManifest, executeVulnerabilityScannerAction, 'built-in');
-
-        // SIEM integration
-        this.register(siemManifest, executeSIEMAction, 'built-in');
-
-        // SOAR integration
-        this.register(soarManifest, executeSOARAction, 'built-in');
-
-        // Threat Intelligence integration
-        this.register(threatIntelManifest, executeThreatIntelAction, 'built-in');
 
         console.log('[IntegrationRegistry] Registered built-in integrations');
     }
@@ -82,6 +56,11 @@ class IntegrationRegistry {
         executor: IntegrationExecutor,
         source: 'built-in' | 'marketplace' | 'custom' = 'custom'
     ): void {
+        if (isPremiumCollector(manifest.slug)) {
+            console.warn(`[IntegrationRegistry] Refused collector integration: ${manifest.slug}`);
+            return;
+        }
+
         if (this.integrations.has(manifest.slug)) {
             console.warn(`[IntegrationRegistry] Integration ${manifest.slug} already registered, overwriting`);
         }
@@ -141,6 +120,14 @@ class IntegrationRegistry {
         context: IntegrationContext,
         params?: any
     ): Promise<IntegrationResult> {
+        if (isPremiumCollector(slug)) {
+            return {
+                success: false,
+                error: 'Automatic evidence collection is a Premium feature.',
+                timestamp: new Date()
+            };
+        }
+
         const integration = this.integrations.get(slug);
 
         if (!integration) {

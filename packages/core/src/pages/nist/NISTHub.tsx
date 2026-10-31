@@ -146,7 +146,7 @@ export default function NISTHub() {
             id: "evidence",
             title: "Evidence & Audits",
             subtitle: "Continuous Verification",
-            description: "Centralized repository for documents, automated connector evidence, and audit logs.",
+            description: "Centralized repository for documents, uploaded evidence, and audit logs.",
             icon: CheckCircle2,
             status: "active",
             progress: evidenceProgress,

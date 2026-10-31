@@ -5,7 +5,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Input } from "@complianceos/ui/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@complianceos/ui/ui/dialog";
-import { Search, Download, CheckCircle2, Loader2, AlertCircle, ExternalLink, Github, Globe, Key, Lock, ShieldCheck, ShieldAlert, Shield, Activity, Bug, Info } from "lucide-react";
+import { Search, Download, CheckCircle2, Loader2, AlertCircle, Globe, Key, Lock, ShieldCheck, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -285,67 +285,25 @@ export function IntegrationMarketplace({ onConnectionCreated }: IntegrationMarke
                                     </div>
 
                                     <div className="pt-4 mt-auto">
-                                        {integration.slug === 'vulnerability-scanner' ? (
-                                            <Button
-                                                onClick={() => window.location.href = `/clients/${clientId}/risk/vulnerability-scanner`}
-                                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-xl transition-all duration-300"
-                                            >
+                                        <Button
+                                            onClick={() => handleConnect(integration)}
+                                            disabled={oauthMutation.isPending}
+                                            className="w-full h-12 bg-slate-900 hover:bg-blue-600 text-white rounded-2xl font-bold shadow-xl transition-all duration-300 group-hover/metric:shadow-blue-500/20"
+                                        >
+                                            {oauthMutation.isPending ? (
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                            ) : (isConnected || isConfigured) ? (
                                                 <div className="flex items-center gap-2">
-                                                    <ShieldAlert className="h-5 w-5" />
-                                                    {(isConnected || isConfigured) ? 'View Vulnerabilities' : 'Open Scanner'}
+                                                    <CheckCircle2 className="h-5 w-5" />
+                                                    Active
                                                 </div>
-                                            </Button>
-                                        ) : integration.slug === 'siem' ? (
-                                            <Button
-                                                onClick={() => window.location.href = `/clients/${clientId}/risk/siem`}
-                                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl transition-all duration-300"
-                                            >
+                                            ) : (
                                                 <div className="flex items-center gap-2">
-                                                    <Shield className="h-5 w-5" />
-                                                    {(isConnected || isConfigured) ? 'View Alerts' : 'Open SIEM'}
+                                                    <Download className="h-5 w-5 mr-2" />
+                                                    Deploy Connection
                                                 </div>
-                                            </Button>
-                                        ) : integration.slug === 'soar' ? (
-                                            <Button
-                                                onClick={() => window.location.href = `/clients/${clientId}/risk/soar`}
-                                                className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-bold shadow-xl transition-all duration-300"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Activity className="h-5 w-5" />
-                                                    {(isConnected || isConfigured) ? 'View Cases' : 'Open SOAR'}
-                                                </div>
-                                            </Button>
-                                        ) : integration.slug === 'threat-intel' ? (
-                                            <Button
-                                                onClick={() => window.location.href = `/clients/${clientId}/risk/threat-intel`}
-                                                className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-bold shadow-xl transition-all duration-300"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Bug className="h-5 w-5" />
-                                                    {(isConnected || isConfigured) ? 'View IOCs' : 'Open Threat Intel'}
-                                                </div>
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                onClick={() => handleConnect(integration)}
-                                                disabled={oauthMutation.isPending}
-                                                className="w-full h-12 bg-slate-900 hover:bg-blue-600 text-white rounded-2xl font-bold shadow-xl transition-all duration-300 group-hover/metric:shadow-blue-500/20"
-                                            >
-                                                {oauthMutation.isPending ? (
-                                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                                ) : (isConnected || isConfigured) ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <CheckCircle2 className="h-5 w-5" />
-                                                        {(isConnected || isConfigured) ? 'Active' : 'Infrastructure Active'}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2">
-                                                        <Download className="h-5 w-5 mr-2" />
-                                                        Deploy Connection
-                                                    </div>
-                                                )}
-                                            </Button>
-                                        )}
+                                            )}
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -417,10 +375,22 @@ export function IntegrationMarketplace({ onConnectionCreated }: IntegrationMarke
                             <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 flex gap-3">
                                 <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
                                 <div className="text-xs text-blue-700 leading-relaxed font-medium">
-                                    To use your own GitHub App, set the Authorization callback URL to:
-                                    <code className="block mt-2 p-2 bg-white rounded-lg border border-blue-200 text-blue-900 font-bold overflow-x-auto whitespace-nowrap">
-                                        {window.location.origin}/api/oauth/github/callback
-                                    </code>
+                                    Set the authorization callback URL to the redirect URI for this connection.
+                                    {selectedIntegration?.slug === "slack" && (
+                                        <code className="block mt-2 p-2 bg-white rounded-lg border border-blue-200 text-blue-900 font-bold overflow-x-auto whitespace-nowrap">
+                                            {window.location.origin}/auth/callback/slack
+                                        </code>
+                                    )}
+                                    {selectedIntegration?.slug === "google-drive" && (
+                                        <code className="block mt-2 p-2 bg-white rounded-lg border border-blue-200 text-blue-900 font-bold overflow-x-auto whitespace-nowrap">
+                                            {window.location.origin}/auth/callback/google-drive
+                                        </code>
+                                    )}
+                                    {selectedIntegration?.slug === "jira" && (
+                                        <code className="block mt-2 p-2 bg-white rounded-lg border border-blue-200 text-blue-900 font-bold overflow-x-auto whitespace-nowrap">
+                                            {window.location.origin}/auth/callback/jira
+                                        </code>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -462,13 +432,7 @@ export function IntegrationMarketplace({ onConnectionCreated }: IntegrationMarke
                     </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <InfrastructureCard
-                        icon="🐙"
-                        name="GitHub"
-                        description="Sync repositories and security alerts."
-                        status="PRE-VALIDATED"
-                    />
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     <InfrastructureCard
                         icon="💬"
                         name="Slack"

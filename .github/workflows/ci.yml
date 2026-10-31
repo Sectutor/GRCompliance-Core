@@ -16,6 +16,9 @@ jobs:
     - name: Refuse MCP in the community core
       run: bash scripts/check-no-mcp.sh
 
+    - name: Refuse automatic collectors in the community core
+      run: bash scripts/check-no-collectors.sh
+
     - name: Use Node.js
       uses: actions/setup-node@v4
       with:

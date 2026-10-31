@@ -15,7 +15,7 @@ export const googleDriveManifest: IntegrationManifest = {
   name: "Google Drive",
   version: "1.0.0",
   description:
-    "Connect to Google Drive to fetch and sync evidence files securely.",
+    "Import a file you choose from Google Drive into an evidence record.",
   author: {
     name: "GRCompliance",
     url: "https://grcompliance.com",
@@ -26,10 +26,8 @@ export const googleDriveManifest: IntegrationManifest = {
   icon: "📦", // Or perhaps a Google Drive specific icon if available
   homepage: "https://drive.google.com",
 
-  // We only need read capabilities for now based on the requirements
   capabilities: {
     read: true,
-    sync: true,
   },
 
   authentication: {
@@ -100,13 +98,7 @@ export const googleDriveManifest: IntegrationManifest = {
     },
   ],
 
-  triggers: [
-    {
-      id: "file-added",
-      name: "File Added",
-      description: "Trigger when a new file is added to a watched folder",
-    },
-  ],
+  triggers: [],
 
   complianceosVersion: "1.0.0",
 };

@@ -172,10 +172,6 @@ const RiskTreatmentPlanPage = lazy(() => import("./pages/risk/RiskTreatmentPlanP
 const RiskAlignmentPage = lazy(() => import("./pages/risk/RiskAlignmentPage"));
 const AdversaryIntelPage = lazy(() => import("./pages/risk/AdversaryIntelPage"));
 const VulnerabilityWorkbench = lazy(() => import("./pages/risk/VulnerabilityWorkbench"));
-const VulnerabilityScannerPage = lazy(() => import("./pages/risk/VulnerabilityScanner"));
-const SIEMDashboard = lazy(() => import("./pages/risk/SIEMDashboard"));
-const SOARDashboard = lazy(() => import("./pages/risk/SOARDashboard"));
-const ThreatIntelDashboard = lazy(() => import("./pages/risk/ThreatIntelDashboard"));
 
 const TPRMLayout = lazy(() => import("./pages/tprm/TPRMLayout").then(module => ({ default: module.TPRMLayout })));
 const VendorList = lazy(() => import("./pages/tprm/VendorList"));
@@ -311,8 +307,8 @@ const VendorQuestionnairePortal = lazy(() => import("./pages/VendorQuestionnaire
 
 // const Integrations = lazy(() => import("./pages/admin/Integrations"));
 const OAuthCallback = lazy(() => import("./pages/oauth/Callback"));
-const GitHubOAuthCallback = lazy(() => import("./pages/api/oauth/github/callback"));
 const SlackOAuthCallback = lazy(() => import("./pages/api/oauth/slack/callback").then(module => ({ default: module.SlackOAuthCallback })));
+const GoogleDriveOAuthCallback = lazy(() => import("./pages/api/oauth/google-drive/callback"));
 
 const SecurityProjectsDashboard = lazy(() => import("./pages/projects/ProjectsDashboard").then(m => ({ default: m.ProjectsDashboard })));
 const SecurityProjectDetail = lazy(() => import("./pages/projects/ProjectDetail").then(m => ({ default: m.ProjectDetail })));
@@ -646,11 +642,8 @@ function Router() {
         <Route path="/auth/callback/jira">
           <ProtectedRoute component={OAuthCallback} />
         </Route>
-        <Route path="/api/oauth/github/callback">
-          <ProtectedRoute component={GitHubOAuthCallback} />
-        </Route>
-        <Route path="/auth/callback/github">
-          <ProtectedRoute component={GitHubOAuthCallback} />
+        <Route path="/auth/callback/google-drive">
+          <ProtectedRoute component={GoogleDriveOAuthCallback} />
         </Route>
         <Route path="/api/oauth/slack/callback">
           <ProtectedRoute component={SlackOAuthCallback} />
@@ -1211,18 +1204,6 @@ function Router() {
         </Route>
         <Route path="/clients/:id/risks/vulnerabilities">
           {(_params) => <ProtectedRoute component={RiskVulnerabilitiesPage} />}
-        </Route>
-        <Route path="/clients/:id/risk/vulnerability-scanner">
-          {(_params) => <ProtectedRoute component={VulnerabilityScannerPage} />}
-        </Route>
-        <Route path="/clients/:id/risk/siem">
-          {(_params) => <ProtectedRoute component={SIEMDashboard} />}
-        </Route>
-        <Route path="/clients/:id/risk/soar">
-          {(_params) => <ProtectedRoute component={SOARDashboard} />}
-        </Route>
-        <Route path="/clients/:id/risk/threat-intel">
-          {(_params) => <ProtectedRoute component={ThreatIntelDashboard} />}
         </Route>
         <Route path="/clients/:id/risks/assessments">
           {(_params) => <ProtectedRoute component={RiskAssessmentsPage} />}
