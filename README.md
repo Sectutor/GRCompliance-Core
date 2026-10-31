@@ -141,6 +141,8 @@ docker run --rm -v grcompliance_grc_uploads:/data -v "$PWD":/backup alpine \
 
 Restore the SQL file with `psql` inside the `db` container, and extract the uploads archive into the `grc_uploads` volume. Take both backups together.
 
+`scripts/backup.sh` and `scripts/restore.sh` also back up the database, the auth directory, and uploaded files, and they record SHA-256 checksums. See [Backup and restore](docs/BACKUP-RESTORE.md). This compose file uses role `grc`, database `grcompliance`, and service name `db`. Set `DB_USER`, `DB_NAME`, and `DB_HOST` before you run the scripts. The uploads default `/app/uploads` matches the `grc_uploads` mount. Restore refuses host `db` unless you pass `--force-prod`.
+
 ## Community edition
 
 Community is the default. Premium APIs stay forbidden until the paid edition registers a server entitlement provider at boot (`registerPremiumEntitlement` in `packages/core/src/server/premiumEntitlement.ts`). `VITE_ENABLE_PREMIUM`, `BUILD_TYPE`, a license key string, `INSTANCE_LICENSE_TIER`, a platform administrator, a workspace owner, and a client admin do not authorize those APIs. The published image is Community.

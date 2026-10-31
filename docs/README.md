@@ -7,6 +7,7 @@ Public docs for running and contributing to GRCompliance.
 - [Install](../INSTALL.md)
 - [Getting started](./getting-started.md)
 - [Deployment](./deployment.md)
+- [Backup and restore](./BACKUP-RESTORE.md)
 - [Contributing](../CONTRIBUTING.md)
 - [Security](../SECURITY.md)
 
