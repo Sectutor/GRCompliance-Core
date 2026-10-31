@@ -145,6 +145,8 @@ Restore the SQL file with `psql` inside the `db` container, and extract the uplo
 
 ## Community edition
 
+MCP is a Premium feature.
+
 Community is the default. Premium APIs stay forbidden until the paid edition registers a server entitlement provider at boot (`registerPremiumEntitlement` in `packages/core/src/server/premiumEntitlement.ts`). `VITE_ENABLE_PREMIUM`, `BUILD_TYPE`, a license key string, `INSTANCE_LICENSE_TIER`, a platform administrator, a workspace owner, and a client admin do not authorize those APIs. The published image is Community.
 
 `VITE_ENABLE_PREMIUM=true` may still show premium navigation in a browser bundle, with a Pro badge. `dev:enterprise`, `dev:trial`, `build:enterprise`, and `build:trial` set that flag for the client only. `server:enterprise` and `server:trial` do not. They start the same Community server as `npm run server`, and they print that they do not unlock premium APIs. An unset flag, or any value other than exact `true`, hides that navigation.
