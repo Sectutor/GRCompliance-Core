@@ -13,6 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Refuse MCP in the community core
+      run: bash scripts/check-no-mcp.sh
+
     - name: Use Node.js
       uses: actions/setup-node@v4
       with:
