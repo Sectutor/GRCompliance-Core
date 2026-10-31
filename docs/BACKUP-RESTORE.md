@@ -17,7 +17,7 @@ Defaults match `docker-compose.yml` and stay overridable:
 | `BACKUP_RETENTION_DAYS` | `14` | Use `0` to keep every backup |
 | `PROTECTED_DB_HOSTS` | empty | Restore must also refuse extra exact database hosts |
 
-This edition keeps local accounts in the Postgres table `local_credentials`. The app user is `grc` and its home directory is `/home/grc`. Compose does not set `COMPLIANCEOS_DATA_DIR`, and it does not mount an auth volume. Sign-in sessions stay in the browser. `pg_dump` includes `local_credentials`, so an auth directory is not required. When `AUTH_DIR` is unset, missing, or empty, the script logs a note and skips `auth-volume.tgz`.
+This edition keeps local accounts in the Postgres table `local_credentials`. The app user is `grc` and its home directory is `/home/grc`. Compose does not set `AUTH_DIR`, and it does not mount an auth volume. Sign-in sessions stay in the browser. `pg_dump` includes `local_credentials`, so an auth directory is not required. When `AUTH_DIR` is unset, does not exist, or is empty, the script logs a note and skips `auth-volume.tgz`. When that path exists but is not accessible, the script stops.
 
 `/app/uploads` is the directory the image creates and the compose volume `grc_uploads` mounts. The server working directory is `/app`. Upload handlers (`storagePut`, the evidence router, and report files under `uploads/reports`) write `process.cwd()/uploads`, which is that path. `LocalStorageProvider` writes readiness reports to `process.cwd()/storage/uploads`. This compose file does not mount a volume on `/app/storage/uploads`. A missing directory is skipped.
 
@@ -26,10 +26,10 @@ This edition keeps local accounts in the Postgres table `local_credentials`. The
 Backup writes a mode-0700 directory named `grc-YYYYMMDD-HHMMSS` under `BACKUP_DIR`:
 
 - `pg_dump -Fc` writes `db.dump`. Errors from `pg_dump` stay visible.
-- When `AUTH_DIR` exists and contains files, it is archived as `auth-volume.tgz` with `tar -C <parent> <name>`. Otherwise the script logs a note and continues.
+- When `AUTH_DIR` exists and contains files, it is archived as `auth-volume.tgz` with `tar -C <parent> <name>`. When it is unset, does not exist, or is empty, the script logs a note and continues.
 - Uploaded files are archived as `uploads.tgz` (`tar -C "$UPLOADS_DIR" .`).
 - Readiness report files are archived as `storage-uploads.tgz`.
-- If either uploads directory is missing or empty, the script logs a note and continues. The database backup still completes. A skipped archive is not written and is not listed in the checksum file.
+- If either uploads directory does not exist or is empty, the script logs a note and continues. The database backup still completes. A skipped archive is not written and is not listed in the checksum file. If the path exists but this user cannot read or traverse it, the script stops before it creates a backup directory.
 - SHA-256 checksums of the files that were written go to `SHA256SUMS` and `checksums.sha256`. Check them with `sha256sum -c SHA256SUMS`.
 - The run directory is mode 0700. The files are mode 0600.
 - `BACKUP_RETENTION_DAYS` deletes `grc-*` directories directly inside `BACKUP_DIR` that are older than that many days. Nothing outside that directory, and nothing with another name, is removed.
@@ -46,7 +46,7 @@ chmod 600 "$HOME/.grc-db-password"
 DB_PASSWORD_FILE="$HOME/.grc-db-password" ./scripts/backup.sh
 ```
 
-`DB_HOST`, `DB_PORT`, `DB_USER`, and `DB_NAME` can stay unset for this stack. They default to `localhost`, `5432`, `grc`, and `grcompliance`. Keep `$HOME/.grc-db-password` outside the repository. Do not print the file and do not commit it.
+`DB_HOST`, `DB_PORT`, `DB_USER`, and `DB_NAME` can stay unset for this stack. They default to `localhost`, `5432`, `grc`, and `grcompliance`. Keep `$HOME/.grc-db-password` outside the repository. Do not print the file and do not commit it. This command runs as your user, who can read that mode-0600 file. The uid 1001 container below cannot. It uses a separate mode-0400 copy.
 
 ## Client tools must match the server
 
@@ -73,19 +73,28 @@ docker compose exec -T db pg_dump -U grc -d grcompliance -Fc > "$HOME/grc-db.dum
 
 ## Uploads are owned by uid 1001
 
-`/app/uploads` is inside the `grcompliance_grc_uploads` volume. The image creates those files as uid 1001 (user `grc`) with mode 0700. A backup started on the host skips a missing `/app/uploads` and still dumps the database. To include the files, run `backup.sh` as a user who can already read them.
+`/app/uploads` is inside the `grcompliance_grc_uploads` volume. The image creates that directory as uid 1001 (user `grc`) with mode 0755. The files in it are mode 0600. A different user can traverse the directory and cannot read the files. When `/app/uploads` does not exist, a backup started on the host logs that and still dumps the database. When the path exists but this user cannot read or traverse it, `backup.sh` stops before it creates a backup directory. To include the files, run `backup.sh` as a user who can already read them.
 
-`cp -a` is not that. It keeps uid 1001 and mode 0700, and `backup.sh` then stops with permission denied while it reads the tree. Do not fix this by making the files world-readable.
+`cp -a` keeps uid 1001, directory mode 0755, and file mode 0600. The copy is still unreadable by a different user, and `backup.sh` then stops. Do not fix this by making the files world-readable, and do not copy the volume to the host that way.
 
-`backup.sh` checks `AUTH_DIR`, `UPLOADS_DIR`, and `STORAGE_UPLOADS_DIR` before it creates a backup directory. If one of those paths exists and this user cannot read it, the script stops and says so. If a later step fails, the script removes the `grc-*` directory that this run created, and it removes `BACKUP_DIR` only when this run created that directory and left it empty. Other backups stay where they are.
+`backup.sh` checks `AUTH_DIR`, `UPLOADS_DIR`, and `STORAGE_UPLOADS_DIR` before it creates a backup directory. A path that does not exist is skipped. A path that exists but is not accessible is refused, with the same guidance as an unreadable tree. If a later step fails, the script removes the `grc-*` directory that this run created, and it removes `BACKUP_DIR` only when this run created that directory and left it empty. Other backups stay where they are.
 
-Three safe ways to run the backup:
+Two safe ways to run the backup:
 
 Run it as uid 1001, with the uploads volume mounted and a Postgres 16 `pg_dump` on `PATH`. `pgvector/pgvector:pg16` supplies that client. The backup directory must be writable by uid 1001.
+
+`$HOME/.grc-db-password` is mode 0600 and owned by the user who created it. Mounting that file into a container running as uid 1001 fails with `DB_PASSWORD_FILE is set but cannot be read`. Do not chmod it world-readable, and do not pass the password on the `docker run` command line. `chown` below needs permission to change the file owner, the same permission the backup directory already needs. Copy the secret to a mode 0400 file owned by uid 1001 in a private temporary directory, mount that copy, and remove the directory after the container exits, including when the backup fails. The original file stays mode 0600 and is not mounted.
 
 ```bash
 mkdir -p -- "$HOME/grc-backups"
 chown 1001:1001 "$HOME/grc-backups"
+
+secret_dir="$(mktemp -d)"
+chmod 700 "${secret_dir}"
+cp -- "$HOME/.grc-db-password" "${secret_dir}/db_password"
+chown 1001:1001 "${secret_dir}/db_password"
+chmod 400 "${secret_dir}/db_password"
+
 docker run --rm --network grcompliance_default \
   --user 1001:1001 \
   --entrypoint bash \
@@ -96,37 +105,21 @@ docker run --rm --network grcompliance_default \
   -e DB_PASSWORD_FILE=/run/secrets/db_password \
   -e UPLOADS_DIR=/app/uploads \
   -e BACKUP_DIR=/backups \
-  -v "$HOME/.grc-db-password":/run/secrets/db_password:ro \
+  -v "${secret_dir}/db_password":/run/secrets/db_password:ro \
   pgvector/pgvector:pg16 \
-  ./scripts/backup.sh
+  ./scripts/backup.sh && status=0 || status=$?
+rm -rf -- "${secret_dir}"
+[ "${status}" -eq 0 ]
 ```
 
 `docker compose exec -u 1001 db pg_dump` uses the server's client for the database. The `db` service does not mount the uploads volume, so it cannot archive those files. `docker compose exec -u 1001 app` runs as the owning user and can read `/app/uploads`, but the app image does not include `pg_dump`. Use the `db` service for the database tools and uid 1001 for the files.
 
-Or run the script with sudo. Root can read mode 0700 files. The backup directory is then owned by root and mode 0700.
+Or run the script with sudo. Root can read the mode 0600 upload files. The backup directory is then owned by root and mode 0700.
 
 ```bash
 sudo env \
   DB_PASSWORD_FILE="$HOME/.grc-db-password" \
   UPLOADS_DIR=/path/root/can/read \
-  ./scripts/backup.sh
-```
-
-A private copy onto the host is optional. Root in the helper reads the volume, and `chown` gives the copy to the user who will run `backup.sh`. The mode is unchanged, so the copy is not world-readable.
-
-```bash
-mkdir -p -- "$HOME/grc-uploads"
-chmod 700 "$HOME/grc-uploads"
-uid="$(id -u)"
-gid="$(id -g)"
-docker run --rm \
-  -v grcompliance_grc_uploads:/data:ro \
-  -v "$HOME/grc-uploads":/dest \
-  alpine:3 \
-  sh -c "cp -a /data/. /dest/ && chown -R ${uid}:${gid} /dest"
-
-DB_PASSWORD_FILE="$HOME/.grc-db-password" \
-  UPLOADS_DIR="$HOME/grc-uploads" \
   ./scripts/backup.sh
 ```
 
