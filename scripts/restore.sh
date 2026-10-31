@@ -31,7 +31,7 @@
 #                      Must already exist and contain no user tables.
 #   DB_HOST            PostgreSQL host (default: localhost)
 #   DB_PORT            PostgreSQL port (default: 5432)
-#   DB_USER            Database role (default: complianceos)
+#   DB_USER            Database role (default: grc)
 #   DB_PASSWORD        Database password. Required unless DB_PASSWORD_FILE is set.
 #   DB_PASSWORD_FILE   File whose contents are the password.
 #   PROTECTED_DB_HOSTS Extra exact database hosts to refuse, colon-separated.
@@ -104,7 +104,8 @@ Options:
                   Same as STORAGE_UPLOADS_RESTORE_DIR. No default.
 
 Environment:
-  DB_HOST DB_PORT DB_USER
+  DB_HOST DB_PORT
+  DB_USER                        database role (default: grc)
   PROTECTED_DB_HOSTS             extra hosts to refuse (colon-separated, default empty)
   AUTH_RESTORE_DIR               extract auth-volume.tgz here (optional)
   UPLOADS_RESTORE_DIR            extract uploads.tgz here (optional; no default)
@@ -554,7 +555,7 @@ main() {
 
     DB_HOST="${DB_HOST:-localhost}"
     DB_PORT="${DB_PORT:-5432}"
-    DB_USER="${DB_USER:-complianceos}"
+    DB_USER="${DB_USER:-grc}"
 
     case "${DB_PORT}" in
         ''|*[!0-9]*)

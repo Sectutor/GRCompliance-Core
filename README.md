@@ -141,7 +141,7 @@ docker run --rm -v grcompliance_grc_uploads:/data -v "$PWD":/backup alpine \
 
 Restore the SQL file with `psql` inside the `db` container, and extract the uploads archive into the `grc_uploads` volume. Take both backups together.
 
-`scripts/backup.sh` and `scripts/restore.sh` also back up the database, the auth directory, and uploaded files, and they record SHA-256 checksums. See [Backup and restore](docs/BACKUP-RESTORE.md). This compose file uses role `grc`, database `grcompliance`, and service name `db`. Set `DB_USER`, `DB_NAME`, and `DB_HOST` before you run the scripts. The uploads default `/app/uploads` matches the `grc_uploads` mount. Restore refuses host `db` unless you pass `--force-prod`.
+`scripts/backup.sh` and `scripts/restore.sh` back up the database and uploaded files and record SHA-256 checksums. Database defaults match this compose file: role `grc`, database `grcompliance`, uploads at `/app/uploads`. Local accounts live in the database, so the auth archive is skipped unless you set `AUTH_DIR`. See [Backup and restore](docs/BACKUP-RESTORE.md).
 
 ## Community edition
 

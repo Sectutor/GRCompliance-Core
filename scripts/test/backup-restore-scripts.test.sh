@@ -99,6 +99,16 @@ assert_source_rules() {
     grep -q 'UPLOADS_RESTORE_DIR' "${RESTORE}" || fail "restore.sh does not require an uploads target"
     grep -q -- '--uploads-dir' "${RESTORE}" || fail "restore.sh does not accept --uploads-dir"
     grep -q 'GRCompliance treats this host as production' "${RESTORE}" || fail "production guard does not name GRCompliance"
+    grep -q 'DB_NAME:-grcompliance' "${BACKUP}" || fail "backup.sh does not default DB_NAME to grcompliance"
+    grep -q 'DB_USER:-grc' "${BACKUP}" || fail "backup.sh does not default DB_USER to grc"
+    grep -q 'DB_USER:-grc' "${RESTORE}" || fail "restore.sh does not default DB_USER to grc"
+    grep -q 'Continuing without an auth archive' "${BACKUP}" || fail "backup.sh does not skip a missing auth directory"
+    if grep -n 'complianceos' "${BACKUP}" "${RESTORE}"; then
+        fail "backup or restore still names complianceos"
+    fi
+    if grep -n '/root/.complianceos' "${BACKUP}" "${RESTORE}"; then
+        fail "backup or restore still defaults AUTH_DIR to /root/.complianceos"
+    fi
 }
 
 run_static_checks() {
@@ -241,9 +251,12 @@ run_behavior() {
 
     out="$(bash "${BACKUP}" --help)" || fail "backup --help failed"
     printf '%s\n' "${out}" | grep -q 'DB_PASSWORD' || fail "backup --help missing password instructions"
+    printf '%s\n' "${out}" | grep -F -q 'default: grcompliance' || fail "backup --help missing grcompliance default"
+    printf '%s\n' "${out}" | grep -F -q 'role (default: grc)' || fail "backup --help missing grc default"
 
     out="$(bash "${RESTORE}" --help)" || fail "restore --help failed"
     printf '%s\n' "${out}" | grep -q 'TARGET_DB' || fail "restore --help missing TARGET_DB"
+    printf '%s\n' "${out}" | grep -F -q 'role (default: grc)' || fail "restore --help missing grc default"
     printf '%s\n' "${out}" | grep -q 'GRCompliance' || fail "restore --help did not name GRCompliance"
     printf '%s\n' "${out}" | grep -q -- '--uploads-dir' || fail "restore --help missing --uploads-dir"
     printf '%s\n' "${out}" | grep -q 'PROTECTED_DB_HOSTS' || fail "restore --help missing PROTECTED_DB_HOSTS"
@@ -330,6 +343,8 @@ run_behavior() {
     assert_mode "${run_dir}/checksums.sha256" "600"
     [ "$(head -c 5 -- "${run_dir}/db.dump")" = "PGDMP" ] || fail "db.dump is not a custom-format dump"
     grep -q -- '-Fc' "${stub_log}" || fail "pg_dump was not called with -Fc"
+    grep -F -q -- '-U grc' "${stub_log}" || fail "pg_dump was not called with role grc"
+    grep -F -q -- '-d grcompliance' "${stub_log}" || fail "pg_dump was not called with database grcompliance"
     (cd -- "${run_dir}" && sha256sum -c SHA256SUMS) || fail "SHA256SUMS did not verify"
     (cd -- "${run_dir}" && sha256sum -c checksums.sha256) || fail "checksums.sha256 did not verify"
     tar -tzf "${run_dir}/auth-volume.tgz" | grep -q 'local-users.json' || fail "auth archive is missing local-users.json"
@@ -524,6 +539,8 @@ run_behavior() {
     grep -q -- '--exit-on-error' "${restore_log}" || fail "pg_restore missing --exit-on-error"
     grep -q -- '--no-owner' "${restore_log}" || fail "pg_restore missing --no-owner"
     grep -q -- '--no-acl' "${restore_log}" || fail "pg_restore missing --no-acl"
+    grep -F -q -- '-U grc' "${restore_log}" || fail "pg_restore was not called with role grc"
+    grep -F -q -- '-U grc' "${psql_log}" || fail "psql was not called with role grc"
     assert_absent "${out}" "local-only"
     if grep -F -q -- 'local-only' "${psql_log}" "${restore_log}" "${stub_log}"; then
         fail "command log contains a secret value"
@@ -792,6 +809,83 @@ PY
     [ ! -e "${work}/escaped-upload" ] || fail "unsafe uploads archive wrote outside the destination"
     [ ! -e "${work}/evil-uploads-out" ] || fail "unsafe uploads archive created the destination"
     [ ! -s "${psql_log}" ] || fail "unsafe uploads archive still connected"
+
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        DB_NAME=otherdb \
+        DB_USER=otheruser \
+        BACKUP_DIR="${work}/override-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        AUTH_DIR="${auth}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "database name override failed: ${out}"
+    grep -F -q -- '-d otherdb' "${stub_log}" || fail "DB_NAME override was ignored"
+    grep -F -q -- '-U otheruser' "${stub_log}" || fail "DB_USER override was ignored"
+    assert_absent "${out}" "local-only"
+
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/no-auth-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        UPLOADS_DIR="${uploads}" \
+        STORAGE_UPLOADS_DIR="${storage_uploads}" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "backup without AUTH_DIR failed: ${out}"
+    printf '%s\n' "${out}" | grep -q 'AUTH_DIR is unset' || fail "unset AUTH_DIR was not noted"
+    printf '%s\n' "${out}" | grep -q 'Continuing without an auth archive' || fail "unset AUTH_DIR was not skipped"
+    printf '%s\n' "${out}" | grep -q 'local_credentials' || fail "unset AUTH_DIR did not name the database table"
+    no_auth_run="$(find "${work}/no-auth-backups" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print)"
+    [ -n "${no_auth_run}" ] || fail "backup without AUTH_DIR was not written"
+    [ ! -e "${no_auth_run}/auth-volume.tgz" ] || fail "unset AUTH_DIR was archived"
+    if grep -q 'auth-volume.tgz' "${no_auth_run}/SHA256SUMS"; then
+        fail "SHA256SUMS lists a skipped auth archive"
+    fi
+    (cd -- "${no_auth_run}" && sha256sum -c SHA256SUMS) || fail "checksums failed when auth was skipped"
+    grep -F -q -- '-d grcompliance' "${stub_log}" || fail "default database was not grcompliance"
+    grep -F -q -- '-U grc' "${stub_log}" || fail "default role was not grc"
+    assert_absent "${out}" "local-only"
+
+    : > "${stub_log}"
+    set +e
+    out="$(
+        STUB_LOG="${stub_log}" \
+        DB_PASSWORD_FILE="${secret_file}" \
+        DB_HOST=127.0.0.1 \
+        DB_PORT=1 \
+        BACKUP_DIR="${work}/missing-auth-backups" \
+        BACKUP_RETENTION_DAYS=0 \
+        AUTH_DIR="${work}/missing-auth" \
+        PATH="${env_path}" \
+        bash "${BACKUP}" 2>&1
+    )"
+    status=$?
+    set -e
+    [ "${status}" -eq 0 ] || fail "missing AUTH_DIR failed the backup: ${out}"
+    printf '%s\n' "${out}" | grep -q "Auth directory is missing: ${work}/missing-auth" || fail "missing auth directory was not noted"
+    printf '%s\n' "${out}" | grep -q 'Continuing without an auth archive' || fail "missing auth directory was not skipped"
+    missing_auth_run="$(find "${work}/missing-auth-backups" -mindepth 1 -maxdepth 1 -type d -name 'grc-*' -print)"
+    [ -n "${missing_auth_run}" ] || fail "backup with a missing AUTH_DIR was not written"
+    [ ! -e "${missing_auth_run}/auth-volume.tgz" ] || fail "missing AUTH_DIR was archived"
+    (cd -- "${missing_auth_run}" && sha256sum -c SHA256SUMS) || fail "checksums failed when AUTH_DIR was missing"
+    assert_absent "${out}" "local-only"
 
     printf '%s\n' "behavior checks passed"
 }

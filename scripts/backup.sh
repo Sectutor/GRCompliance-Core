@@ -19,14 +19,18 @@
 # Environment:
 #   DB_HOST                 PostgreSQL host (default: localhost)
 #   DB_PORT                 PostgreSQL port (default: 5432)
-#   DB_NAME                 Database to dump (default: complianceos)
-#   DB_USER                 Database role (default: complianceos)
+#   DB_NAME                 Database to dump (default: grcompliance)
+#   DB_USER                 Database role (default: grc)
 #   DB_PASSWORD             Database password. Required unless DB_PASSWORD_FILE is set.
 #   DB_PASSWORD_FILE        File whose contents are the password. Mode should be 0600.
 #   BACKUP_DIR              Parent directory for this run (default: ./backups)
 #   BACKUP_RETENTION_DAYS   Delete grc-* directories in BACKUP_DIR older than
 #                           this many days (default: 14). 0 disables retention.
-#   AUTH_DIR                Auth directory to archive (default: /root/.complianceos)
+#   AUTH_DIR                Auth directory to archive. Unset by default. This
+#                           edition stores local accounts in the database table
+#                           local_credentials, which pg_dump already includes.
+#                           There is no COMPLIANCEOS_DATA_DIR and no auth volume.
+#                           A missing, empty, or unset AUTH_DIR is logged and skipped.
 #   UPLOADS_DIR             Uploaded files (default: /app/uploads).
 #                           The server's working directory is /app, and compose
 #                           plus the image mount this path for /uploads.
@@ -34,12 +38,14 @@
 #                           LocalStorageProvider writes process.cwd()/storage/uploads.
 #
 # A missing or empty uploads directory is logged and skipped. It does not
-# fail the backup. Database name, role, auth path, and service host names
-# stay as this deployment already uses them.
+# fail the backup. A missing or empty auth directory is logged and skipped
+# the same way. Database name and role default to this compose file
+# (grcompliance / grc) and stay overridable.
 #
 # Output, under ${BACKUP_DIR}/grc-YYYYMMDD-HHMMSS/ (mode 0700):
 #   db.dump              pg_dump custom format (-Fc)
-#   auth-volume.tgz      tar of AUTH_DIR (tar -C <parent> <name>)
+#   auth-volume.tgz      tar of AUTH_DIR (tar -C <parent> <name>), when that
+#                        directory exists and contains files
 #   uploads.tgz          contents of UPLOADS_DIR, when that directory has files
 #   storage-uploads.tgz  contents of STORAGE_UPLOADS_DIR, when that directory has files
 #   SHA256SUMS           sha256sum checksums for the files that were written
@@ -81,16 +87,19 @@ Required:
   DB_PASSWORD or DB_PASSWORD_FILE   database password (no default; never printed)
 
 Common environment:
-  DB_HOST DB_PORT DB_NAME DB_USER
+  DB_HOST DB_PORT
+  DB_NAME                 database to dump (default: grcompliance)
+  DB_USER                 database role (default: grc)
   BACKUP_DIR              directory that receives grc-* backups (default: ./backups)
   BACKUP_RETENTION_DAYS   delete grc-* backups older than N days (default: 14, 0 disables)
-  AUTH_DIR                auth directory (default: /root/.complianceos)
+  AUTH_DIR                auth directory (unset by default; missing or empty is skipped)
   UPLOADS_DIR             uploaded files (default: /app/uploads)
   STORAGE_UPLOADS_DIR     readiness report files (default: /app/storage/uploads)
 
-Each run writes db.dump (pg_dump -Fc), auth-volume.tgz, SHA256SUMS, and
-checksums.sha256. uploads.tgz and storage-uploads.tgz are added when those
-directories contain files. A missing or empty uploads directory is logged
+Each run writes db.dump (pg_dump -Fc), SHA256SUMS, and checksums.sha256.
+auth-volume.tgz is added when AUTH_DIR exists and contains files.
+uploads.tgz and storage-uploads.tgz are added when those directories
+contain files. A missing or empty auth or uploads directory is logged
 and skipped. The run directory is mode 0700 and the files are mode 0600.
 EOF
 }
@@ -101,7 +110,7 @@ cleanup() {
     if [ "${status}" -ne 0 ] && [ -n "${DEST}" ]; then
         case "$(basename -- "${DEST}")" in
             grc-*)
-                if [ ! -s "${DEST}/db.dump" ] || [ ! -s "${DEST}/auth-volume.tgz" ] \
+                if [ ! -s "${DEST}/db.dump" ] \
                     || [ ! -s "${DEST}/SHA256SUMS" ] || [ ! -s "${DEST}/checksums.sha256" ]; then
                     rm -rf -- "${DEST}"
                 fi
@@ -260,11 +269,58 @@ archive_optional_tree() {
     chmod 600 "${DEST}/${archive_name}"
 }
 
+# Archive AUTH_DIR when it exists and has files. This edition keeps local
+# accounts in local_credentials, so a missing directory is a note, not a failure.
+archive_auth() {
+    local source="${AUTH_DIR:-}"
+    local resolved=""
+    local parent=""
+    local base=""
+    local status=0
+
+    if [ -z "${source}" ]; then
+        warn "AUTH_DIR is unset. Local accounts in this edition live in the database table local_credentials and are included in db.dump. Continuing without an auth archive."
+        return 0
+    fi
+    if [ ! -e "${source}" ]; then
+        warn "Auth directory is missing: ${source}. Continuing without an auth archive."
+        return 0
+    fi
+    if [ ! -d "${source}" ]; then
+        warn "Auth path is not a directory: ${source}. Continuing without an auth archive."
+        return 0
+    fi
+    resolved="$(cd -- "${source}" && pwd)"
+    if [ "${resolved}" = "/" ]; then
+        error "Refusing to archive auth from /."
+        exit 1
+    fi
+    tree_has_files "${resolved}" || status=$?
+    if [ "${status}" -eq 2 ]; then
+        error "Auth directory is not readable: ${source}"
+        exit 1
+    fi
+    if [ "${status}" -eq 1 ]; then
+        warn "Auth directory is empty: ${source}. Continuing without an auth archive."
+        return 0
+    fi
+    if [ "${status}" -ne 0 ]; then
+        error "Could not inspect auth directory: ${source}"
+        exit 1
+    fi
+    parent="$(dirname -- "${resolved}")"
+    base="$(basename -- "${resolved}")"
+    info "Archiving auth directory ${source}."
+    if ! tar -czf "${DEST}/auth-volume.tgz" -C "${parent}" "${base}"; then
+        error "Auth archive failed."
+        exit 1
+    fi
+    chmod 600 "${DEST}/auth-volume.tgz"
+}
+
 main() {
     local root=""
     local stamp=""
-    local auth_parent=""
-    local auth_base=""
 
     if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
         usage
@@ -279,11 +335,11 @@ main() {
 
     DB_HOST="${DB_HOST:-localhost}"
     DB_PORT="${DB_PORT:-5432}"
-    DB_NAME="${DB_NAME:-complianceos}"
-    DB_USER="${DB_USER:-complianceos}"
+    DB_NAME="${DB_NAME:-grcompliance}"
+    DB_USER="${DB_USER:-grc}"
     BACKUP_DIR="${BACKUP_DIR:-$(pwd)/backups}"
     BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
-    AUTH_DIR="${AUTH_DIR:-/root/.complianceos}"
+    AUTH_DIR="${AUTH_DIR:-}"
     UPLOADS_DIR="${UPLOADS_DIR:-/app/uploads}"
     STORAGE_UPLOADS_DIR="${STORAGE_UPLOADS_DIR:-/app/storage/uploads}"
 
@@ -305,11 +361,6 @@ main() {
     require_cmd tar
     require_cmd stat
     require_cmd find
-
-    if [ ! -d "${AUTH_DIR}" ]; then
-        error "AUTH_DIR does not exist or is not a directory: ${AUTH_DIR}"
-        exit 1
-    fi
 
     root="$(resolve_dir "${BACKUP_DIR}")"
     if [ "${root}" = "/" ]; then
@@ -342,21 +393,16 @@ main() {
     fi
     chmod 600 "${DEST}/db.dump"
 
-    auth_parent="$(dirname -- "${AUTH_DIR}")"
-    auth_base="$(basename -- "${AUTH_DIR}")"
-    info "Archiving auth directory ${AUTH_DIR}."
-    if ! tar -czf "${DEST}/auth-volume.tgz" -C "${auth_parent}" "${auth_base}"; then
-        error "Auth archive failed."
-        exit 1
-    fi
-    chmod 600 "${DEST}/auth-volume.tgz"
-
+    archive_auth
     archive_optional_tree "${UPLOADS_DIR}" "uploads.tgz" "Uploads"
     archive_optional_tree "${STORAGE_UPLOADS_DIR}" "storage-uploads.tgz" "Storage uploads"
 
     (
         cd -- "${DEST}"
-        set -- db.dump auth-volume.tgz
+        set -- db.dump
+        if [ -f auth-volume.tgz ]; then
+            set -- "$@" auth-volume.tgz
+        fi
         if [ -f uploads.tgz ]; then
             set -- "$@" uploads.tgz
         fi
