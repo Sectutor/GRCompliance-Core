@@ -769,6 +769,12 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         return { success: true };
       }),
 
+    refineAllowed: clientEditorProcedure.use(checkPremiumAccess)
+      .input(z.object({
+        clientId: z.number(),
+      }))
+      .query(() => ({ allowed: true as const })),
+
     refine: clientEditorProcedure.use(checkPremiumAccess)
       .input(z.object({
         clientId: z.number(),

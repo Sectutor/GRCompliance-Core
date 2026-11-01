@@ -285,6 +285,7 @@ describe("premium product routers use the fail-closed gate", () => {
         const implementation = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/implementation.ts"), "utf8");
         const risks = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/risks.ts"), "utf8");
         const settings = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/riskSettings.ts"), "utf8");
+        expect(policies).toContain("refineAllowed: clientEditorProcedure.use(checkPremiumAccess)");
         expect(policies).toContain("refine: clientEditorProcedure.use(checkPremiumAccess)");
         expect(policies).toContain("list: clientProcedure");
         expect(controls).toContain("generateGuidance: adminProcedure.use(checkPremiumAccess)");

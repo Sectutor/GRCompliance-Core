@@ -136,6 +136,7 @@ export function PolicyLinter({
   orgName,
   publishDisabled,
   publishTooltip,
+  allowAiFix = false,
 }: {
   content: string;
   onInsertSection: (htmlToAppend: string) => void;
@@ -147,6 +148,8 @@ export function PolicyLinter({
   orgName?: string;
   publishDisabled?: boolean;
   publishTooltip?: string;
+  /** Server entitlement for clientPolicies.refine. Hidden when absent. */
+  allowAiFix?: boolean;
 }) {
   const contentText = useMemo(() => normalizeText(content || ""), [content]);
 
@@ -244,7 +247,7 @@ export function PolicyLinter({
             <CardDescription>Checks for required sections and common issues</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {missingSections.length > 0 && (
+            {allowAiFix && missingSections.length > 0 && (
               <Button
                 size="sm"
                 variant="default"
