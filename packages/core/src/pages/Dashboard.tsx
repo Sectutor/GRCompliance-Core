@@ -520,7 +520,7 @@ export default function Dashboard() {
           {/* Filters & Actions Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 mt-8 relative z-10 pb-4 border-b border-slate-200 min-w-0" id="dash-filters-bar">
             <div className="flex flex-wrap items-center gap-4 min-w-0">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-4 md:mb-0">Command Interface</h2>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-4 md:mb-0">Dashboard</h2>
               {/* View Mode Toggle */}
               <div className="flex items-center bg-slate-100 rounded-lg p-1">
                 <button
@@ -559,7 +559,7 @@ export default function Dashboard() {
                     value={clientId || ""}
                     onChange={(e) => setClientId(e.target.value || undefined)}
                   >
-                    <option value="" className="bg-white">Global Fleet</option>
+                    <option value="" className="bg-white">All workspaces</option>
                     {clients.map((client) => (
                       <option key={client.id} value={client.id} className="bg-white text-slate-900">
                         {client.name}
@@ -580,7 +580,7 @@ export default function Dashboard() {
                   value={framework || ""}
                   onChange={(e) => setFramework(e.target.value || undefined)}
                 >
-                  <option value="" className="bg-white">All Protocols</option>
+                  <option value="" className="bg-white">All frameworks</option>
                   <option value="ISO 27001" className="bg-white text-slate-900">ISO 27001</option>
                   <option value="SOC 2" className="bg-white text-slate-900">SOC 2</option>
                   <option value="NIS2" className="bg-white text-slate-900">NIS2</option>

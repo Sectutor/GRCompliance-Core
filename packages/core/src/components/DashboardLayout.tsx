@@ -594,7 +594,7 @@ function DashboardLayoutContent({
             label: "Policies",
             path: "/client-policies",
             submenu: [
-              { label: "View All Policies", path: "/client-policies" },
+              { label: "All policies", path: "/client-policies" },
               { label: "Policy Templates", path: "/policy-templates" },
             ]
           },

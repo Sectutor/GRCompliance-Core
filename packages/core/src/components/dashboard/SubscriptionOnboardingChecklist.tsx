@@ -53,7 +53,7 @@ export function SubscriptionOnboardingChecklist({ clientId, stats }: Subscriptio
         {
             id: "policies",
             title: "Draft First Policy",
-            description: "Use our AI templates to document your security procedures.",
+            description: "Use our templates to document your security procedures.",
             completed: stats.hasPolicies,
             link: `/clients/${clientId}/policies`,
             icon: FileText

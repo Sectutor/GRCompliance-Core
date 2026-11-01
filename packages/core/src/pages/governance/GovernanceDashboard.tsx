@@ -381,7 +381,7 @@ export default function GovernanceDashboard() {
                                     <FileText className="mr-4 h-6 w-6 text-amber-500" />
                                     <div className="flex flex-col items-start">
                                         <span className="font-semibold">Draft New Policy</span>
-                                        <span className="text-xs text-muted-foreground">Create a policy using AI templates</span>
+                                        <span className="text-xs text-muted-foreground">Create a policy using templates</span>
                                     </div>
                                 </Button>
                             </Link>

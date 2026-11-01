@@ -1009,16 +1009,16 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
                         <Card>
                             <CardHeader className="pb-0 border-b mb-4">
-                                <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-4">
-                                    <div className="pb-4">
+                                <div className="flex flex-col gap-4">
+                                    <div className="min-w-0 w-full">
                                         <CardTitle>Policy Content</CardTitle>
-                                        <CardDescription>
+                                        <CardDescription className="max-w-none">
                                             {viewMode === "edit"
                                                 ? "Edit your policy content using the rich text editor below"
                                                 : "Preview how your policy will appear"}
                                         </CardDescription>
                                     </div>
-                                    <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full xl:w-auto max-w-full">
+                                    <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full max-w-full">
                                         <div className="w-full overflow-x-auto no-scrollbar">
                                             <TabsList id="policy-view-tabs" className="bg-transparent p-0 gap-1 h-auto flex w-max min-w-full">
                                                 <TabsTrigger
