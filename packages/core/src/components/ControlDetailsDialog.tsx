@@ -16,6 +16,7 @@ import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
+import { controlEvidenceRows } from "@/lib/controlEvidence";
 import { decodeAssigneeChoice } from "@/lib/evidenceRequestAssignee";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 
@@ -82,12 +83,13 @@ export default function ControlDetailsDialog({
   const { data: workspaceMembers } = trpc.users.listWorkspaceMembers.useQuery({ clientId });
   const { data: people } = trpc.employees.list.useQuery({ clientId }, { enabled: clientId > 0 });
 
-  // Get evidence for this control
-  const { data: allEvidence, refetch: refetchEvidence } = trpc.evidence.list.useQuery({
-    clientId
-  });
-  // Filter evidence for this specific control
-  const evidenceList = allEvidence?.filter(item => item.evidence?.clientControlId === clientControl.id);
+  // getByControl returns this control's rows. evidence.list is flattened and
+  // has no nested evidence object, so filtering it always showed Evidence (0).
+  const { data: controlEvidence, refetch: refetchEvidence } = trpc.evidence.getByControl.useQuery(
+    { clientControlId: clientControl.id },
+    { enabled: open && !!clientControl?.id },
+  );
+  const evidenceList = controlEvidenceRows(controlEvidence);
 
   // Get RACI assignments for this control
   const { data: raciSummary, refetch: refetchRaci } = trpc.taskAssignments.summary.useQuery({
@@ -600,7 +602,7 @@ export default function ControlDetailsDialog({
                         {req.assignee ? `${req.assignee.name} · ${req.assignee.label}` : "Unassigned"}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {req.request.description} • Due: {req.request.dueDate ? new Date(req.request.dueDate).toLocaleDateString() : 'None'}
+                        {req.request.description} • {req.request.dueDate ? `Due: ${new Date(req.request.dueDate).toLocaleDateString()}` : "No due date"}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -701,21 +703,21 @@ export default function ControlDetailsDialog({
             {evidenceList && evidenceList.length > 0 ? (
               <div className="space-y-2">
                 {evidenceList.map((item) => (
-                  <Card key={item.evidence.id}>
+                  <Card key={item.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{item.evidence.description}</span>
+                            <span className="font-medium">{item.description}</span>
                             <span className="text-xs px-2 py-0.5 bg-muted rounded">
-                              {item.evidence.type}
+                              {item.type}
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                            {item.evidence.location && (
+                            {item.location && (
                               <a
-                                href={item.evidence.location}
+                                href={item.location}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1 text-primary hover:underline"
@@ -724,16 +726,16 @@ export default function ControlDetailsDialog({
                                 View
                               </a>
                             )}
-                            {item.evidence.owner && (
+                            {item.owner && (
                               <span className="flex items-center gap-1">
                                 <User className="h-3 w-3" />
-                                {item.evidence.owner}
+                                {item.owner}
                               </span>
                             )}
-                            {item.evidence.lastVerified && (
+                            {item.lastVerified && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                Verified: {new Date(item.evidence.lastVerified).toLocaleDateString()}
+                                Verified: {new Date(item.lastVerified).toLocaleDateString()}
                               </span>
                             )}
                           </div>
@@ -742,7 +744,7 @@ export default function ControlDetailsDialog({
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteEvidenceId(item.evidence.id)}
+                          onClick={() => setDeleteEvidenceId(item.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

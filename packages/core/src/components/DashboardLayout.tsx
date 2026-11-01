@@ -160,8 +160,10 @@ function isPathActive(navPath: string, currentPath: string, currentSearch: strin
 
 export default function DashboardLayout({
   children,
+  title,
 }: {
   children: React.ReactNode;
+  title?: string;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -225,7 +227,7 @@ export default function DashboardLayout({
       }
     >
       <TourProvider>
-        <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+        <DashboardLayoutContent setSidebarWidth={setSidebarWidth} title={title}>
           {children}
         </DashboardLayoutContent>
       </TourProvider>
@@ -236,11 +238,13 @@ export default function DashboardLayout({
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  title?: string;
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  title,
 }: DashboardLayoutContentProps) {
   const { user, signOut } = useAuth();
   const [location, setLocation] = useLocation();
@@ -640,7 +644,7 @@ function DashboardLayoutContent({
 
 
     groups.push({
-      label: "AI & App Security",
+      label: "App Security",
       items: [
         { icon: Shield, label: "Security Projects", path: "/projects" },
         { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
@@ -1201,7 +1205,7 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-2">
               <div className="h-6 w-1 bg-primary rounded-full hidden md:block" />
               <span className="tracking-tight text-slate-900 font-bold text-sm md:text-base">
-                {activeMenuItem?.label ?? "Dashboard"}
+                {title ?? activeMenuItem?.label ?? "Dashboard"}
               </span>
             </div>
           </div>

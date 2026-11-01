@@ -1611,9 +1611,9 @@ function Router() {
           {(_params) => <PremiumGuard><ProtectedRoute component={AdvisorWorkbench} /></PremiumGuard>}
         </Route>
 
-        {/* Generic client workspace route - redirect to governance dashboard */}
+        {/* Workspace home. Governance is Premium, so Open must land here. */}
         <Route path="/clients/:id">
-          {(_params) => <Redirect to={`/clients/${_params.id}/governance`} />}
+          {(_params) => <ProtectedRoute component={ClientWorkspace} />}
         </Route>
 
         <Route path="/compliance">

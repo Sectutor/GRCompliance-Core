@@ -235,6 +235,33 @@ export async function authorizeWorkspace(
     return { clientRole: membership.role };
 }
 
+function isInputRecord(value: unknown): value is Record<string, unknown> {
+    return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Body the procedure was called with.
+ * tRPC v11 removed `opts.rawInput`. Middleware that runs before `.input()`
+ * also has `opts.input` unset, so the record id only arrives from
+ * `getRawInput()` (already deserialized). Older call sites that still pass
+ * `rawInput` or a parsed `input` keep working.
+ */
+export async function readProcedureInput(opts: {
+    getRawInput?: () => Promise<unknown> | unknown;
+    rawInput?: unknown;
+    input?: unknown;
+} | null | undefined): Promise<Record<string, unknown>> {
+    const candidates: unknown[] = [];
+    if (typeof opts?.getRawInput === "function") {
+        candidates.push(await opts.getRawInput());
+    }
+    candidates.push(opts?.rawInput, opts?.input);
+    for (const value of candidates) {
+        if (isInputRecord(value)) return value;
+    }
+    return {};
+}
+
 export async function accessRecordWorkspace(
     ctx: { user?: { id: number; role?: string | null } | null },
     rawInput: any,
@@ -266,7 +293,7 @@ export function bindRecordWorkspace(
     options?: { minRole?: "viewer" | "editor"; directory?: WorkspaceAccessDirectory },
 ) {
     return middleware(async (opts) => {
-        const raw = (opts as any).rawInput ?? (opts as any).input ?? {};
+        const raw = await readProcedureInput(opts);
         const access = await accessRecordWorkspace(opts.ctx, raw, loadOwnerClientId, options);
         return opts.next({
             ctx: {

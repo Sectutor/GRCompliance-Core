@@ -4,6 +4,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { useLocation, Link } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
+import { upgradeBody, upgradeHeadline } from "@/lib/upgradeCopy";
 
 export default function UpgradeRequired() {
     const [location] = useLocation();
@@ -42,11 +43,11 @@ export default function UpgradeRequired() {
                 </div>
 
                 <h1 className="text-3xl font-bold tracking-tight mb-2">
-                    {featureName} is a Premium Feature
+                    {upgradeHeadline(featureName)}
                 </h1>
 
                 <p className="text-muted-foreground max-w-md mb-8 text-lg">
-                    Upgrade to a Pro or Enterprise plan to unlock {featureName}, along with advanced reporting, AI automation, and unlimited users.
+                    {upgradeBody(featureName)}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">

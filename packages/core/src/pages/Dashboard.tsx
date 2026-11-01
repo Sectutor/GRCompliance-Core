@@ -391,7 +391,7 @@ export default function Dashboard() {
               howToUse={[
                 { step: "Analyze Posture", description: "View the 'Live Posture Score' for real-time compliance readiness.", targetId: "dash-posture-score" },
                 { step: "Track Benchmarks", description: "Monitor compliance trends over time against target goals.", targetId: "dash-compliance-trend" },
-                { step: "Critical Actions", description: "Address 'AI Posture Insights' and 'Overdue Assessments' immediately.", targetId: "dash-critical-actions" },
+                { step: "Critical Actions", description: "Address 'Posture insights' and 'Overdue Assessments' immediately.", targetId: "dash-critical-actions" },
                 { step: "Switch Context", description: "Filter view by specific organization nodes (clients) or frameworks.", targetId: "dash-filters-bar" }
               ]}
               scenarios={[
@@ -403,7 +403,7 @@ export default function Dashboard() {
                 {
                   title: "Investigating Posture Drift",
                   example: "You notice the compliance score dropped by 5% overnight. You need to identify if this is a data error or a security regression.",
-                  auditTip: "Check 'AI Posture Insights'. A drop often signifies expired evidence or new assets coming into scope that haven't been implemented yet."
+                  auditTip: "Check 'Posture insights'. A drop often signifies expired evidence or new assets coming into scope that haven't been implemented yet."
                 }
               ]}
               integrations={[
@@ -446,7 +446,7 @@ export default function Dashboard() {
                     <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                       <BrainCircuit className="h-5 w-5" />
                     </div>
-                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">AI Posture Insights</h3>
+                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Posture insights</h3>
                   </div>
                   <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Workspace data</Badge>
                 </div>
