@@ -180,7 +180,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
               <div className="flex items-center gap-2 mb-3">
                 <Crown className="w-4 h-4 text-primary" />
-                <h4 className="font-medium">Enterprise Edition</h4>
+                <h4 className="font-medium">Premium</h4>
               </div>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">

@@ -19,7 +19,7 @@ export const slackManifest: IntegrationManifest = {
         name: 'GRCompliance',
         url: 'https://grcompliance.com'
     },
-    license: 'MIT',
+    license: 'AGPL-3.0-only',
     category: 'communication',
     tags: ['notifications', 'collaboration', 'chatops'],
     icon: '💬',

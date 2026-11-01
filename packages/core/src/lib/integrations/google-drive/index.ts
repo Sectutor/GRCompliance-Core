@@ -20,7 +20,7 @@ export const googleDriveManifest: IntegrationManifest = {
     name: "GRCompliance",
     url: "https://grcompliance.com",
   },
-  license: "MIT",
+  license: "AGPL-3.0-only",
   category: "storage", // Matches CATEGORY_ICONS and CATEGORY_COLORS
   tags: ["storage", "evidence", "documents", "files"],
   icon: "📦", // Or perhaps a Google Drive specific icon if available

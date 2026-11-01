@@ -88,7 +88,7 @@ function getSubject(daysLeft: number, licenseType: string): string {
 function getProductName(licenseType: string): string {
   switch (licenseType) {
     case 'enterprise':
-      return 'GRCompliance Enterprise';
+      return 'GRCompliance Premium';
     case 'trial':
       return 'GRCompliance Trial';
     case 'community':

@@ -183,7 +183,7 @@ export default function Profile() {
                                     Appearance
                                 </CardTitle>
                                 <CardDescription>
-                                    Customize how Compliance OS looks comfortably for you.
+                                    Customize how GRCompliance looks comfortably for you.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>

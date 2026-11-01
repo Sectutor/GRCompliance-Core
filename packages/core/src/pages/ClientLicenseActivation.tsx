@@ -257,7 +257,7 @@ export default function ClientLicenseActivation() {
                     <div className="p-3 border rounded-md bg-muted/50">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">GRCompliance Enterprise</div>
+                          <div className="font-medium">GRCompliance Premium</div>
                           {/* Product id kept so the label matches the published Gumroad permalink. */}
                           <div className="text-sm text-muted-foreground">complianceos-enterprise</div>
                         </div>
@@ -287,6 +287,7 @@ export default function ClientLicenseActivation() {
                       )}
                     </Button>
                     
+                    {/* TODO: Gumroad link (complianceos-enterprise) is legacy. Live purchases go through Stripe on the licence server. Replace this link in a separate PR. */}
                     <Button
                       variant="outline"
                       className="w-full"
@@ -405,7 +406,7 @@ export default function ClientLicenseActivation() {
               <AlertDescription>
                 <ul className="list-disc list-inside space-y-1 text-sm">
                   <li>License keys are tied to your Gumroad account and purchase</li>
-                  <li>Enterprise licenses include all premium features and priority support</li>
+                  <li>Premium licenses include all premium features and priority support</li>
                   <li>Trial licenses are valid for 30 days with limited features</li>
                   <li>Community edition is free under AGPLv3 with basic features</li>
                 </ul>
@@ -785,7 +786,7 @@ export default function ClientLicenseActivation() {
                       <h4 className="font-medium text-sm">What happens when my trial expires?</h4>
                       <p className="text-sm text-muted-foreground">
                         When your trial expires, you'll revert to the Community edition with basic features. 
-                        You can purchase an Enterprise license to continue using premium features.
+                        You can purchase a Premium license to continue using premium features.
                       </p>
                     </div>
                     
@@ -798,10 +799,10 @@ export default function ClientLicenseActivation() {
                     </div>
                     
                     <div>
-                      <h4 className="font-medium text-sm">What's the difference between Community and Enterprise?</h4>
+                      <h4 className="font-medium text-sm">What's the difference between Community and Premium?</h4>
                       <p className="text-sm text-muted-foreground">
                         Community edition is free and open source (AGPLv3) with basic features. 
-                        Enterprise edition includes all premium features, priority support, and commercial licensing.
+                        Premium includes all premium features, priority support, and commercial licensing. Premium is not open source.
                       </p>
                     </div>
                   </div>

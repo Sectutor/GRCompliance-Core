@@ -301,7 +301,7 @@ export default function Dashboard() {
               <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 mb-2">
                 <Shield className="h-10 w-10 text-primary" />
               </div>
-              <h1 className="text-4xl font-extrabold tracking-tight">Set up your Compliance OS</h1>
+              <h1 className="text-4xl font-extrabold tracking-tight">Set up GRCompliance</h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Follow our guided path to get audit-ready in record time. Complete these steps to activate your live compliance reports.
               </p>

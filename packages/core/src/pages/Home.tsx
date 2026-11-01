@@ -290,7 +290,7 @@ export default function Home() {
           </div>
           <div className="mt-16 pt-8 border-t border-slate-50 text-center">
             <p className="text-slate-400 text-xs font-bold tracking-widest uppercase">
-              &copy; 2026 GRCompliance, Inc. All rights reserved.
+              &copy; 2026 Intellfence. All rights reserved.
             </p>
           </div>
         </div>

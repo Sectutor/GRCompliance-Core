@@ -69,7 +69,7 @@ export default function UpdatePassword() {
         <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">
             <div className="mb-8 flex items-center gap-2">
                 <Shield className="h-8 w-8 text-primary" />
-                <span className="text-2xl font-bold tracking-tight">Compliance OS</span>
+                <span className="text-2xl font-bold tracking-tight">GRCompliance</span>
             </div>
 
             <Card className="w-full max-w-md shadow-lg border-muted/60">
