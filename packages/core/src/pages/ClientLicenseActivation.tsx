@@ -287,6 +287,7 @@ export default function ClientLicenseActivation() {
                       )}
                     </Button>
                     
+                    {/* TODO: Gumroad link (complianceos-enterprise) is legacy. Live purchases go through Stripe on the licence server. Replace this link in a separate PR. */}
                     <Button
                       variant="outline"
                       className="w-full"

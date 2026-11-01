@@ -8,7 +8,7 @@ Open-source, self-hosted core for teams that run ISO 27001, SOC 2, NIS2, and GDP
 
 GRCompliance is the self-hosted core of a GRC platform. It keeps controls, policies, risks, evidence, and audits together so a team can see what is done and what is still open.
 
-Project site: [grcompliance.com](https://grcompliance.com/). [Try the live demo](https://demo.grcompliance.com). The demo is a separate temporary server. It is reset every week. Do not enter confidential data there.
+Project site: [grcompliance.com](https://grcompliance.com/). [Try the live demo](https://demo.grcompliance.com). It is a temporary demo server, so do not put real data in it.
 
 ## Product
 
