@@ -1,4 +1,5 @@
 import { useParams } from 'wouter';
+import { duePhrase } from '@/lib/duePhrase';
 import { trpc } from '@/lib/trpc';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@complianceos/ui/ui/card';
@@ -205,7 +206,7 @@ export default function EmployeeDetails() {
                                                                 {assignment.taskStatus?.replace('_', ' ')}
                                                             </span>
                                                             {assignment.dueDate && (
-                                                                <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                                                                <span>{duePhrase(assignment.dueDate)}</span>
                                                             )}
                                                         </div>
                                                     </div>

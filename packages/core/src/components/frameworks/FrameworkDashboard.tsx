@@ -113,7 +113,7 @@ export function FrameworkDashboard({ frameworkId }: FrameworkDashboardProps) {
                 <Card className="col-span-1 border-primary/20 bg-primary/5">
                     <CardHeader>
                         <CardTitle className="text-primary">Readiness Assessment</CardTitle>
-                        <CardDescription>AI-generated insights on your readiness</CardDescription>
+                        <CardDescription>Notes on your readiness</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">

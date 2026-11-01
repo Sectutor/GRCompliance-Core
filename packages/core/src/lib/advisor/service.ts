@@ -59,7 +59,7 @@ export async function generateVendorMitigationPlan(request: {
 }
 
 export async function explainMapping(input: any) {
-    return { explanation: "AI mapping explanation is a premium feature." };
+    return { explanation: "Mapping explanations are not included in Core." };
 }
 
 

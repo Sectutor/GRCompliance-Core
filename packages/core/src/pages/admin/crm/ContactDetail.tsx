@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
+import { duePhrase } from '@/lib/duePhrase';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@complianceos/ui/ui/button';
 import { Input } from '@complianceos/ui/ui/input';
@@ -573,7 +574,7 @@ export default function ContactDetail() {
                                         <div>
                                             <p className="font-medium">{task.subject || 'Scheduled Task'}</p>
                                             <p className="text-xs text-primary font-medium mt-1">
-                                                Due: {new Date(task.scheduledAt).toLocaleString()}
+                                                {duePhrase(task.scheduledAt)}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">

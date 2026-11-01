@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useLicense } from '@/lib/license/index';
 import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, isCommunityWorkspaceLimitMessage } from '@/lib/edition';
+import { PREMIUM_CAPABILITIES } from '@/lib/upgradeCopy';
 
 export const COMMUNITY_WORKSPACE_LIMIT_EVENT = "grc-community-workspace-limit";
 
@@ -54,7 +55,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   trigger,
   featureId = 'premium.feature',
   featureName = 'Premium Feature',
-  featureDescription = 'This feature requires an Enterprise license',
+  featureDescription = 'This feature is part of Premium',
   showTrialOption = true,
   size = 'md',
   open: openProp,
@@ -120,29 +121,15 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
           <div className="bg-muted/50 p-4 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-primary" />
-              <h4 className="font-medium">What you get with Enterprise:</h4>
+              <h4 className="font-medium">What's included in Premium:</h4>
             </div>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>AI-Powered Intelligence Suite</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>White-label Branding & Customization</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Enterprise Scalability (10,000+ users)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Professional Support & SLA</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Commercial Use Rights</span>
-              </li>
+              {PREMIUM_CAPABILITIES.map((item) => (
+                <li key={item} className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -168,11 +155,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
                 </li>
                 <li className="flex items-center gap-2">
                   <XCircle className="w-4 h-4 text-red-500" />
-                  <span>No AI Features</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                  <span>No White-labeling</span>
+                  <span>Premium capabilities are not included</span>
                 </li>
               </ul>
             </div>
@@ -180,58 +163,19 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
               <div className="flex items-center gap-2 mb-3">
                 <Crown className="w-4 h-4 text-primary" />
-                <h4 className="font-medium">Enterprise Edition</h4>
+                <h4 className="font-medium">Premium</h4>
               </div>
               <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Federal Compliance (FedRAMP, CMMC)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>AI-Powered Intelligence</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>White-label Branding</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Enterprise Scalability</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Professional Support</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Commercial License</span>
-                </li>
+                {PREMIUM_CAPABILITIES.map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
 
-          {/* Pricing info */}
-          <div className="bg-muted/30 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Pricing</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-3 border rounded-lg">
-                <div className="font-bold text-2xl">$199<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                <div className="text-sm font-medium mt-1">Per Advisor</div>
-                <div className="text-xs text-muted-foreground mt-1">For consultants & MSPs</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg bg-primary/5 border-primary/20">
-                <div className="font-bold text-2xl">$999<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                <div className="text-sm font-medium mt-1">Enterprise</div>
-                <div className="text-xs text-muted-foreground mt-1">Unlimited users & clients</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg">
-                <div className="font-bold text-2xl">Custom</div>
-                <div className="text-sm font-medium mt-1">On-Premises</div>
-                <div className="text-xs text-muted-foreground mt-1">Air-gapped deployments</div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-3">
@@ -256,7 +200,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
               window.open('/pricing', '_blank');
             }}
           >
-            View Pricing & Upgrade
+            Upgrade
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
 
@@ -299,7 +243,7 @@ export const InlineUpgradePrompt: React.FC<{
           <Crown className="w-5 h-5 text-amber-600" />
         </div>
         <div>
-          <h4 className="font-medium text-amber-900">Upgrade to Enterprise</h4>
+          <h4 className="font-medium text-amber-900">Upgrade to Premium</h4>
           <p className="text-sm text-amber-700">
             Unlock {featureName} and all premium features
           </p>

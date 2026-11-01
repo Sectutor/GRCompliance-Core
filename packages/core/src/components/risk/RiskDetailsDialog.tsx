@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { duePhrase } from '@/lib/duePhrase';
 import { trpc } from '@/lib/trpc';
 import { Shield } from 'lucide-react';
 import { Button } from '@complianceos/ui/ui/button';
@@ -168,7 +169,7 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
                                     <p className="text-sm">{treatment.strategy}</p>
                                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                         {treatment.owner && <span>Owner: {treatment.owner}</span>}
-                                        {treatment.dueDate && <span>Due: {new Date(treatment.dueDate).toLocaleDateString()}</span>}
+                                        <span>{duePhrase(treatment.dueDate)}</span>
                                     </div>
                                 </div>
                             ))}
@@ -180,7 +181,7 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
                 <div className="space-y-4 pt-4 border-t border-dashed">
                     <h4 className="font-semibold flex items-center gap-2 text-purple-700">
                         <Wand2 className="w-4 h-4" />
-                        AI Power Tools
+                        More tools
                     </h4>
                     <div className="grid grid-cols-1 gap-4">
                         <Slot

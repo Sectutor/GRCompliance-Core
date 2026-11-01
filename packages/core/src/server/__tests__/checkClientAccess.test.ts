@@ -69,4 +69,16 @@ describe("checkClientAccess", () => {
         const ctx = await run("clientPolicies.get", { id: 4 }, 9);
         expect(ctx).toMatchObject({ clientId: 9, clientRole: "viewer" });
     });
+
+    it("reads the workspace id from getRawInput when rawInput and input are unset", async () => {
+        state.memberships = [{ clientId: 4, role: "editor", userId: user.id }];
+        const ctx = await guard({
+            ctx: { user, req: {}, res: {} },
+            path: "clients.get",
+            type: "query",
+            getRawInput: async () => ({ id: 4 }),
+            next: (opts?: { ctx?: { clientId?: number; clientRole?: string } }) => opts?.ctx ?? { ok: true },
+        });
+        expect(ctx).toMatchObject({ clientId: 4, clientRole: "editor" });
+    });
 });

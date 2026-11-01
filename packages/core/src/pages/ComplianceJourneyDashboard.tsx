@@ -164,11 +164,11 @@ export default function ComplianceJourneyDashboard() {
                         <PageGuide
                             title="Compliance Journey Roadmap"
                             description="Navigate the three main phases of your compliance program."
-                            rationale="Compliance is a marathon, not a sprint. This journey map helps you visualize exactly where you are and what the AI predicts for your certification timeline."
+                            rationale="Compliance is a marathon, not a sprint. This journey map helps you visualize exactly where you are and what the readiness estimate says for your certification timeline."
                             howToUse={[
                                 {
-                                    step: "AI Predictions",
-                                    description: "Monitor the 'AI Prediction' card to see your estimated audit readiness date based on current velocity.",
+                                    step: "Readiness estimate",
+                                    description: "Monitor the 'Readiness estimate' card to see a date projected from the current progress score.",
                                     targetId: "journey-ai-prediction"
                                 },
                                 {
@@ -191,7 +191,7 @@ export default function ComplianceJourneyDashboard() {
                                 {
                                     title: "Explaining Timeline to Board",
                                     example: "The CEO wants to know when the company will be 'SOC 2 Ready' for a big enterprise deal.",
-                                    auditTip: "Use the AI Prediction widget. It calculates velocity from your manual work and automated evidence to provide a data-driven date, rather than a best-guess estimate."
+                                    auditTip: "Use the Readiness estimate. It projects a date from the current progress score."
                                 },
                                 {
                                     title: "Stuck in Discovery",
@@ -221,7 +221,7 @@ export default function ComplianceJourneyDashboard() {
                                     className="text-lg text-slate-600 leading-relaxed"
                                 >
                                     Your roadmap to certification. Complete each phase to unlock the next level.
-                                    We've combined AI predictions with task routing to keep you moving fast.
+                                    A readiness estimate sits next to the phase cards so you can see what is still locked.
                                 </motion.p>
                             </div>
 
@@ -236,7 +236,7 @@ export default function ComplianceJourneyDashboard() {
                                     <div className="flex justify-between items-center mb-4">
                                         <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm">
                                             <BrainCircuit className="w-4 h-4" />
-                                            <span>AI Prediction</span>
+                                            <span>Readiness estimate</span>
                                         </div>
                                         <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
                                             On Track

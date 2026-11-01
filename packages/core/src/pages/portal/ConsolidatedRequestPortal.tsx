@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { duePhrase } from "@/lib/duePhrase";
 import { trpc } from "@/lib/trpc";
 import { useParams } from "wouter";
 import {
@@ -106,7 +107,7 @@ export default function ConsolidatedRequestPortal() {
                             <div className="pt-4 border-t border-slate-100 space-y-4">
                                 <div className="flex items-center gap-3 text-sm text-slate-600">
                                     <Clock className="w-4 h-4 text-indigo-500" />
-                                    <span>Due: {request.expiresAt ? new Date(request.expiresAt).toLocaleDateString() : 'No deadline'}</span>
+                                    <span>{duePhrase(request.expiresAt)}</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-slate-600">
                                     <Shield className="w-4 h-4 text-indigo-500" />

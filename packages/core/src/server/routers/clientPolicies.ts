@@ -132,7 +132,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
             console.warn(`[PolicyCreate] Plan limit reached for client ${data.clientId}`);
             throw new TRPCError({
               code: "FORBIDDEN",
-              message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxPolicies} policies. Please upgrade to Pro.`
+              message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxPolicies} policies. Please upgrade to Premium.`
             });
           }
         }

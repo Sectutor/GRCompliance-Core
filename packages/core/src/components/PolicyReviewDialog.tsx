@@ -234,8 +234,8 @@ export default function PolicyReviewDialog({ clientId, open, onOpenChange }: Pol
                 if (!isOpen) handleReset();
                 onOpenChange(isOpen);
             }}
-            title="AI-Powered Policy Review"
-            description="Analyze existing policies against compliance requirements and get AI-powered improvement recommendations"
+            title="Policy review"
+            description="Compare an existing policy with the requirements you select."
             size="lg" // Adjusted size
             className="sm:max-w-5xl"
             footer={renderFooter()}

@@ -98,7 +98,7 @@ export default function QuestionnairesDashboard() {
             <PageGuide
               title="Questionnaires"
               description="Manage incoming and outgoing security assessments."
-              rationale="Streamlines the vendor risk assessment process using AI automation."
+              rationale="Streamlines the vendor risk assessment process."
               howToUse={[
                 { step: "Upload Assessment", description: "Import Excel or CSV questionnaires.", targetId: "quest-upload-button" },
                 { step: "Review Status", description: "Track progress of each questionnaire assessment.", targetId: "quest-filter-tabs" },

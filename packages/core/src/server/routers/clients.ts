@@ -599,7 +599,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     if (currentUsers.length >= limits.maxUsers) {
                         throw new TRPCError({
                             code: "FORBIDDEN",
-                            message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxUsers} users. Please upgrade to Pro.`
+                            message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxUsers} users. Please upgrade to Premium.`
                         });
                     }
                 }

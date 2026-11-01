@@ -1,4 +1,5 @@
 import { Button } from "@complianceos/ui/ui/button";
+import { duePhrase } from "@/lib/duePhrase";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -27,7 +28,7 @@ export function OpenEvidenceRequests({ clientId }: { clientId: number }) {
             </div>
             <ul className="max-h-48 divide-y divide-slate-100 overflow-y-auto">
                 {open.map((row) => {
-                    const due = row.request.dueDate ? `Due ${new Date(row.request.dueDate).toLocaleDateString()}` : "No due date";
+                    const due = duePhrase(row.request.dueDate);
                     const assignee = row.assignee ? `${row.assignee.name} (${row.assignee.label})` : "Unassigned";
                     return (
                         <li key={row.request.id} className="flex items-start justify-between gap-3 px-4 py-3">

@@ -288,7 +288,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                                                     <div className="p-4 bg-white rounded-xl border border-slate-100 space-y-3 shadow-sm">
                                                         <div className="flex items-center gap-2">
                                                             <Sparkles className="w-4 h-4 text-amber-500" />
-                                                            <span className="text-xs font-bold text-slate-900">AI Readiness Probe</span>
+                                                            <span className="text-xs font-bold text-slate-900">Readiness tip</span>
                                                         </div>
                                                         <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
                                                             This phase focuses on the foundation of your ISMS. Complete the risk assessment tasks to unlock the next phase of implementation.
@@ -427,7 +427,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-[11px] text-indigo-800/80 leading-relaxed font-medium">
-                                        Based on your progress in the <strong>{activeTab}</strong> phase, the AI suggests focusing on automated evidence collection for logic-based controls.
+                                        Based on your progress in the <strong>{activeTab}</strong> phase, focus on the tasks that are still open in this phase.
                                     </p>
                                 </CardContent>
                             </Card>

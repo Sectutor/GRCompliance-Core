@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Loader2, Plus, Search, Filter, Calendar, Clock, CheckCircle2, AlertCircle, FileText, MoreHorizontal, ArrowRight, BrainCircuit, GripVertical } from "lucide-react";
+import { Loader2, Plus, Search, Filter, Calendar, Clock, CheckCircle2, AlertCircle, FileText, MoreHorizontal, ArrowRight, GripVertical } from "lucide-react";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -344,10 +344,6 @@ export default function SecurityReviews() {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
-                            <BrainCircuit className="w-4 h-4 mr-2" />
-                            AI Review Assistant
-                        </Button>
                         <Button id="btn-new-assessment" onClick={() => setIsNewOpen(true)} className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700">
                             <Plus className="mr-2 h-4 w-4" /> New Assessment
                         </Button>

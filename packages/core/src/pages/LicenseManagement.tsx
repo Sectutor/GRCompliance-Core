@@ -368,8 +368,7 @@ const LicenseManagement: React.FC = () => {
               <Shield className="h-4 w-4" />
               <AlertTitle>Community Edition</AlertTitle>
               <AlertDescription>
-                You're using the free Community Edition (AGPLv3). Upgrade to Enterprise for AI features, 
-                white-labeling, enterprise scalability, and professional support.
+                You're using the free Community Edition (AGPLv3). Premium is the self-hosted paid edition. It includes MCP, automatic evidence collection (including API evidence ingest), integrations (GitHub, SIEM, SOAR, threat intel, and vulnerability scanners), the Prowler and Trivy scanner add-ons, and multilingual support.
               </AlertDescription>
             </Alert>
           )}
@@ -380,7 +379,7 @@ const LicenseManagement: React.FC = () => {
               <AlertTitle className="text-amber-800">Trial Edition</AlertTitle>
               <AlertDescription className="text-amber-700">
                 You're using a trial license. Some features may be limited. 
-                Upgrade to Enterprise for full access before your trial expires.
+                Upgrade to Premium before your trial expires.
               </AlertDescription>
             </Alert>
           )}

@@ -196,7 +196,7 @@ export default function NIST80037Dashboard() {
                     <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-slate-900 text-white relative overflow-hidden group">
                         <Zap className="absolute top-4 right-4 h-6 w-6 text-emerald-400 opacity-20 group-hover:opacity-100 transition-opacity" />
                         <CardHeader>
-                            <CardTitle className="text-emerald-400 text-xs font-black uppercase tracking-widest">AI Readiness</CardTitle>
+                            <CardTitle className="text-emerald-400 text-xs font-black uppercase tracking-widest">Readiness</CardTitle>
                             <CardDescription className="text-white/60 font-medium">System Authorization readiness is automatically calculated based on evidence and control status.</CardDescription>
                         </CardHeader>
                         <CardContent>

@@ -17,6 +17,7 @@ import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { controlEvidenceRows } from "@/lib/controlEvidence";
+import { duePhrase } from "@/lib/duePhrase";
 import { decodeAssigneeChoice } from "@/lib/evidenceRequestAssignee";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 
@@ -602,7 +603,7 @@ export default function ControlDetailsDialog({
                         {req.assignee ? `${req.assignee.name} · ${req.assignee.label}` : "Unassigned"}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {req.request.description} • {req.request.dueDate ? `Due: ${new Date(req.request.dueDate).toLocaleDateString()}` : "No due date"}
+                        {req.request.description} • {duePhrase(req.request.dueDate)}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

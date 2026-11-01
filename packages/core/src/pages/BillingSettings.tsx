@@ -89,7 +89,7 @@ export default function BillingSettings({ client }: { client: Client }) {
                     </CardHeader>
                     <CardContent className="grid gap-2">
                         <FeatureItem text="Advisor-Set Weekly Focus" checked />
-                        <FeatureItem text="AI Evidence Triage (Basic)" checked />
+                        <FeatureItem text="Automatic evidence collection, including API evidence ingest" checked />
                         <FeatureItem text="Guided Compliance Review" checked />
                         <FeatureItem text="Up to 5 Organizations" checked />
                         <FeatureItem text="Priority Support" checked />
@@ -124,9 +124,9 @@ export default function BillingSettings({ client }: { client: Client }) {
                     </CardHeader>
                     <CardContent className="grid gap-2">
                         <FeatureItem text="Full Managed Compliance" checked />
-                        <FeatureItem text="AI Document Processing" checked />
-                        <FeatureItem text="Automated Evidence Mapping" checked />
-                        <FeatureItem text="Unlimited Organizations" checked />
+                        <FeatureItem text="Integrations (GitHub, SIEM, SOAR, threat intel, and vulnerability scanners)" checked />
+                        <FeatureItem text="Prowler and Trivy scanner add-ons" checked />
+                        <FeatureItem text="Multilingual support" checked />
                         <FeatureItem text="Dedicated Account Manager" checked />
                     </CardContent>
                     <CardFooter>

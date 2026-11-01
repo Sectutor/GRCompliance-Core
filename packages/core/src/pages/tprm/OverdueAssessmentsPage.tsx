@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useParams, Link } from "wouter";
+import { duePhrase } from "@/lib/duePhrase";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Loader2, AlertCircle, ArrowRight, CheckCircle2, Home, ChevronRight, ShieldAlert } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PageGuide } from "@/components/PageGuide";
 
@@ -107,7 +108,7 @@ export default function OverdueAssessmentsPage() {
                                             <p className="text-sm font-medium text-slate-700">{assessment.type}</p>
                                             <div className="flex items-center gap-2 text-sm text-red-600 font-semibold bg-red-50 w-fit px-2 py-1 rounded">
                                                 <AlertCircle className="w-4 h-4" />
-                                                Overdue by {Math.abs(daysLeft)} days (Due: {format(new Date(assessment.dueDate), 'MMM d, yyyy')})
+                                                Overdue by {Math.abs(daysLeft)} days ({duePhrase(assessment.dueDate)})
                                             </div>
                                         </div>
 

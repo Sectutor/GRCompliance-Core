@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@complianceos/ui';
 import { Lock, Zap, Shield, Users, BarChart, Cloud, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useLicense, FEATURES, Feature } from '@/lib/license/index';
+import { PREMIUM_CAPABILITIES } from '@/lib/upgradeCopy';
 
 interface PremiumSlotEnhancedProps {
   featureId: string;
@@ -97,7 +98,7 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
   
   // Determine button text
   const buttonText = upgradeButtonText || 
-    (isTrial ? 'Upgrade to Enterprise' : 'Upgrade to Premium');
+    'Upgrade to Premium';
   
   // Determine card variant based on license type
   const cardVariant = isTrial ? 'trial' : 'locked';
@@ -146,7 +147,7 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
                 <h4 className="font-medium text-amber-800">Trial Mode Active</h4>
                 <p className="text-sm text-amber-700 mt-1">
                   You're currently using a trial license. Some features may be limited.
-                  Upgrade to enterprise for full access.
+                  Upgrade to Premium for the paid edition.
                 </p>
               </div>
             </div>
@@ -171,38 +172,20 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
               </li>
               <li className="flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-red-500" />
-                <span>No AI Features</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-red-500" />
-                <span>No White-labeling</span>
+                <span>Premium capabilities are not included</span>
               </li>
             </ul>
           </div>
           
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Enterprise Edition</h4>
+            <h4 className="font-medium text-sm">Premium</h4>
             <ul className="space-y-1 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>AI-Powered Intelligence</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>White-label Branding</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Enterprise Scalability</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Professional Support</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Commercial License</span>
-              </li>
+              {PREMIUM_CAPABILITIES.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                  <span>{item}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
