@@ -520,7 +520,6 @@ export default function Dashboard() {
           {/* Filters & Actions Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 mt-8 relative z-10 pb-4 border-b border-slate-200 min-w-0" id="dash-filters-bar">
             <div className="flex flex-wrap items-center gap-4 min-w-0">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-4 md:mb-0">Dashboard</h2>
               {/* View Mode Toggle */}
               <div className="flex items-center bg-slate-100 rounded-lg p-1">
                 <button

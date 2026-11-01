@@ -146,6 +146,13 @@ function isPathActive(navPath: string, currentPath: string, currentSearch: strin
       return false;
     }
 
+    // A menu item that names ?tab= is only that tab. Prefix matching
+    // /clients/:id/settings would otherwise treat every settings tab as
+    // "Backup / Restore", because that query string is the longest path.
+    if (navTab) {
+      return navUrl.pathname === currUrl.pathname && navTab === currTab;
+    }
+
     // Prefix match for other sections (e.g. /risks)
     if (navUrl.pathname !== '/' && navUrl.pathname !== '/dashboard' && currUrl.pathname.startsWith(navUrl.pathname)) {
       const nextChar = currUrl.pathname.charAt(navUrl.pathname.length);
