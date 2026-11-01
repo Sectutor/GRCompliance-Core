@@ -2,9 +2,9 @@
 
 Open-source, self-hosted core for teams that run ISO 27001, SOC 2, NIS2, and GDPR in one place. Premium is self-hosted and is not open source.
 
-[![Animated version of the same 33-second GRCompliance Core walkthrough, 1200px wide.](docs/media/core-demo.gif)](docs/media/core-demo.mp4)
+[![Animated version of the same 35-second GRCompliance Core walkthrough, 1200px wide.](docs/media/core-demo.gif)](docs/media/core-demo.mp4)
 
-[Watch the 33-second walkthrough](docs/media/core-demo.mp4)
+[Watch the 35-second walkthrough](docs/media/core-demo.mp4)
 
 ## Screenshots
 
@@ -12,16 +12,16 @@ Stills from the seeded Latore LTD sample workspace.
 
 | | |
 |---|---|
-| ![GRCompliance Core dashboard: posture score of 54% with "needs attention" status, insights on implemented controls and high residual risks, and overall compliance, risk and workspace summary cards.](docs/media/core-dashboard.png) | ![GRCompliance Core risk register for the sample workspace: side-by-side 5x5 likelihood-by-impact heat maps for inherent and residual risk, with an Add Risk button.](docs/media/core-risk-register.png) |
+| ![GRCompliance Core dashboard: posture score of 54% with "needs attention" status, posture insights on implemented controls and high residual risks, and overall compliance, risk and workspace summary cards.](docs/media/core-dashboard.png) | ![GRCompliance Core risk register for the sample workspace: side-by-side 5x5 likelihood-by-impact heat maps for inherent and residual risk, with an Add Risk button.](docs/media/core-risk-register.png) |
 
 <details>
 <summary>Control library, policies, and evidence</summary>
 
 ![GRCompliance Core control library showing 30 selected ISO 27001 controls grouped by Governance, People and Access Control, with framework and status filters and an Export SoA button.](docs/media/core-control-library-iso27001.png)
 
-![GRCompliance Core policy list: Information Security, Access Control, Incident Response, Vendor Risk Management, Business Continuity and NIS2 Incident Notification policies, each a v1 draft.](docs/media/core-policies.png)
+![GRCompliance Core policy editor open on the Information Security Policy: rich-text policy content, edit, preview, links, employees and history tabs, and a details panel with status, owner and review date.](docs/media/core-policies.png)
 
-![GRCompliance Core evidence view: 30 controls, 5 verified, 25 missing documents, 17% complete, an open evidence request, and Access Control controls with linked evidence (LTD-EV-007 on Privileged access rights) or an Add document link.](docs/media/core-evidence-linked-controls.png)
+![GRCompliance Core evidence view: 30 controls, verified and missing documents, completion percentage, an open evidence request, and Access Control controls with linked evidence or an Add document link.](docs/media/core-evidence-linked-controls.png)
 
 </details>
 
