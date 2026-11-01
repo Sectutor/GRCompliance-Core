@@ -554,7 +554,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500/50 group">
                   <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Context:</span>
                   <select
-                    className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-blue-600 max-w-[150px] truncate outline-none appearance-none transition-colors"
+                    className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-blue-600 min-w-[12rem] max-w-[18rem] truncate outline-none appearance-none transition-colors"
                     value={clientId || ""}
                     onChange={(e) => setClientId(e.target.value || undefined)}
                   >
@@ -573,7 +573,7 @@ export default function Dashboard() {
 
               {/* Light Standard Selector */}
               <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-slate-50 focus-within:ring-2 focus-within:ring-purple-500/50 group">
-                <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Protocol:</span>
+                <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Framework:</span>
                 <select
                   className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-purple-600 outline-none appearance-none transition-colors"
                   value={framework || ""}
@@ -630,7 +630,7 @@ export default function Dashboard() {
                     variant="error"
                   />
                   <AnimatedMetricCard
-                    title="Portfolio Reach"
+                    title="Workspaces"
                     value={overview?.totalClients || 0}
                     icon={<Users className="w-5 h-5" />}
                     variant="info"
