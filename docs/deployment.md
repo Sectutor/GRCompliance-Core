@@ -1,6 +1,6 @@
 # Deployment Guide
 
-GRCompliance is self-hosted. This page is one way to run your own instance: **Netlify** (frontend and serverless functions) with a **PostgreSQL** database you provision (for example Supabase, Neon, or AWS RDS). It is not a hosted GRCompliance service.
+GRCompliance is designed to be deployed on **Netlify** (Frontend + Serverless Functions) with a **PostgreSQL** database (e.g., Supabase, Neon, AWS RDS).
 
 ## 1. Database Deployment
 Before deploying the app, you need a hosted PostgreSQL database.

@@ -150,7 +150,7 @@ const result = await client.activateLicense({
 });
 ```
 
-Calling this client does not change a workspace plan. The workspace plan changes only after you activate a Premium licence key that the server accepts as a verified paid purchase. A key the server cannot verify does not change the plan.
+Calling this client does not change a workspace plan. The workspace plan changes only after you activate a valid Premium licence key in the app.
 
 ## Adding New Premium Features
 
@@ -201,7 +201,7 @@ test('community edition has no premium features', () => {
 
 ### Integration Tests
 
-Activation is covered by the license-boundary tests. A `planTier` write is rejected, and a licence key the server cannot verify does not change the plan.
+Activation is covered by the license-boundary tests. A `planTier` write is rejected. The workspace plan changes only after you activate a valid Premium licence key in the app.
 
 ## Security Considerations
 
@@ -220,7 +220,7 @@ Activation is covered by the license-boundary tests. A `planTier` write is rejec
 
 ### Premium
 - Self-hosted, and not open source
-- Requires a licence key activated in the app. The server must accept that key as a verified paid purchase before it writes the workspace plan
+- The workspace plan changes only after you activate a valid Premium licence key in the app
 
 ## Troubleshooting
 
@@ -228,7 +228,7 @@ Activation is covered by the license-boundary tests. A `planTier` write is rejec
 
 1. **"License not found" error**
    - A `VITE_LICENSE_KEY` value does not activate a plan
-   - The server has to accept the key entered in the app before it writes the workspace plan
+   - Activate a valid Premium licence key in the app
 
 2. **Features not showing**
    - Verify license type (community/enterprise/trial)
@@ -254,7 +254,7 @@ The old system treated `VITE_ENABLE_PREMIUM=true` as a server unlock. That no lo
 1. **Server authorization** comes from a paid-edition entitlement provider registered at boot. With no provider, premium procedures return forbidden.
 2. **Navigation** may still follow the client flag. Showing a screen is not permission to call it.
 3. **Feature checks** in this package do not grant a plan.
-4. **Workspace plans** change only after you activate a Premium licence key that the server accepts as a verified paid purchase.
+4. **Workspace plans** change only after you activate a valid Premium licence key in the app.
 
 To migrate:
 1. Update `main.tsx` to use new license validator

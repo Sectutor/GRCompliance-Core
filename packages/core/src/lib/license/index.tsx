@@ -3,7 +3,7 @@
  * 
  * This module handles license validation for the dual-licensing model:
  * - Community Edition (AGPLv3): Free, open source
- * - Premium (commercial): Paid, self-hosted, and not open source
+ * - Enterprise Edition (Commercial): Paid, with premium features
  */
 
 import * as React from 'react';

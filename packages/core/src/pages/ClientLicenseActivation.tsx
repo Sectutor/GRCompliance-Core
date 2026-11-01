@@ -234,7 +234,7 @@ export default function ClientLicenseActivation() {
                     Activate License
                   </CardTitle>
                   <CardDescription>
-                    Enter the Premium licence key from your purchase email
+                    Enter your Gumroad license key to activate premium features
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -242,13 +242,13 @@ export default function ClientLicenseActivation() {
                     <Label htmlFor="licenseKey">License Key</Label>
                     <Input
                       id="licenseKey"
-                      placeholder="Enter your Premium licence key"
+                      placeholder="Enter your Gumroad license key"
                       value={licenseKey}
                       onChange={(e) => setLicenseKey(e.target.value)}
                       className="font-mono"
                     />
                     <p className="text-sm text-muted-foreground">
-                      After payment on the licence server, the licence key arrives by email
+                      You can find your license key in your Gumroad purchase confirmation email
                     </p>
                   </div>
                   
@@ -258,6 +258,8 @@ export default function ClientLicenseActivation() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium">GRCompliance Premium</div>
+                          {/* Product id kept so the label matches the published Gumroad permalink. */}
+                          <div className="text-sm text-muted-foreground">complianceos-enterprise</div>
                         </div>
                         <Badge variant="outline">Recommended</Badge>
                       </div>
@@ -288,7 +290,7 @@ export default function ClientLicenseActivation() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => window.open("https://license.grcompliance.com", "_blank")}
+                      onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank") /* published Gumroad product id */}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
                       Purchase License
@@ -402,10 +404,10 @@ export default function ClientLicenseActivation() {
               <AlertTitle>License Information</AlertTitle>
               <AlertDescription>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>The workspace plan changes only after you activate a Premium licence key that the server accepts</li>
-                  <li>Premium is self-hosted and is not open source</li>
-                  <li>A key the server cannot verify does not change the plan</li>
-                  <li>Community is free under AGPL-3.0-only and is self-hosted</li>
+                  <li>License keys are tied to your Gumroad account and purchase</li>
+                  <li>Premium licenses include all premium features and priority support</li>
+                  <li>Trial licenses are valid for 30 days with limited features</li>
+                  <li>Community edition is free under AGPLv3 with basic features</li>
                 </ul>
               </AlertDescription>
             </Alert>
@@ -509,10 +511,10 @@ export default function ClientLicenseActivation() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => window.open("https://license.grcompliance.com", "_blank")}
+                        onClick={() => window.open("https://app.gumroad.com/library", "_blank")}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Open the licence server
+                        View in Gumroad
                       </Button>
                       {licenseStatus.status === "active" && (
                         <Button
@@ -771,11 +773,11 @@ export default function ClientLicenseActivation() {
                     <div>
                       <h4 className="font-medium text-sm">Where do I find my license key?</h4>
                       <p className="text-sm text-muted-foreground">
-                        Purchases go through Stripe Checkout on the licence server at{" "}
-                        <a href="https://license.grcompliance.com" className="text-primary hover:underline">
-                          license.grcompliance.com
-                        </a>
-                        . After payment, the licence key arrives by email. Enter it here.
+                        Your license key is included in the purchase confirmation email from Gumroad. 
+                        You can also find it in your Gumroad library at{" "}
+                        <a href="https://app.gumroad.com/library" className="text-primary hover:underline">
+                          app.gumroad.com/library
+                        </a>.
                       </p>
                     </div>
                     
@@ -783,7 +785,7 @@ export default function ClientLicenseActivation() {
                       <h4 className="font-medium text-sm">What happens when my trial expires?</h4>
                       <p className="text-sm text-muted-foreground">
                         When your trial expires, you'll revert to the Community edition with basic features. 
-                        You can purchase a Premium licence to continue using paid features. Premium is self-hosted and is not open source.
+                        You can purchase a Premium license to continue using premium features.
                       </p>
                     </div>
                     
@@ -796,10 +798,10 @@ export default function ClientLicenseActivation() {
                     </div>
                     
                     <div>
-                      <h4 className="font-medium text-sm">What is the difference between Community and Premium?</h4>
+                      <h4 className="font-medium text-sm">What's the difference between Community and Premium?</h4>
                       <p className="text-sm text-muted-foreground">
-                        Community is free and open source (AGPL-3.0-only) and self-hosted.
-                        Premium is self-hosted and is not open source. MCP, automatic evidence collection, and integrations are Premium-only.
+                        Community edition is free and open source (AGPLv3) with basic features. 
+                        Premium includes all premium features, priority support, and commercial licensing. Premium is not open source.
                       </p>
                     </div>
                   </div>
@@ -811,13 +813,9 @@ export default function ClientLicenseActivation() {
                   <h3 className="font-medium">Support Resources</h3>
                   
                   <div className="grid gap-3">
-                    <Button
-                      variant="outline"
-                      className="justify-start"
-                      onClick={() => window.open("https://license.grcompliance.com", "_blank")}
-                    >
+                    <Button variant="outline" className="justify-start">
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      Licence server
+                      Gumroad Help Center
                     </Button>
                     <Button variant="outline" className="justify-start">
                       <ExternalLink className="h-4 w-4 mr-2" />
