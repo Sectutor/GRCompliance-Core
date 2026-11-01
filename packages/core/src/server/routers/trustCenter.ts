@@ -216,7 +216,8 @@ export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedP
 
         listVisitors: protectedProcedure
             .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 const dbConn = await db.getDb();
                 return await dbConn.select().from(schema.trustCenterVisitors)
                     .where(eq(schema.trustCenterVisitors.clientId, input.clientId))

@@ -421,8 +421,9 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                 clientId: z.number().optional()
             }))
             .mutation(async ({ ctx, input }: any) => {
-                const targetId = input.clientId || ctx.user?.clientId;
-                if (!targetId) throw new Error("Client ID required");
+                const targetId = input.clientId;
+                if (!targetId) throw new TRPCError({ code: "BAD_REQUEST", message: "Client ID is required for this operation" });
+                await requireWorkspaceRole({ user: ctx.user, clientId: targetId, minRole: "editor" });
 
                 const d = await db.getDb();
                 await d.delete(controls).where(and(
@@ -437,7 +438,8 @@ export const createFrameworksRouter = (t: any, protectedProcedure: any) => {
                 clientId: z.number(),
                 frameworkId: z.string() // shortCode like 'scvs' or full name
             }))
-            .query(async ({ input }: { input: { clientId: number, frameworkId: string } }) => {
+            .query(async ({ input, ctx }: { input: { clientId: number, frameworkId: string }, ctx: any }) => {
+                await requireWorkspaceRole({ user: ctx?.user, clientId: input.clientId, minRole: "viewer" });
                 const dbConn = await db.getDb();
                 console.log(`[FrameworksRouter] Fetching work process data for client ${input.clientId}, framework ${input.frameworkId}`);
 

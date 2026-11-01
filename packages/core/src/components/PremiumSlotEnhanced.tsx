@@ -77,12 +77,11 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
   upgradeButtonVariant = 'default',
   className = '',
 }) => {
-  const { hasFeature, validateFeature, getLicenseType, isTrialEdition } = useLicense();
+  const { hasFeature, validateFeature, isTrialEdition } = useLicense();
   
   // Check if all required features are available
   const validationResult = validateFeature(requiredFeatures);
   const hasRequiredFeatures = validationResult.isValid;
-  const licenseType = getLicenseType();
   const isTrial = isTrialEdition();
   
   // If features are available, render the children
@@ -202,13 +201,7 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
         </Button>
         
         <div className="text-xs text-center text-muted-foreground">
-          {licenseType === 'community' ? (
-            <p>This feature requires an Enterprise license. <a href="/pricing" className="text-primary hover:underline">View pricing</a></p>
-          ) : licenseType === 'trial' ? (
-            <p>Your trial license doesn't include this feature. <a href="/pricing" className="text-primary hover:underline">Upgrade now</a></p>
-          ) : (
-            <p>Your current license doesn't include this feature. <a href="/settings/billing" className="text-primary hover:underline">Manage subscription</a></p>
-          )}
+          <p>This feature is part of Premium. <a href="/upgrade-required" className="text-primary hover:underline">View Premium</a></p>
         </div>
         
         {featureCategory && (

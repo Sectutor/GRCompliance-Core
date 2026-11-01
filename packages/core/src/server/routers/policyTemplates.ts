@@ -260,14 +260,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
             .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
                 const { policyGenerator } = await import("../../lib/policy/policy-generation");
-
-                // Check client access
-                const membership = await dbConn.select().from(schema.userClients)
-                    .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)));
-
-                if (membership.length === 0 && ctx.user.role !== 'admin') {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "No access to client" });
-                }
+                await authorizeWorkspace(ctx, input.clientId);
 
                 // Get templates
                 const templates = await dbConn.select().from(policyTemplates)

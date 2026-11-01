@@ -31,7 +31,6 @@ import {
 import { 
   CheckCircle, 
   XCircle, 
-  Clock, 
   Zap, 
   Users, 
   Shield, 
@@ -51,7 +50,6 @@ const LicenseManagement: React.FC = () => {
     getLicenseType, 
     isCommunityEdition, 
     isEnterpriseEdition, 
-    isTrialEdition,
     validateFeature 
   } = useLicense();
   
@@ -64,7 +62,6 @@ const LicenseManagement: React.FC = () => {
   const licenseType = getLicenseType();
   const isCommunity = isCommunityEdition();
   const isEnterprise = isEnterpriseEdition();
-  const isTrial = isTrialEdition();
   
   const handleActivateLicense = async () => {
     if (!licenseKey.trim()) {
@@ -373,16 +370,6 @@ const LicenseManagement: React.FC = () => {
             </Alert>
           )}
           
-          {isTrial && (
-            <Alert className="bg-amber-50 border-amber-200">
-              <Clock className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800">Trial Edition</AlertTitle>
-              <AlertDescription className="text-amber-700">
-                You're using a trial license. Some features may be limited. 
-                Upgrade to Premium before your trial expires.
-              </AlertDescription>
-            </Alert>
-          )}
         </TabsContent>
         
         <TabsContent value="features" className="space-y-6">

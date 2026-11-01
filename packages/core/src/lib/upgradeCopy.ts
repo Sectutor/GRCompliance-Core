@@ -3,7 +3,7 @@ const GENERIC_FEATURE = "Premium Feature";
 /** Confirmed Premium-only capabilities. Do not add items the source does not back. */
 export const PREMIUM_CAPABILITIES = [
     "MCP",
-    "Automatic evidence collection, including API evidence ingest",
+    "Automatic evidence collection (including API evidence ingest)",
     "Integrations (GitHub, SIEM, SOAR, threat intel, and vulnerability scanners)",
     "Prowler and Trivy scanner add-ons",
     "Multilingual support",

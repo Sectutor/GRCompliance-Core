@@ -1,7 +1,7 @@
 /**
  * Upgrade Prompt Components
  * 
- * Various ways to prompt users to upgrade from Community to Enterprise edition
+ * Various ways to prompt users to upgrade from Community to Premium.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -28,7 +28,6 @@ import {
   ArrowRight,
   Sparkles,
   Crown,
-  Rocket,
 } from 'lucide-react';
 import { useLicense } from '@/lib/license/index';
 import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, isCommunityWorkspaceLimitMessage } from '@/lib/edition';
@@ -56,7 +55,6 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   featureId = 'premium.feature',
   featureName = 'Premium Feature',
   featureDescription = 'This feature is part of Premium',
-  showTrialOption = true,
   size = 'md',
   open: openProp,
   onOpenChange,
@@ -179,20 +177,6 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-3">
-          {showTrialOption && !isTrial && (
-            <Button
-              variant="outline"
-              className="sm:flex-1"
-              onClick={() => {
-                setOpen(false);
-                window.open('/start-trial', '_blank');
-              }}
-            >
-              <Rocket className="w-4 h-4 mr-2" />
-              Start 30-Day Trial
-            </Button>
-          )}
-
           <Button
             className="sm:flex-1"
             onClick={() => {

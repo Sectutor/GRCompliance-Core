@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { duePhrase } from "./duePhrase";
+import { duePhrase, reviewDuePhrase } from "./duePhrase";
 
 describe("duePhrase", () => {
     it("uses Due and the date when a due date exists", () => {
@@ -12,5 +12,11 @@ describe("duePhrase", () => {
         expect(duePhrase(undefined)).toBe("No due date");
         expect(duePhrase("")).toBe("No due date");
         expect(duePhrase("not-a-date")).toBe("No due date");
+    });
+
+    it("uses Review due for a policy review date", () => {
+        const date = new Date(2026, 10, 2);
+        expect(reviewDuePhrase(date)).toBe(`Review due ${date.toLocaleDateString()}`);
+        expect(reviewDuePhrase(null)).toBe("No review date");
     });
 });

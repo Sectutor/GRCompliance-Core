@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, ChevronRight, Filter, Info, AlertCircle, Clock, Shield, User, BarChart3, Download, BookOpen, LayoutGrid } from "lucide-react";
 import EvidenceFileUpload from "@/components/EvidenceFileUpload";
-import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
 import { GoogleDriveFileBrowser } from "@/components/integrations/GoogleDriveFileBrowser";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useState, useMemo } from "react";
@@ -926,13 +925,6 @@ export default function Evidence() {
                   </Button>
                 </div>
                 <EvidenceFileUpload evidenceId={viewingFiles} clientId={clientId} />
-                <div className="pt-4 border-t border-slate-100">
-                  <Label className="text-sm font-semibold mb-3 block">AI Compliance Analysis</Label>
-                  <EvidenceAnalysisButton
-                    evidenceId={viewingFiles}
-                    controlName={evidenceList?.find(e => e.id === viewingFiles)?.control?.name}
-                  />
-                </div>
               </div>
             </EnhancedDialog>
           )
