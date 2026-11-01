@@ -2,6 +2,29 @@
 
 Open-source, self-hosted core for teams that run ISO 27001, SOC 2, NIS2, and GDPR in one place. Premium is self-hosted and is not open source.
 
+[![Animated version of the same 33-second GRCompliance Core walkthrough, 1200px wide.](docs/media/core-demo.gif)](docs/media/core-demo.mp4)
+
+[Watch the 33-second walkthrough](docs/media/core-demo.mp4)
+
+## Screenshots
+
+Stills from the seeded Latore LTD sample workspace.
+
+| | |
+|---|---|
+| ![GRCompliance Core dashboard: posture score of 54% with "needs attention" status, insights on implemented controls and high residual risks, and overall compliance, risk and workspace summary cards.](docs/media/core-dashboard.png) | ![GRCompliance Core risk register for the sample workspace: side-by-side 5x5 likelihood-by-impact heat maps for inherent and residual risk, with an Add Risk button.](docs/media/core-risk-register.png) |
+
+<details>
+<summary>Control library, policies, and evidence</summary>
+
+![GRCompliance Core control library showing 30 selected ISO 27001 controls grouped by Governance, People and Access Control, with framework and status filters and an Export SoA button.](docs/media/core-control-library-iso27001.png)
+
+![GRCompliance Core policy list: Information Security, Access Control, Incident Response, Vendor Risk Management, Business Continuity and NIS2 Incident Notification policies, each a v1 draft.](docs/media/core-policies.png)
+
+![GRCompliance Core evidence view: 30 controls, 5 verified, 25 missing documents, 17% complete, an open evidence request, and Access Control controls with linked evidence (LTD-EV-007 on Privileged access rights) or an Add document link.](docs/media/core-evidence-linked-controls.png)
+
+</details>
+
 [![CI](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml/badge.svg)](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 [![Container image](https://img.shields.io/badge/ghcr.io-grcompliance--core-2496ED)](https://github.com/Sectutor/GRCompliance-Core/pkgs/container/grcompliance-core)
@@ -9,22 +32,6 @@ Open-source, self-hosted core for teams that run ISO 27001, SOC 2, NIS2, and GDP
 GRCompliance is the self-hosted core of a GRC platform. It keeps controls, policies, risks, evidence, and audits together so a team can see what is done and what is still open.
 
 Project site: [grcompliance.com](https://grcompliance.com/). [Try the live demo](https://demo.grcompliance.com). It is a temporary demo server, so do not put real data in it.
-
-## Product
-
-Screenshots are from the Latore LTD demo workspace after a community install.
-
-![Dashboard](docs/screenshots/dashboard.png)
-
-![Risk register](docs/screenshots/risk-register.png)
-
-![Client controls](docs/screenshots/controls.png)
-
-![Policies](docs/screenshots/policies.png)
-
-![Compliance frameworks](docs/screenshots/compliance.png)
-
-![Evidence](docs/screenshots/evidence.png)
 
 ## Features
 
