@@ -138,9 +138,9 @@ export function LicenseActivationSuccess({
           
           <Button 
             className="bg-green-600 hover:bg-green-700 text-white"
-            onClick={() => window.open("https://app.gumroad.com/library", "_blank")}
+            onClick={() => window.open("https://license.grcompliance.com", "_blank")}
           >
-            View in Gumroad
+            Open the licence server
           </Button>
         </div>
         

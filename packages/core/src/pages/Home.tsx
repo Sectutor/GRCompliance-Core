@@ -126,7 +126,7 @@ export default function Home() {
               <a href="#features" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">Platform</a>
               <a href="#process" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">How it works</a>
               <Button asChild className="bg-[#00A36C] hover:bg-[#008F5D] text-white px-8 py-3 rounded-lg shadow-lg text-sm font-bold transition-all transform hover:-translate-y-0.5 border-none">
-                <a href="/waitlist">Join the Waitlist</a>
+                <a href="https://demo.grcompliance.com">Try the live demo</a>
               </Button>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function Home() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#003366] mb-8 border border-blue-100 uppercase tracking-widest">
-                Enterprise GRC Platform
+                Self-hosted GRC
               </div>
 
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
@@ -153,10 +153,10 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-5">
                 <Button size="lg" asChild className="h-14 px-8 text-lg font-bold bg-[#003366] text-white hover:bg-[#002244] transition-all shadow-sm">
-                  <a href="/waitlist">Request Vetted Access</a>
+                  <a href="https://demo.grcompliance.com">Try the live demo</a>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="h-14 px-8 text-lg font-bold border-slate-200 bg-white text-slate-800 hover:border-slate-300 transition-all shadow-sm">
-                  <a href="/demo">View Product Demo</a>
+                  <a href="https://grcompliance.com">Project site</a>
                 </Button>
               </div>
             </div>
@@ -179,25 +179,25 @@ export default function Home() {
         <div id="process" className="py-24 sm:py-32 bg-white">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-20 max-w-2xl">
-              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6 tracking-tight">A vetted onboarding experience.</h2>
-              <p className="text-lg text-slate-600 leading-relaxed">We provide high-touch support to ensure your instance is configured for maximum security and minimal friction.</p>
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6 tracking-tight">Self-hosted, on your infrastructure.</h2>
+              <p className="text-lg text-slate-600 leading-relaxed">GRCompliance Core is open source under AGPL-3.0-only. Premium is self-hosted and is not open source.</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-12 sm:gap-16">
               <div>
                 <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 01</div>
-                <h3 className="text-xl font-bold text-slate-900 mb-4">Application</h3>
-                <p className="text-slate-600 leading-relaxed">Join our waitlist and share your organization's compliance goals and existing technical landscape.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Install</h3>
+                <p className="text-slate-600 leading-relaxed">Run the installer and start your own instance. The project site is grcompliance.com.</p>
               </div>
               <div>
                 <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 02</div>
-                <h3 className="text-xl font-bold text-slate-900 mb-4">Discovery</h3>
-                <p className="text-slate-600 leading-relaxed">We host a discovery session to map our automation engines to your specific infrastructure and controls.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Demo</h3>
+                <p className="text-slate-600 leading-relaxed">Try the live demo at demo.grcompliance.com. It is a separate temporary server, reset every week. Do not enter confidential data there.</p>
               </div>
               <div>
                 <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 03</div>
-                <h3 className="text-xl font-bold text-slate-900 mb-4">Provisioning</h3>
-                <p className="text-slate-600 leading-relaxed">Approved partners receive a private instance with pre-configured framework templates and API integrations.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Premium</h3>
+                <p className="text-slate-600 leading-relaxed">Purchases go through Stripe Checkout on the licence server at license.grcompliance.com. After payment, the licence key arrives by email. Enter it in the app. The workspace plan changes only after you activate a Premium licence key that the server accepts.</p>
               </div>
             </div>
           </div>
@@ -209,7 +209,7 @@ export default function Home() {
             <div className="grid lg:grid-cols-2 gap-20 items-center">
               <div>
                 <h2 className="text-4xl font-bold text-slate-900 mb-8 tracking-tight leading-tight">Automation that actually eliminates manual work.</h2>
-                <p className="text-lg text-slate-600 mb-10 leading-relaxed">While others just track compliance, we automate the evidence collection. No more massive spreadsheets or missed screenshots.</p>
+                <p className="text-lg text-slate-600 mb-10 leading-relaxed">Community keeps evidence linked to controls. Automatic evidence collection, MCP, and integrations are Premium features. Premium is self-hosted and is not open source.</p>
 
                 <div className="space-y-6">
                   <div className="flex gap-4">
@@ -228,7 +228,7 @@ export default function Home() {
                     <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mt-1">
                       <Check className="w-4 h-4 text-[#00A36C]" />
                     </div>
-                    <p className="text-slate-800 font-semibold italic">Isolated infrastructure for every client.</p>
+                    <p className="text-slate-800 font-semibold italic">You run it on your own infrastructure.</p>
                   </div>
                 </div>
               </div>
@@ -266,9 +266,9 @@ export default function Home() {
         {/* Final CTA */}
         <div className="bg-[#003366] py-24 sm:py-32">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-8 tracking-tight">Limited capacity available for 2026 onboarding.</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-8 tracking-tight">See GRCompliance on the live demo.</h2>
             <Button size="lg" asChild className="h-16 px-10 text-xl font-extrabold rounded bg-white text-[#003366] hover:bg-slate-50 transition-all shadow-xl">
-              <a href="/waitlist">Secure your spot on the Waitlist</a>
+              <a href="https://demo.grcompliance.com">Try the live demo</a>
             </Button>
           </div>
         </div>
@@ -290,7 +290,7 @@ export default function Home() {
           </div>
           <div className="mt-16 pt-8 border-t border-slate-50 text-center">
             <p className="text-slate-400 text-xs font-bold tracking-widest uppercase">
-              &copy; 2026 GRCompliance, Inc. All rights reserved.
+              &copy; 2026 Intellfence. All rights reserved.
             </p>
           </div>
         </div>

@@ -181,7 +181,7 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
           </div>
           
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Enterprise Edition</h4>
+            <h4 className="font-medium text-sm">Premium</h4>
             <ul className="space-y-1 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500" />

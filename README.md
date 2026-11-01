@@ -1,14 +1,14 @@
 # GRCompliance
 
-Open-source governance, risk, and compliance for teams that run ISO 27001, SOC 2, NIS2, and GDPR in one place.
+Open-source, self-hosted core for teams that run ISO 27001, SOC 2, NIS2, and GDPR in one place. Premium is self-hosted and is not open source.
 
 [![CI](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml/badge.svg)](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml)
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 [![Container image](https://img.shields.io/badge/ghcr.io-grcompliance--core-2496ED)](https://github.com/Sectutor/GRCompliance-Core/pkgs/container/grcompliance-core)
 
 GRCompliance is the self-hosted core of a GRC platform. It keeps controls, policies, risks, evidence, and audits together so a team can see what is done and what is still open.
 
-The hosted product is at [grcompliance.com](https://grcompliance.com/). The weekly demo is a separate temporary server: [Create your Demo account](https://demo.grcompliance.com). It is reset every week. Do not enter confidential data there.
+Project site: [grcompliance.com](https://grcompliance.com/). [Try the live demo](https://demo.grcompliance.com). The demo is a separate temporary server. It is reset every week. Do not enter confidential data there.
 
 ## Product
 
@@ -155,7 +155,7 @@ Community is the default. Premium APIs stay forbidden until the paid edition reg
 
 The image omits premium navigation such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge.
 
-A community instance can keep the seeded **Latore LTD** demo plus one other workspace. Latore does not consume that one real workspace, and administrators are counted the same way as every other owner. The server enforces that cap on create and on switching. `VITE_ENABLE_PREMIUM`, a client-supplied plan, and `users.maxClients` do not raise it. Workspaces that already exist are left in place; the owner can still open Latore and the earliest other workspace. Another real workspace needs a commercial license from [grcompliance.com](https://grcompliance.com/). Putting a license key in the environment, or writing `planTier`, modules, or branding through the client update API, does not upgrade the workspace. The plan changes only after Gumroad verifies a purchase. The workspace cap does not consult the premium entitlement provider.
+A community instance can keep the seeded **Latore LTD** demo plus one other workspace. Latore does not consume that one real workspace, and administrators are counted the same way as every other owner. The server enforces that cap on create and on switching. `VITE_ENABLE_PREMIUM`, a client-supplied plan, and `users.maxClients` do not raise it. Workspaces that already exist are left in place; the owner can still open Latore and the earliest other workspace. Another real workspace needs a Premium licence. Purchases go through Stripe Checkout on the licence server at [license.grcompliance.com](https://license.grcompliance.com/). After payment, the buyer receives a licence key by email and enters it in the app. Putting a licence key in the environment, or writing `planTier`, modules, or branding through the client update API, does not upgrade the workspace. The workspace plan changes only after you activate a Premium licence key that the server accepts as a verified paid purchase. A key the server cannot verify does not change the plan. Activating a key does not open Premium APIs; those stay forbidden until the paid edition registers a server entitlement provider. The workspace cap does not consult the premium entitlement provider.
 
 The first page does not show a cookie or advertising consent dialog. GRCompliance does not load third-party tracking, analytics, or advertising scripts. Sign-in uses strictly necessary session storage. Set `GRC_COOKIE_CONSENT=1` only if you want an optional notice that records a browser preference and still loads no third-party scripts.
 
@@ -175,6 +175,6 @@ GRCompliance is licensed under the GNU Affero General Public License version 3 o
 
 If you modify GRCompliance and offer it as a network service, AGPL-3.0-only requires you to offer the corresponding source to users of that service.
 
-A commercial license is available for organizations that need terms other than AGPL-3.0-only. The template is [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com.
+A commercial licence is available for organizations that need terms other than AGPL-3.0-only. That licence covers Premium, which is self-hosted and is not open source. The template is [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com.
 
 Source checkout: [https://github.com/Sectutor/GRCompliance-Core.git](https://github.com/Sectutor/GRCompliance-Core.git).

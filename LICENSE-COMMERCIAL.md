@@ -2,12 +2,12 @@
 
 **Version 1.0**  
 **Effective Date: [DATE]**  
-**Between: GRCompliance, Inc. ("Licensor") and [CUSTOMER NAME] ("Licensee")**
+**Between: Intellfence ("Licensor") and [CUSTOMER NAME] ("Licensee")**
 
 ## 1. GRANT OF LICENSE
 
 ### 1.1 License Scope
-Licensor grants Licensee a non-exclusive, non-transferable, revocable license to use the GRCompliance Enterprise Edition software ("Software") subject to the terms and conditions of this Agreement.
+Licensor grants Licensee a non-exclusive, non-transferable, revocable license to use the GRCompliance Premium software ("Software") subject to the terms and conditions of this Agreement. Premium is self-hosted and is not open source.
 
 ### 1.2 Permitted Use
 Licensee may:
@@ -157,7 +157,7 @@ All notices shall be in writing and sent to the addresses specified in this Agre
 
 By installing or using the Software, Licensee agrees to be bound by the terms of this Agreement.
 
-**LICENSOR:** GRCompliance, Inc.  
+**LICENSOR:** Intellfence  
 **ADDRESS:** [ADDRESS]  
 **EMAIL:** legal@grcompliance.com  
 

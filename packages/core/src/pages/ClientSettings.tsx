@@ -407,7 +407,7 @@ export default function ClientSettings() {
                                                 <Button
                                                     variant="outline"
                                                     className="justify-start"
-                                                    onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank")} // published Gumroad product id; do not rename
+                                                    onClick={() => window.open("https://license.grcompliance.com", "_blank")}
                                                 >
                                                     <CreditCard className="h-4 w-4 mr-2" />
                                                     Purchase License

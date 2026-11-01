@@ -35,7 +35,7 @@ export function LicenseActivationFailure({
         description: "The license key you entered could not be found or is invalid.",
         solutions: [
           "Check for typos in your license key",
-          "Verify the license key in your Gumroad library",
+          "Use the licence key from the purchase email",
           "Ensure you're using the correct product license key"
         ]
       };
@@ -46,7 +46,7 @@ export function LicenseActivationFailure({
         title: "License Expired",
         description: "This license has expired and is no longer valid.",
         solutions: [
-          "Renew your license in Gumroad",
+          "Renew the licence on the licence server",
           "Purchase a new license if renewal is not available",
           "Contact support for assistance with expired licenses"
         ]
@@ -183,9 +183,9 @@ export function LicenseActivationFailure({
           <Button 
             variant="default"
             className="bg-red-600 hover:bg-red-700 text-white"
-            onClick={() => window.open("https://app.gumroad.com/library", "_blank")}
+            onClick={() => window.open("https://license.grcompliance.com", "_blank")}
           >
-            View in Gumroad
+            Open the licence server
           </Button>
         </div>
         
@@ -196,8 +196,8 @@ export function LicenseActivationFailure({
             <p>If you continue to experience issues, please:</p>
             <ul className="list-disc list-inside ml-2">
               <li>Contact support with your license key and error message</li>
-              <li>Check the Gumroad help center for common issues</li>
-              <li>Verify your purchase is still active in your Gumroad account</li>
+              <li>Confirm the key is the one from the purchase email</li>
+              <li>A key the server cannot verify does not change the plan</li>
             </ul>
           </div>
         </div>

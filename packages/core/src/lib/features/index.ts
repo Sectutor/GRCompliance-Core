@@ -366,15 +366,15 @@ export const FEATURE_DEFINITIONS: Record<string, {
 
   // Deployment Features
   [FEATURES.DEPLOYMENT_MANAGED_SAAS]: {
-    name: 'Managed SaaS',
-    description: 'Fully managed cloud deployment',
+    name: 'Self-hosted Premium',
+    description: 'Premium is self-hosted and is not a hosted service.',
     category: FEATURE_CATEGORIES.DEPLOYMENT,
     availableIn: ['COMMERCIAL', 'TRIAL'],
   },
 
   [FEATURES.DEPLOYMENT_PRIVATE_CLOUD]: {
-    name: 'Private Cloud',
-    description: 'Dedicated cloud environment',
+    name: 'Private deployment',
+    description: 'Run a dedicated instance on infrastructure you control.',
     category: FEATURE_CATEGORIES.DEPLOYMENT,
     availableIn: ['COMMERCIAL'],
     requiresLicense: true,

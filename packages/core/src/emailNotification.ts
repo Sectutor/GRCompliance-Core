@@ -281,7 +281,7 @@ export async function sendWeeklyDigest(): Promise<{
     content += formatEventsForNotification(upcomingItems, `📅 Upcoming Deadlines - Next 30 Days (${upcomingItems.length})`);
   }
 
-  content += `\n---\n*This is your weekly compliance report. Visit the Compliance OS dashboard for more details.*`;
+  content += `\n---\n*This is your weekly compliance report. Visit the GRCompliance dashboard for more details.*`;
 
   const success = await notifyOwner({
     title: `📊 Weekly Compliance Report: ${overdueItems.length} overdue, ${upcomingItems.length} upcoming`,

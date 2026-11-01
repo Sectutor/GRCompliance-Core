@@ -3,8 +3,8 @@
 ## Overview
 
 This system implements license validation for GRCompliance's dual-licensing model:
-- **Community Edition**: AGPLv3, free and open source
-- **Enterprise Edition**: Commercial license with premium features
+- **Community Edition**: AGPL-3.0-only, free and open source, self-hosted
+- **Premium**: Commercial licence, self-hosted, and not open source
 - **Trial Edition**: Limited-time trial with some premium features
 
 ## Architecture
@@ -20,8 +20,7 @@ This system implements license validation for GRCompliance's dual-licensing mode
 2. **License Server Client** (`server.ts`)
    - Communication with license server
    - License activation/validation/deactivation
-   - Mock server for development
-   - Caching and error handling
+   - Caching and error handling. There is no mock licence server.
 
 3. **React Components**
    - `PremiumSlotEnhanced`: Enhanced premium slot with license checks
@@ -113,13 +112,14 @@ export const FEATURES = {
 
 ## License Types
 
-### Community Edition (AGPLv3)
+### Community Edition (AGPL-3.0-only)
 - No premium features
 - Free and open source
 - Self-hosted only
 - No license key required
 
-### Enterprise Edition (Commercial)
+### Premium (commercial)
+- Self-hosted, and not open source
 - Premium server procedures run only in the paid edition, which registers a server entitlement provider at boot
 - A license key string, `VITE_ENABLE_PREMIUM`, and `BUILD_TYPE` do not change the plan
 - The browser flag may show premium navigation. It does not authorize APIs
@@ -150,7 +150,7 @@ const result = await client.activateLicense({
 });
 ```
 
-Calling this client does not change a workspace plan. Gumroad has to verify the purchase first.
+Calling this client does not change a workspace plan. The workspace plan changes only after you activate a Premium licence key that the server accepts as a verified paid purchase. A key the server cannot verify does not change the plan.
 
 ## Adding New Premium Features
 
@@ -201,7 +201,7 @@ test('community edition has no premium features', () => {
 
 ### Integration Tests
 
-Activation is covered by the license-boundary tests. A `planTier` write is rejected, and a purchase that Gumroad did not verify does not change the plan.
+Activation is covered by the license-boundary tests. A `planTier` write is rejected, and a licence key the server cannot verify does not change the plan.
 
 ## Security Considerations
 
@@ -216,22 +216,19 @@ Activation is covered by the license-boundary tests. A `planTier` write is rejec
 ### Self-hosted Community Edition
 - No license server required
 - All features are community features
-- AGPLv3 license applies
+- AGPL-3.0-only applies
 
-### Enterprise Edition
-- Requires license server
-- License keys bound to domains
-- Regular validation with server
-- Grace period for offline use
+### Premium
+- Self-hosted, and not open source
+- Requires a licence key activated in the app. The server must accept that key as a verified paid purchase before it writes the workspace plan
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **"License not found" error**
-   - Check `VITE_LICENSE_KEY` environment variable
-   - Verify license server connectivity
-   - Check domain binding
+   - A `VITE_LICENSE_KEY` value does not activate a plan
+   - The server has to accept the key entered in the app before it writes the workspace plan
 
 2. **Features not showing**
    - Verify license type (community/enterprise/trial)
@@ -257,10 +254,10 @@ The old system treated `VITE_ENABLE_PREMIUM=true` as a server unlock. That no lo
 1. **Server authorization** comes from a paid-edition entitlement provider registered at boot. With no provider, premium procedures return forbidden.
 2. **Navigation** may still follow the client flag. Showing a screen is not permission to call it.
 3. **Feature checks** in this package do not grant a plan.
-4. **Workspace plans** change only after Gumroad verifies a purchase.
+4. **Workspace plans** change only after you activate a Premium licence key that the server accepts as a verified paid purchase.
 
 To migrate:
 1. Update `main.tsx` to use new license validator
 2. Replace `PremiumSlot` with `PremiumSlotEnhanced`
 3. Add license checks to premium features
-4. Deploy license server for enterprise customers
+4. Premium customers activate a licence key in the app. Premium is not open source.

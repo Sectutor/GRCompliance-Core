@@ -72,7 +72,7 @@ const LicenseManagement: React.FC = () => {
       return;
     }
     setIsActivating(true);
-    toast.error('A license key is not activated in the browser. A workspace plan changes only after Gumroad verifies a purchase.');
+    toast.error('A license key is not activated in the browser. The workspace plan changes only after you activate a Premium licence key that the server accepts as a verified paid purchase.');
     setIsActivating(false);
   };
   
@@ -113,7 +113,7 @@ const LicenseManagement: React.FC = () => {
       case 'community':
         return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Community Edition</Badge>;
       case 'enterprise':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Enterprise Edition</Badge>;
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Premium</Badge>;
       case 'trial':
         return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Trial Edition</Badge>;
       default:
