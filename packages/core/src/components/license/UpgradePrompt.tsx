@@ -15,23 +15,19 @@ import {
   DialogTrigger,
 } from '@complianceos/ui';
 import { Button } from '@complianceos/ui';
-import { Badge } from '@complianceos/ui';
 import {
   Zap,
   Users,
   Shield,
   BarChart,
   Cloud,
-  CheckCircle,
-  XCircle,
   Lock,
   ArrowRight,
-  Sparkles,
   Crown,
 } from 'lucide-react';
 import { useLicense } from '@/lib/license/index';
 import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, isCommunityWorkspaceLimitMessage } from '@/lib/edition';
-import { PREMIUM_CAPABILITIES } from '@/lib/upgradeCopy';
+import { PREMIUM_AVAILABLE, PREMIUM_PRICING_PATH } from '@/lib/licenseLabel';
 
 export const COMMUNITY_WORKSPACE_LIMIT_EVENT = "grc-community-workspace-limit";
 
@@ -40,7 +36,6 @@ interface UpgradePromptProps {
   featureId?: string;
   featureName?: string;
   featureDescription?: string;
-  showTrialOption?: boolean;
   size?: 'sm' | 'md' | 'lg';
   /** When set, the dialog is controlled by the caller (used for server FORBIDDEN responses). */
   open?: boolean;
@@ -65,11 +60,6 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
     if (openProp === undefined) setUncontrolledOpen(next);
     onOpenChange?.(next);
   };
-  const { isCommunityEdition, isTrialEdition } = useLicense();
-
-  const isCommunity = isCommunityEdition();
-  const isTrial = isTrialEdition();
-
   const getFeatureIcon = () => {
     if (featureId.includes('ai.')) return <Zap className="w-6 h-6" />;
     if (featureId.includes('advisor.')) return <Users className="w-6 h-6" />;
@@ -101,11 +91,6 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             <div>
               <DialogTitle className="flex items-center gap-2">
                 {featureName}
-                {isTrial && (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                    Trial
-                  </Badge>
-                )}
               </DialogTitle>
               <DialogDescription>
                 {featureDescription}
@@ -114,78 +99,14 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Feature highlight */}
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h4 className="font-medium">What's included in Premium:</h4>
-            </div>
-            <ul className="space-y-2 text-sm">
-              {PREMIUM_CAPABILITIES.map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Edition comparison */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                <h4 className="font-medium">Community Edition</h4>
-              </div>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Free & Open Source (AGPLv3)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Self-hosted</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Basic GRC Features</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                  <span>Premium capabilities are not included</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
-              <div className="flex items-center gap-2 mb-3">
-                <Crown className="w-4 h-4 text-primary" />
-                <h4 className="font-medium">Premium</h4>
-              </div>
-              <ul className="space-y-2 text-sm">
-                {PREMIUM_CAPABILITIES.map((item) => (
-                  <li key={item} className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-        </div>
+        <p className="text-sm">{PREMIUM_AVAILABLE}</p>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-3">
-          <Button
-            className="sm:flex-1"
-            onClick={() => {
-              setOpen(false);
-              window.open('/pricing', '_blank');
-            }}
-          >
-            Upgrade
-            <ArrowRight className="w-4 h-4 ml-2" />
+          <Button className="sm:flex-1" asChild>
+            <a href={PREMIUM_PRICING_PATH} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
+              {PREMIUM_AVAILABLE}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </a>
           </Button>
 
           <Button
@@ -215,7 +136,7 @@ export const InlineUpgradePrompt: React.FC<{
     return (
       <div className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 px-2 py-1 rounded">
         <Lock className="w-3 h-3" />
-        <span>Upgrade for {featureName}</span>
+        <span>{PREMIUM_AVAILABLE}</span>
       </div>
     );
   }
@@ -227,9 +148,9 @@ export const InlineUpgradePrompt: React.FC<{
           <Crown className="w-5 h-5 text-amber-600" />
         </div>
         <div>
-          <h4 className="font-medium text-amber-900">Upgrade to Premium</h4>
+          <h4 className="font-medium text-amber-900">{PREMIUM_AVAILABLE}</h4>
           <p className="text-sm text-amber-700">
-            Unlock {featureName} and all premium features
+            {PREMIUM_AVAILABLE}
           </p>
         </div>
       </div>
@@ -237,9 +158,11 @@ export const InlineUpgradePrompt: React.FC<{
         size="sm"
         variant="outline"
         className="border-amber-300 text-amber-700 hover:bg-amber-100"
-        onClick={() => window.open('/pricing', '_blank')}
+        asChild
       >
-        Upgrade Now
+        <a href={PREMIUM_PRICING_PATH} target="_blank" rel="noreferrer">
+          {PREMIUM_AVAILABLE}
+        </a>
       </Button>
     </div>
   );
@@ -351,7 +274,6 @@ export function CommunityWorkspaceLimitHost() {
       featureId="enterprise.workspaces"
       featureName="Additional workspaces"
       featureDescription={message}
-      showTrialOption={false}
     />
   );
 }

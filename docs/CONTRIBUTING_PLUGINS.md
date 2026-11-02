@@ -10,23 +10,19 @@ A plugin is a single JSON file that contains both metadata (manifest) and the fr
 Name your file using the framework slug, e.g., `iso-27001.json` or `soc2-type-2.json`.
 
 ### Schema
-Your JSON file must adhere to the [JSON Schema](/data/schemas/framework-plugin.schema.json).
+There is no `framework-plugin.schema.json` in this repository. Validate the file with `PluginPackageSchema` in [`packages/core/src/server/lib/pluginParser.ts`](../packages/core/src/server/lib/pluginParser.ts). `PluginLoader.validate` parses that Zod schema.
 
 ### Example Structure
 ```json
 {
-  "$schema": "../../schemas/framework-plugin.schema.json",
   "manifest": {
+    "id": "sample-framework",
     "slug": "sample-framework",
     "name": "Sample Framework v1.0",
     "version": "1.0.0",
+    "author": "GRCompliance",
     "description": "A sample compliance framework.",
-    "publisher": {
-      "name": "GRCompliance",
-      "url": "https://grcompliance.com"
-    },
-    "license": "CC-BY-4.0",
-    "type": "standard",
+    "type": "Security",
     "tags": ["security", "privacy"]
   },
   "content": {

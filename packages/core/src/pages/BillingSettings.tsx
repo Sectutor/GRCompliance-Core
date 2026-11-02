@@ -26,7 +26,7 @@ export default function BillingSettings({ client }: { client: Client }) {
         <div className="space-y-6 max-w-3xl mx-auto p-6">
             <div>
                 <h2 className="text-2xl font-bold tracking-tight">Premium</h2>
-                <p className="text-muted-foreground">Premium is the self-hosted paid edition. Core does not sell SaaS tiers.</p>
+                <p className="text-muted-foreground">Premium is the self-hosted paid edition.</p>
             </div>
 
             <Card>

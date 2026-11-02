@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLicense, FEATURES } from '@/lib/license/index';
+import { PREMIUM_AVAILABLE, PREMIUM_PRICING_PATH, visibleFeatureLabel, visibleLicenseType } from '@/lib/licenseLabel';
 import { 
   Card, 
   CardContent, 
@@ -106,16 +107,11 @@ const LicenseManagement: React.FC = () => {
   };
   
   const getLicenseBadge = () => {
-    switch (licenseType) {
-      case 'community':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Community Edition</Badge>;
-      case 'enterprise':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Enterprise Edition</Badge>;
-      case 'trial':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Trial Edition</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+    const label = visibleLicenseType(licenseType);
+    if (label === "Premium") {
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Premium</Badge>;
     }
+    return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Community</Badge>;
   };
   
   const getLicenseStatusBadge = () => {
@@ -149,7 +145,7 @@ const LicenseManagement: React.FC = () => {
   const getFeatureCategory = (featureId: string) => {
     if (featureId.includes('ai.')) return 'AI Intelligence';
     if (featureId.includes('advisor.')) return 'Advisor Tools';
-    if (featureId.includes('enterprise.')) return 'Enterprise Scale';
+    if (featureId.includes('enterprise.')) return 'Premium';
     if (featureId.includes('security.')) return 'Security & Compliance';
     if (featureId.includes('reporting.')) return 'Professional Reporting';
     if (featureId.includes('integration.')) return 'Integration Ecosystem';
@@ -346,10 +342,10 @@ const LicenseManagement: React.FC = () => {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => window.open('/pricing', '_blank')}
+                  onClick={() => window.open(PREMIUM_PRICING_PATH, '_blank')}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  View Pricing
+                  {PREMIUM_AVAILABLE}
                 </Button>
               </CardContent>
               <CardFooter>
@@ -400,7 +396,7 @@ const LicenseManagement: React.FC = () => {
                           >
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium">
-                                {feature.split('.').pop()?.replace('_', ' ')}
+                                {visibleFeatureLabel(feature)}
                               </span>
                               {isAvailable ? (
                                 <CheckCircle className="w-4 h-4 text-green-500" />
@@ -475,9 +471,9 @@ const LicenseManagement: React.FC = () => {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => window.open('/pricing', '_blank')}
+                  onClick={() => window.open(PREMIUM_PRICING_PATH, '_blank')}
                 >
-                  View Pricing & Purchase
+                  {PREMIUM_AVAILABLE}
                 </Button>
               </div>
             </CardFooter>

@@ -12,7 +12,7 @@ export const LATORE_DEMO_NAME = "Latore LTD";
 
 /** Stable server message for the one-real-workspace cap. The UI matches this text. */
 export const COMMUNITY_WORKSPACE_LIMIT_MESSAGE =
-    "Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.";
+    "Community Edition is limited to a single workspace. Premium is available.";
 
 export function isCommunityWorkspaceLimitMessage(message: string | null | undefined): boolean {
     return typeof message === "string" && message.includes("Community Edition is limited to a single workspace");

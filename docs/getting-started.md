@@ -25,7 +25,7 @@ The API defaults to port 3001. The web app defaults to port 5173.
 
 ## Edition
 
-This repository is the Community edition. Premium procedures (CRM, federal, threat models, questionnaire generation, vendor modules, and the other routers wrapped by `requirePremiumEdition`) return forbidden until the paid edition registers a server entitlement at boot. `npm run server:enterprise` and `npm run server:trial` start that same Community server. They do not unlock those APIs. `VITE_ENABLE_PREMIUM=true` can show premium navigation in the browser and does not authorize the server.
+This repository is the Community edition. Premium procedures (CRM, federal, threat models, questionnaire generation, vendor modules, and the other routers wrapped by `requirePremiumEdition`) return forbidden until the paid edition registers a server entitlement at boot. `npm run server` starts that Community server. It does not unlock those APIs. `VITE_ENABLE_PREMIUM=true` can show premium navigation in the browser and does not authorize the server.
 
 ## Develop
 

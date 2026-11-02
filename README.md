@@ -151,7 +151,7 @@ Automatic evidence collection and the GitHub, SIEM, SOAR, threat-intel and vulne
 
 Community is the default. Premium APIs stay forbidden until the paid edition registers a server entitlement provider at boot (`registerPremiumEntitlement` in `packages/core/src/server/premiumEntitlement.ts`). `VITE_ENABLE_PREMIUM`, `BUILD_TYPE`, a license key string, `INSTANCE_LICENSE_TIER`, a platform administrator, a workspace owner, and a client admin do not authorize those APIs. The published image is Community.
 
-`VITE_ENABLE_PREMIUM=true` may still show premium navigation in a browser bundle, with a Pro badge. `dev:enterprise`, `dev:trial`, `build:enterprise`, and `build:trial` set that flag for the client only. `server:enterprise` and `server:trial` do not. They start the same Community server as `npm run server`, and they print that they do not unlock premium APIs. An unset flag, or any value other than exact `true`, hides that navigation.
+`VITE_ENABLE_PREMIUM=true` may still show premium navigation in a browser bundle. That flag does not authorize the server. The Community server is `npm run server`. An unset flag, or any value other than exact `true`, hides that navigation.
 
 The image omits premium navigation such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge.
 

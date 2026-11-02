@@ -9,6 +9,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Separator } from "@complianceos/ui/ui/separator";
+import { visibleFeatureLabel, visibleLicenseType } from "@/lib/licenseLabel";
 
 interface LicenseActivationSuccessProps {
   license: {
@@ -38,16 +39,11 @@ export function LicenseActivationSuccess({
   };
 
   const getLicenseTypeBadge = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case "enterprise":
-        return <Badge variant="default" className="bg-purple-100 text-purple-800 hover:bg-purple-100">Premium</Badge>;
-      case "trial":
-        return <Badge variant="outline" className="border-blue-200 text-blue-800">Trial</Badge>;
-      case "community":
-        return <Badge variant="outline" className="border-gray-200 text-gray-800">Community</Badge>;
-      default:
-        return <Badge variant="outline">{type || "Unknown"}</Badge>;
+    const label = visibleLicenseType(type);
+    if (label === "Premium") {
+      return <Badge variant="default" className="bg-purple-100 text-purple-800 hover:bg-purple-100">Premium</Badge>;
     }
+    return <Badge variant="outline" className="border-gray-200 text-gray-800">Community</Badge>;
   };
 
   return (
@@ -98,7 +94,7 @@ export function LicenseActivationSuccess({
               {license.features.slice(0, 3).map((feature) => (
                 <div key={feature} className="flex items-center gap-2">
                   <Zap className="h-3 w-3 text-green-600" />
-                  <span className="text-sm text-green-700 truncate">{feature}</span>
+                  <span className="text-sm text-green-700 truncate">{visibleFeatureLabel(feature)}</span>
                 </div>
               ))}
               {license.features.length > 3 && (

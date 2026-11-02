@@ -32,6 +32,8 @@ import {
   Info
 } from "lucide-react";
 import { useToast } from "@complianceos/ui/ui/use-toast";
+import { PREMIUM_AVAILABLE, PREMIUM_PRICING_PATH, visibleFeatureLabel, visibleLicenseType } from "@/lib/licenseLabel";
+import { PREMIUM_CAPABILITIES } from "@/lib/upgradeCopy";
 
 export default function ClientLicenseActivation() {
   const params = useParams();
@@ -158,16 +160,11 @@ export default function ClientLicenseActivation() {
   
   // Get license type badge
   const getLicenseTypeBadge = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case "enterprise":
-        return <Badge variant="default" className="bg-purple-100 text-purple-800 hover:bg-purple-100">Premium</Badge>;
-      case "trial":
-        return <Badge variant="outline" className="border-blue-200 text-blue-800">Trial</Badge>;
-      case "community":
-        return <Badge variant="outline" className="border-gray-200 text-gray-800">Community</Badge>;
-      default:
-        return <Badge variant="outline">{type || "Unknown"}</Badge>;
+    const label = visibleLicenseType(type);
+    if (label === "Premium") {
+      return <Badge variant="default" className="bg-purple-100 text-purple-800 hover:bg-purple-100">Premium</Badge>;
     }
+    return <Badge variant="outline" className="border-gray-200 text-gray-800">Community</Badge>;
   };
   
   if (clientLoading) {
@@ -257,9 +254,8 @@ export default function ClientLicenseActivation() {
                     <div className="p-3 border rounded-md bg-muted/50">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">GRCompliance Enterprise</div>
-                          {/* Product id kept so the label matches the published Gumroad permalink. */}
-                          <div className="text-sm text-muted-foreground">complianceos-enterprise</div>
+                          <div className="font-medium">GRCompliance Premium</div>
+                          <div className="text-sm text-muted-foreground">{PREMIUM_AVAILABLE}</div>
                         </div>
                         <Badge variant="outline">Recommended</Badge>
                       </div>
@@ -347,7 +343,7 @@ export default function ClientLicenseActivation() {
                             licenseStatus.features.slice(0, 5).map((feature: string) => (
                               <div key={feature} className="flex items-center gap-2 text-sm">
                                 <CheckCircle className="h-4 w-4 text-green-500" />
-                                <span className="truncate">{feature}</span>
+                                <span className="truncate">{visibleFeatureLabel(feature)}</span>
                               </div>
                             ))
                           ) : (
@@ -405,9 +401,8 @@ export default function ClientLicenseActivation() {
               <AlertDescription>
                 <ul className="list-disc list-inside space-y-1 text-sm">
                   <li>License keys are tied to your Gumroad account and purchase</li>
-                  <li>Enterprise licenses include all premium features and priority support</li>
-                  <li>Trial licenses are valid for 30 days with limited features</li>
-                  <li>Community edition is free under AGPLv3 with basic features</li>
+                  <li>Premium is the self-hosted paid edition</li>
+                  <li>Community is free under AGPLv3</li>
                 </ul>
               </AlertDescription>
             </Alert>
@@ -432,7 +427,7 @@ export default function ClientLicenseActivation() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                       <div className="space-y-1">
                         <div className="text-sm text-muted-foreground">License Type</div>
-                        <div className="font-medium">{licenseStatus.type || "Community"}</div>
+                        <div className="font-medium">{visibleLicenseType(licenseStatus.type)}</div>
                       </div>
                       <div className="space-y-1">
                         <div className="text-sm text-muted-foreground">Status</div>
@@ -577,156 +572,50 @@ export default function ClientLicenseActivation() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Zap className="h-5 w-5" />
-                  Feature Comparison
+                  Premium
                 </CardTitle>
                 <CardDescription>
-                  Compare features across different license types
+                  {PREMIUM_AVAILABLE}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 font-medium">Feature</th>
-                        <th className="text-center py-3 font-medium">Community</th>
-                        <th className="text-center py-3 font-medium">Trial</th>
-                        <th className="text-center py-3 font-medium">Enterprise</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b">
-                        <td className="py-3 font-medium">Basic Dashboard</td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-3 font-medium">Simple Reports</td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-3 font-medium">AI Evidence Analysis</td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-3 font-medium">Advisor Workbench</td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-3 font-medium">Enterprise Scalability</td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-3 font-medium">On-Premises Deployment</td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 font-medium">Priority Support</td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        </td>
-                        <td className="text-center py-3">
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm">Community</CardTitle>
-                      <CardDescription>Free, Open Source</CardDescription>
+                      <CardDescription>Free, open source</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">$0</div>
-                      <p className="text-sm text-muted-foreground mt-1">AGPLv3 License</p>
+                      <p className="text-sm text-muted-foreground">AGPLv3 licence</p>
                       <Button variant="outline" className="w-full mt-4" disabled>
-                        Current Edition
+                        Current edition
                       </Button>
                     </CardContent>
                   </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Trial</CardTitle>
-                      <CardDescription>30-Day Evaluation</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">$0</div>
-                      <p className="text-sm text-muted-foreground mt-1">Limited Features</p>
-                      <Button variant="outline" className="w-full mt-4">
-                        Start Trial
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  
+
                   <Card className="border-primary">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Enterprise</CardTitle>
-                      <CardDescription>Full Access</CardDescription>
+                      <CardTitle className="text-sm">Premium</CardTitle>
+                      <CardDescription>Self-hosted paid edition</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">$99<span className="text-sm font-normal text-muted-foreground">/month</span></div>
-                      <p className="text-sm text-muted-foreground mt-1">All Features Included</p>
-                      <Button className="w-full mt-4">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Purchase Now
+                      <p className="text-sm">{PREMIUM_AVAILABLE}</p>
+                      <Button className="w-full mt-4" asChild>
+                        <a href={PREMIUM_PRICING_PATH} target="_blank" rel="noreferrer">
+                          {PREMIUM_AVAILABLE}
+                        </a>
                       </Button>
                     </CardContent>
                   </Card>
                 </div>
+                <ul className="mt-6 space-y-2 text-sm">
+                  {PREMIUM_CAPABILITIES.map((item) => (
+                    <li key={item} className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
             
@@ -744,7 +633,7 @@ export default function ClientLicenseActivation() {
                     {licenseStatus.features.map((feature: string) => (
                       <div key={feature} className="flex items-center gap-2 p-2 border rounded">
                         <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">{feature}</span>
+                        <span className="text-sm">{visibleFeatureLabel(feature)}</span>
                       </div>
                     ))}
                   </div>
@@ -782,14 +671,6 @@ export default function ClientLicenseActivation() {
                     </div>
                     
                     <div>
-                      <h4 className="font-medium text-sm">What happens when my trial expires?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        When your trial expires, you'll revert to the Community edition with basic features. 
-                        You can purchase an Enterprise license to continue using premium features.
-                      </p>
-                    </div>
-                    
-                    <div>
                       <h4 className="font-medium text-sm">Can I transfer my license to another client?</h4>
                       <p className="text-sm text-muted-foreground">
                         Yes, you can deactivate the license from the current client and activate it on another client. 
@@ -798,10 +679,9 @@ export default function ClientLicenseActivation() {
                     </div>
                     
                     <div>
-                      <h4 className="font-medium text-sm">What's the difference between Community and Enterprise?</h4>
+                      <h4 className="font-medium text-sm">What's the difference between Community and Premium?</h4>
                       <p className="text-sm text-muted-foreground">
-                        Community edition is free and open source (AGPLv3) with basic features. 
-                        Enterprise edition includes all premium features, priority support, and commercial licensing.
+                        Community is free and open source (AGPLv3). Premium is the self-hosted paid edition.
                       </p>
                     </div>
                   </div>

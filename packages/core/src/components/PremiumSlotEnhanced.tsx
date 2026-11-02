@@ -8,8 +8,9 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@complianceos/ui';
 import { Button } from '@complianceos/ui';
-import { Lock, Zap, Shield, Users, BarChart, Cloud, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Lock, Zap, Shield, Users, BarChart, Cloud, CheckCircle, XCircle } from 'lucide-react';
 import { useLicense, FEATURES, Feature } from '@/lib/license/index';
+import { visibleFeatureLabel } from '@/lib/licenseLabel';
 import { PREMIUM_CAPABILITIES } from '@/lib/upgradeCopy';
 
 interface PremiumSlotEnhancedProps {
@@ -18,7 +19,6 @@ interface PremiumSlotEnhancedProps {
   description: string;
   requiredFeatures?: Feature | Feature[];
   children?: React.ReactNode;
-  showTrialInfo?: boolean;
   upgradeButtonText?: string;
   upgradeButtonVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   className?: string;
@@ -44,7 +44,7 @@ const getFeatureIcon = (featureId: string) => {
 const getFeatureCategory = (featureId: string) => {
   if (featureId.includes('ai.')) return 'AI Intelligence';
   if (featureId.includes('advisor.')) return 'Advisor Tools';
-  if (featureId.includes('enterprise.')) return 'Enterprise Scale';
+  if (featureId.includes('enterprise.')) return 'Premium';
   if (featureId.includes('security.')) return 'Security & Compliance';
   if (featureId.includes('reporting.')) return 'Professional Reporting';
   if (featureId.includes('integration.')) return 'Integration Ecosystem';
@@ -72,18 +72,15 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
   description,
   requiredFeatures = featureId,
   children,
-  showTrialInfo = true,
   upgradeButtonText,
   upgradeButtonVariant = 'default',
   className = '',
 }) => {
-  const { hasFeature, validateFeature, isTrialEdition } = useLicense();
+  const { hasFeature, validateFeature } = useLicense();
   
   // Check if all required features are available
   const validationResult = validateFeature(requiredFeatures);
   const hasRequiredFeatures = validationResult.isValid;
-  const isTrial = isTrialEdition();
-  
   // If features are available, render the children
   if (hasRequiredFeatures && children) {
     return <>{children}</>;
@@ -99,24 +96,16 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
   const buttonText = upgradeButtonText || 
     'Upgrade to Premium';
   
-  // Determine card variant based on license type
-  const cardVariant = isTrial ? 'trial' : 'locked';
-  
   return (
-    <Card className={`border-dashed border-2 ${isTrial ? 'border-amber-200 bg-amber-50' : 'border-muted bg-muted/50'} ${className}`}>
+    <Card className={`border-dashed border-2 border-muted bg-muted/50 ${className}`}>
       <CardHeader className="text-center">
-        <div className={`mx-auto p-3 rounded-full w-fit mb-4 ${isTrial ? 'bg-amber-100' : 'bg-primary/10'}`}>
-          <div className={`${isTrial ? 'text-amber-600' : 'text-primary'}`}>
+        <div className="mx-auto p-3 rounded-full w-fit mb-4 bg-primary/10">
+          <div className="text-primary">
             {featureIcon}
           </div>
         </div>
         <CardTitle className="flex items-center justify-center gap-2">
           {title}
-          {isTrial && (
-            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-              Trial
-            </span>
-          )}
         </CardTitle>
         <CardDescription>{description}</CardDescription>
         
@@ -128,7 +117,7 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
                 <li key={index} className="flex items-center gap-2">
                   <XCircle className="w-4 h-4 text-red-500" />
                   <span className="text-muted-foreground">
-                    {getFeatureCategory(feature)}: {feature.split('.').pop()?.replace('_', ' ')}
+                    {getFeatureCategory(feature)}: {visibleFeatureLabel(feature)}
                   </span>
                 </li>
               ))}
@@ -138,21 +127,6 @@ export const PremiumSlotEnhanced: React.FC<PremiumSlotEnhancedProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {showTrialInfo && isTrial && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-amber-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-amber-800">Trial Mode Active</h4>
-                <p className="text-sm text-amber-700 mt-1">
-                  You're currently using a trial license. Some features may be limited.
-                  Upgrade to Premium for the paid edition.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <h4 className="font-medium text-sm">Community Edition</h4>

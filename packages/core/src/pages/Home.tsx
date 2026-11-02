@@ -139,7 +139,7 @@ export default function Home() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#003366] mb-8 border border-blue-100 uppercase tracking-widest">
-                Enterprise GRC Platform
+                Self-hosted GRC
               </div>
 
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
@@ -279,7 +279,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-10">
             <div className="text-left">
               <span className="text-xl font-bold text-slate-900 tracking-tight">GRCompliance</span>
-              <p className="mt-4 text-slate-500 text-sm max-w-xs">Enterprise compliance automation built for security-first organizations.</p>
+              <p className="mt-4 text-slate-500 text-sm max-w-xs">Compliance automation built for security-first organizations.</p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-sm font-bold">
               <a href="/login" className="text-slate-400 hover:text-slate-900 transition-colors">Client Login</a>

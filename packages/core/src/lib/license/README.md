@@ -4,8 +4,7 @@
 
 This system implements license validation for GRCompliance's dual-licensing model:
 - **Community Edition**: AGPLv3, free and open source
-- **Enterprise Edition**: Commercial license with premium features
-- **Trial Edition**: Limited-time trial with some premium features
+- **Premium**: self-hosted paid edition. Core does not offer a free evaluation or a hosted tier.
 
 ## Architecture
 
@@ -14,7 +13,7 @@ This system implements license validation for GRCompliance's dual-licensing mode
 1. **License Validator** (`index.ts`)
    - Singleton class for license validation
    - Feature-based access control
-   - License type detection (community/enterprise/trial)
+   - Licence type detection for Community and Premium
    - Caching for performance
 
 2. **License Server Client** (`server.ts`)
@@ -119,14 +118,11 @@ export const FEATURES = {
 - Self-hosted only
 - No license key required
 
-### Enterprise Edition (Commercial)
+### Premium
 - Premium server procedures run only in the paid edition, which registers a server entitlement provider at boot
 - A license key string, `VITE_ENABLE_PREMIUM`, and `BUILD_TYPE` do not change the plan
 - The browser flag may show premium navigation. It does not authorize APIs
-
-### Trial Edition
-- A verified purchase in the paid edition
-- Does not start because the premium flag is set or a key is typed into the app
+- A verified purchase in the paid edition does not start because the premium flag is set or a key is typed into the app
 
 ## Environment Configuration
 
@@ -218,11 +214,9 @@ Activation is covered by the license-boundary tests. A `planTier` write is rejec
 - All features are community features
 - AGPLv3 license applies
 
-### Enterprise Edition
-- Requires license server
-- License keys bound to domains
-- Regular validation with server
-- Grace period for offline use
+### Premium
+- The paid edition registers its own entitlement provider
+- This repository does not grant that entitlement from a client flag or a typed key
 
 ## Troubleshooting
 
@@ -234,7 +228,7 @@ Activation is covered by the license-boundary tests. A `planTier` write is rejec
    - Check domain binding
 
 2. **Features not showing**
-   - Verify license type (community/enterprise/trial)
+   - Verify the running edition (Community or Premium)
    - Check feature definitions
    - Clear license cache
 
@@ -263,4 +257,4 @@ To migrate:
 1. Update `main.tsx` to use new license validator
 2. Replace `PremiumSlot` with `PremiumSlotEnhanced`
 3. Add license checks to premium features
-4. Deploy license server for enterprise customers
+4. The paid edition ships its entitlement provider outside this repository

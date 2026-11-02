@@ -153,7 +153,7 @@ export function withLicenseProtection<T>(
         <PremiumSlotEnhanced
           featureId={featureId}
           title={`${featureName} Required`}
-          description={`This feature requires an enterprise license`}
+          description="This feature is part of Premium."
           requiredFeatures={requiredFeature}
         >
           {/* Empty children since feature is not available */}
@@ -180,7 +180,7 @@ export function useLicenseProtectedAction(feature: string | string[]) {
         <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
           <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px;">
             <h3 style="margin: 0 0 16px 0;">Upgrade Required</h3>
-            <p style="margin: 0 0 24px 0;">This feature requires an enterprise license.</p>
+            <p style="margin: 0 0 24px 0;">This feature is part of Premium.</p>
             <button onclick="window.open('/settings/billing', '_blank'); this.parentElement.parentElement.remove()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
               Upgrade Now
             </button>
