@@ -1,5 +1,5 @@
 # Community edition image. Secrets are supplied at runtime, never baked in.
-FROM node:20-bookworm-slim AS deps
+FROM docker.io/library/node:20-bookworm-slim AS deps
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY packages/landing/package.json packages/landing/package.json
 
 RUN npm ci
 
-FROM node:20-bookworm-slim AS builder
+FROM docker.io/library/node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ ENV NODE_OPTIONS=--max-old-space-size=4096
 
 RUN npm run build -w @complianceos/core
 
-FROM node:20-bookworm-slim AS runner
+FROM docker.io/library/node:20-bookworm-slim AS runner
 
 WORKDIR /app
 

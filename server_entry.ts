@@ -32,9 +32,9 @@
 
 import './env-loader';
 import express from 'express';
-import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createApiCorsMiddleware, mountSpa } from './packages/core/src/server/spaCors';
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
@@ -62,6 +62,11 @@ validateSecrets();
 import helmet from 'helmet';
 
 export const app = express();
+
+// Origin checks apply only to cross-origin /api requests. Static files and the
+// SPA document skip that check so the page can load from 127.0.0.1, a server
+// IP, or the operator's domain. Credentialed API calls keep an allowlist.
+app.use(createApiCorsMiddleware());
 
 // Health Check - Moving to top to bypass potential middleware issues
 app.post('/api/auth/login', express.json({ limit: '32kb' }), (req, res) => {
@@ -146,45 +151,6 @@ app.use(helmet({
     },
 }));
 
-// CORS allows the operator's configured origins. Production does not add
-// loopback or a vendor host unless that address is configured.
-function corsAllowedOrigins(): Set<string> {
-    const allowed = new Set<string>();
-    for (const raw of (process.env.CORS_ORIGIN || '').split(',')) {
-        const trimmed = raw.trim();
-        if (trimmed) allowed.add(trimmed);
-    }
-    const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').trim();
-    if (appUrl) {
-        try {
-            allowed.add(new URL(appUrl).origin);
-        } catch {
-            /* a malformed APP_URL is rejected by appOrigin() when a link is built */
-        }
-    }
-    if (!process.env.CORS_ORIGIN && process.env.NODE_ENV !== 'production') {
-        allowed.add('http://localhost:5173');
-        allowed.add('http://localhost:3001');
-    }
-    return allowed;
-}
-
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-
-        const allowed = corsAllowedOrigins();
-        const isLoopback = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
-        if (allowed.has(origin) || (process.env.NODE_ENV !== 'production' && isLoopback)) {
-            callback(null, true);
-        } else {
-            console.error(`[CORS] Rejected origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
-}));
-
 // Parse JSON bodies (though TRPC handles its own, auth middleware might need it if used for other routes)
 // Parse JSON bodies with increased limit for uploads
 app.use(express.json({ limit: '50mb' }));
@@ -263,16 +229,7 @@ app.use('/api/webhooks', gumroadWebhookRouter);
 // Serve static files in production (Docker)
 if (process.env.NODE_ENV === 'production' && !process.env.NETLIFY) {
     console.log('[Server] Serving static files from packages/core/dist');
-    const distPath = path.join(serverDir, 'packages/core/dist');
-    app.use(express.static(distPath));
-
-    // Handle SPA routing - return index.html for any unknown non-API routes
-    app.get('*', (req, res, next) => {
-        if (req.path.startsWith('/api')) {
-            return next();
-        }
-        res.sendFile(path.join(distPath, 'index.html'));
-    });
+    mountSpa(app, path.join(serverDir, 'packages/core/dist'));
 }
 
 // TRPC Endpoint

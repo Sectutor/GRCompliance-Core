@@ -2,7 +2,7 @@ name: grcompliance
 
 services:
   db:
-    image: pgvector/pgvector:pg16
+    image: docker.io/pgvector/pgvector:pg16
     # No host ports. Postgres stays on the compose network.
     # docker-compose.local-ports.yml can bind it to 127.0.0.1.
     environment:
@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: docker.io/library/redis:7-alpine
     # No host ports. Redis stays on the compose network and requires a password.
     # docker-compose.local-ports.yml can bind it to 127.0.0.1.
     environment:

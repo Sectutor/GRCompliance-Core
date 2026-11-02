@@ -5,7 +5,7 @@ import { appOrigin, isVendorHostname } from "./publicUrl";
 
 const repoRoot = path.resolve(__dirname, "../../../..");
 
-const envKeys = ["APP_URL", "NEXT_PUBLIC_APP_URL", "VITE_APP_URL", "NODE_ENV"] as const;
+const envKeys = ["APP_URL", "PUBLIC_URL", "NEXT_PUBLIC_APP_URL", "VITE_APP_URL", "NODE_ENV"] as const;
 const previous: Record<string, string | undefined> = {};
 
 function saveEnv() {
@@ -41,9 +41,20 @@ describe("instance link origin", () => {
         expect(appOrigin()).toBe("http://localhost:3001");
 
         delete process.env.APP_URL;
+        delete process.env.PUBLIC_URL;
         delete process.env.NEXT_PUBLIC_APP_URL;
         delete process.env.VITE_APP_URL;
         expect(() => appOrigin()).toThrow(/APP_URL is required in production/);
+    });
+
+    it("accepts PUBLIC_URL when APP_URL is unset", () => {
+        saveEnv();
+        process.env.NODE_ENV = "production";
+        delete process.env.APP_URL;
+        delete process.env.NEXT_PUBLIC_APP_URL;
+        delete process.env.VITE_APP_URL;
+        process.env.PUBLIC_URL = "https://grc.example.com/console";
+        expect(appOrigin()).toBe("https://grc.example.com");
     });
 
     it("refuses grcompliance.com and demo.grcompliance.com even when configured", () => {
@@ -59,6 +70,7 @@ describe("instance link origin", () => {
         saveEnv();
         process.env.NODE_ENV = "test";
         delete process.env.APP_URL;
+        delete process.env.PUBLIC_URL;
         delete process.env.NEXT_PUBLIC_APP_URL;
         delete process.env.VITE_APP_URL;
         expect(appOrigin()).toBe("http://localhost:3001");

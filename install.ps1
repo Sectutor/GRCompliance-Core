@@ -13,7 +13,8 @@
   Existing .env files are never overwritten. -Upgrade pulls or rebuilds.
   -BindLocal publishes Postgres and Redis on 127.0.0.1 only.
   HEALTH_RETRIES sets how many /health attempts run before a non-zero exit.
-  This script is not copied into the install directory.
+  APP_URL is the address the app accepts. PUBLIC_URL is used when APP_URL is unset.
+  The default is http://localhost:3001. This script is not copied into the install directory.
 #>
 param(
     [switch]$Upgrade,
@@ -126,6 +127,38 @@ function Write-RestrictedText {
     Set-Content -Path $Path -Value $Content -Encoding ascii
 }
 
+function Test-PublicUrl([string]$Url) {
+    if ($Url -notmatch '^https?://\S+$') {
+        Fail "APP_URL must be an absolute http(s) URL for this instance"
+    }
+    if ($Url -match '@') {
+        Fail "APP_URL must not include credentials"
+    }
+    if ($Url -match '[''"`\s$\\]') {
+        Fail "APP_URL contains unsupported characters"
+    }
+    $rest = $Url -replace '^https?://', ''
+    $hostPort = ($rest -split '/')[0]
+    if ($hostPort -match '^\[(.+)\]') {
+        $hostName = $Matches[1]
+    } else {
+        $hostName = ($hostPort -split ':')[0]
+    }
+    if (-not $hostName) {
+        Fail "APP_URL must be an absolute http(s) URL for this instance"
+    }
+    $lower = $hostName.ToLowerInvariant()
+    if ($lower -eq 'grcompliance.com' -or $lower.EndsWith('.grcompliance.com')) {
+        Fail "APP_URL must be this instance's own address"
+    }
+}
+
+function Get-PublicUrl([string]$AppPort) {
+    $url = if ($env:APP_URL) { $env:APP_URL } elseif ($env:PUBLIC_URL) { $env:PUBLIC_URL } else { "http://localhost:$AppPort" }
+    Test-PublicUrl $url
+    return $url
+}
+
 function Write-EnvFile {
     $postgresPassword = New-SecretHex 24
     $redisPassword = New-SecretHex 24
@@ -133,6 +166,7 @@ function Write-EnvFile {
     $encryptionKey = New-SecretHex 32
     $adminPassword = New-SecretHex 18
     $appPort = if ($env:APP_PORT) { $env:APP_PORT } else { "3001" }
+    $publicUrl = Get-PublicUrl $appPort
     $adminEmail = if ($env:ADMIN_EMAIL) { $env:ADMIN_EMAIL } else { "admin@grcompliance.local" }
     $postgresUser = if ($env:POSTGRES_USER) { $env:POSTGRES_USER } else { "grc" }
     $postgresDb = if ($env:POSTGRES_DB) { $env:POSTGRES_DB } else { "grcompliance" }
@@ -147,7 +181,7 @@ JWT_SECRET=$jwtSecret
 ENCRYPTION_KEY=$encryptionKey
 ADMIN_EMAIL=$adminEmail
 ADMIN_PASSWORD=$adminPassword
-APP_URL=http://localhost:$appPort
+APP_URL=$publicUrl
 APP_PORT=$appPort
 GRC_VERSION=$version
 AUTH_MODE=local
@@ -165,6 +199,12 @@ function Get-AppPort {
     $line = Select-String -Path .env -Pattern "^APP_PORT=" | Select-Object -First 1
     if ($line) { return ($line.Line -split "=", 2)[1] }
     return "3001"
+}
+
+function Get-AppUrl {
+    $line = Select-String -Path .env -Pattern "^APP_URL=" | Select-Object -First 1
+    if ($line) { return ($line.Line -split "=", 2)[1] }
+    return "http://localhost:$(Get-AppPort)"
 }
 
 function Invoke-Compose {
@@ -239,10 +279,14 @@ Inspect the stack from ${Dir}:
   docker compose logs app
 "@
 }
-Write-Host "GRCompliance is up: http://127.0.0.1:$port"
+$appUrl = Get-AppUrl
+Write-Host "GRCompliance is up: $appUrl"
+Write-Host "Open that address in a browser. It is the APP_URL this install accepts."
 Write-Host "Sign in with the administrator email in .env."
 if ($script:FreshInstall) {
     Write-Host "The first start loads the Latore LTD demo workspace."
+} else {
+    Write-Host "Re-run left the existing database and uploaded files in place."
 }
 if ($Upgrade) {
     Write-Host "Upgrade finished. The existing .env was left unchanged."

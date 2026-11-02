@@ -2,7 +2,7 @@
  * Origin used in links this instance sends (invites, email, OAuth callbacks).
  *
  * The value comes from the operator's own address: APP_URL, then
- * NEXT_PUBLIC_APP_URL, then VITE_APP_URL. A missing value in production
+ * PUBLIC_URL, then NEXT_PUBLIC_APP_URL, then VITE_APP_URL. A missing value in production
  * throws. Development falls back to the local dev server. Hosts on
  * grcompliance.com are refused so a self-hosted instance cannot emit
  * vendor links.
@@ -16,7 +16,7 @@ export function isVendorHostname(hostname: string): boolean {
 }
 
 function readConfiguredOrigin(): string | null {
-    const candidates = [process.env.APP_URL, process.env.NEXT_PUBLIC_APP_URL, process.env.VITE_APP_URL];
+    const candidates = [process.env.APP_URL, process.env.PUBLIC_URL, process.env.NEXT_PUBLIC_APP_URL, process.env.VITE_APP_URL];
     for (const raw of candidates) {
         if (typeof raw !== "string" || raw.trim() === "") continue;
         let url: URL;
