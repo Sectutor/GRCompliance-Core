@@ -10,6 +10,13 @@ permissions:
   contents: read
   packages: write
 
+# A newer push to the same branch or pull request cancels the older build
+# so it cannot finish last and move :latest backwards. Tag and release
+# builds are not cancelled.
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' && github.event_name != 'release' }}
+
 jobs:
   image:
     runs-on: ubuntu-latest
@@ -43,12 +50,97 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
 
+      # Branch pushes publish sha- (and any semver tags) with the build,
+      # then move :latest only if this commit is still the default branch
+      # head. Tag, release, and pull request runs keep the full tag list.
+      - name: Separate latest from immutable tags
+        id: tags
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF_TYPE}" = "branch" ]; then
+            immutable="$(printf '%s\n' "${TAGS}" | sed -e '/^[[:space:]]*$/d' -e '/:latest$/d')"
+            case "${immutable}" in
+              *:sha-*) ;;
+              *)
+                echo "::error::Branch push did not produce a sha- tag"
+                exit 1
+                ;;
+            esac
+            latest="$(printf '%s\n' "${TAGS}" | sed -n '/:latest$/{p;q;}')"
+          else
+            immutable="$(printf '%s\n' "${TAGS}" | sed -e '/^[[:space:]]*$/d')"
+            latest=""
+          fi
+          {
+            echo "immutable<<EOF"
+            if [ -n "${immutable}" ]; then
+              printf '%s\n' "${immutable}"
+            fi
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          if [ -n "${latest}" ]; then
+            echo "wants_latest=true" >> "${GITHUB_OUTPUT}"
+            echo "latest_ref=${latest}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "wants_latest=false" >> "${GITHUB_OUTPUT}"
+            echo "latest_ref=" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.tags.outputs.immutable }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Publish latest when commit is still the default branch head
+        if: github.event_name == 'push' && github.ref_type == 'branch' && steps.tags.outputs.wants_latest == 'true'
+        env:
+          LATEST_REF: ${{ steps.tags.outputs.latest_ref }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LATEST_REF}" ] || [ -z "${DIGEST}" ]; then
+            echo "::error::Missing image reference or digest; refusing to move :latest"
+            exit 1
+          fi
+
+          gh_api() {
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$@"
+          }
+
+          default_branch="$(gh_api "https://api.github.com/repos/${GITHUB_REPOSITORY}" | jq -r '.default_branch')"
+          if [ -z "${default_branch}" ] || [ "${default_branch}" = "null" ]; then
+            echo "::error::GitHub API did not return the default branch"
+            exit 1
+          fi
+          remote_sha="$(
+            gh_api \
+              --get \
+              --data-urlencode "sha=${default_branch}" \
+              --data-urlencode "per_page=1" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits" \
+              | jq -r '.[0].sha'
+          )"
+          if [ -z "${remote_sha}" ] || [ "${remote_sha}" = "null" ]; then
+            echo "::error::GitHub API did not return the head of ${default_branch}"
+            exit 1
+          fi
+          if [ "${remote_sha}" != "${GITHUB_SHA}" ]; then
+            echo "::notice title=Leaving :latest unchanged::${GITHUB_SHA} is not the head of ${default_branch} (${remote_sha}). Immutable tags were already pushed."
+            exit 0
+          fi
+
+          echo "Commit ${GITHUB_SHA} is still the head of ${default_branch}; moving ${LATEST_REF}"
+          repo="${LATEST_REF%:*}"
+          docker buildx imagetools create --tag "${LATEST_REF}" "${repo}@${DIGEST}"
