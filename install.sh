@@ -30,6 +30,8 @@ The installer is not copied into the install directory. Upgrade with the curl co
   --upgrade      Pull the current image, or rebuild from source, without touching .env
   --bind-local   Also publish Postgres and Redis on 127.0.0.1 (off by default)
 
+  APP_URL        Address the app accepts. Default: http://localhost:\$APP_PORT
+  PUBLIC_URL     Used when APP_URL is unset
   HEALTH_RETRIES How many /health attempts before failure (default: 90)
 EOF
 }
@@ -101,15 +103,57 @@ require_openssl() {
   fi
 }
 
+validate_public_url() {
+  local url="$1"
+  local rest host lower
+  if [[ ! "${url}" =~ ^https?://[^[:space:]/]+ ]]; then
+    echo "APP_URL must be an absolute http(s) URL for this instance" >&2
+    exit 1
+  fi
+  if [[ "${url}" == *"@"* ]]; then
+    echo "APP_URL must not include credentials" >&2
+    exit 1
+  fi
+  if [[ "${url}" == *"\`"* || "${url}" == *"'"* || "${url}" == *'"'* || "${url}" == *'$'* || "${url}" == *' '* || "${url}" == *$'\t'* || "${url}" == *$'\n'* || "${url}" == *'\\'* ]]; then
+    echo "APP_URL contains unsupported characters" >&2
+    exit 1
+  fi
+  rest="${url#*://}"
+  host="${rest%%/*}"
+  if [[ "${host}" == \[*\]* ]]; then
+    host="${host%%]*}"
+    host="${host#[}"
+  else
+    host="${host%%:*}"
+  fi
+  if [[ -z "${host}" ]]; then
+    echo "APP_URL must be an absolute http(s) URL for this instance" >&2
+    exit 1
+  fi
+  lower="$(printf '%s' "${host}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "${lower}" == "grcompliance.com" || "${lower}" == *.grcompliance.com ]]; then
+    echo "APP_URL must be this instance's own address" >&2
+    exit 1
+  fi
+}
+
+resolve_public_url() {
+  local app_port="$1"
+  local url="${APP_URL:-${PUBLIC_URL:-http://localhost:${app_port}}}"
+  validate_public_url "${url}"
+  printf '%s\n' "${url}"
+}
+
 write_env() {
   local postgres_password redis_password jwt_secret encryption_key admin_password
-  local app_port admin_email postgres_user postgres_db grc_version mode
+  local app_port admin_email postgres_user postgres_db grc_version mode public_url
   postgres_password="$(openssl rand -hex 24)"
   redis_password="$(openssl rand -hex 24)"
   jwt_secret="$(openssl rand -hex 32)"
   encryption_key="$(openssl rand -hex 32)"
   admin_password="$(openssl rand -hex 18)"
   app_port="${APP_PORT:-3001}"
+  public_url="$(resolve_public_url "${app_port}")"
   admin_email="${ADMIN_EMAIL:-admin@grcompliance.local}"
   postgres_user="${POSTGRES_USER:-grc}"
   postgres_db="${POSTGRES_DB:-grcompliance}"
@@ -125,7 +169,7 @@ JWT_SECRET=${jwt_secret}
 ENCRYPTION_KEY=${encryption_key}
 ADMIN_EMAIL=${admin_email}
 ADMIN_PASSWORD=${admin_password}
-APP_URL=http://localhost:${app_port}
+APP_URL=${public_url}
 APP_PORT=${app_port}
 GRC_VERSION=${grc_version}
 AUTH_MODE=local
@@ -187,6 +231,15 @@ app_port_from_env() {
   printf '%s\n' "${value}"
 }
 
+app_url_from_env() {
+  local value
+  value="$(awk -F= '$1=="APP_URL" { print substr($0, index($0, "=")+1); exit }' .env)"
+  if [[ -z "${value}" ]]; then
+    value="http://localhost:$(app_port_from_env)"
+  fi
+  printf '%s\n' "${value}"
+}
+
 wait_for_health() {
   local port attempt code
   port="$(app_port_from_env)"
@@ -194,10 +247,15 @@ wait_for_health() {
   for attempt in $(seq 1 "${HEALTH_RETRIES}"); do
     code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:${port}/health" 2>/dev/null || true)"
     if [[ "${code}" == "200" ]]; then
-      echo "GRCompliance is up: http://127.0.0.1:${port}"
+      local public_url
+      public_url="$(app_url_from_env)"
+      echo "GRCompliance is up: ${public_url}"
+      echo "Open that address in a browser. It is the APP_URL this install accepts."
       echo "Sign in with the administrator email in .env."
       if [[ "${FRESH}" -eq 1 ]]; then
         echo "The first start loads the Latore LTD demo workspace."
+      else
+        echo "Re-run left the existing database and uploaded files in place."
       fi
       if [[ "${UPGRADE}" -eq 1 ]]; then
         echo "Upgrade finished. The existing .env was left unchanged."

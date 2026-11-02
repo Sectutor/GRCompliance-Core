@@ -49,7 +49,7 @@ Windows only (PowerShell). `install.ps1` exits before it generates secrets when 
 irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1 | iex
 ```
 
-When `/health` returns HTTP 200, the installer prints the URL. It prints the administrator password once, earlier, while it writes `~/grcompliance/.env` (mode 600). The administrator email is `admin@grcompliance.local`. The first start also loads the **Latore LTD** demo workspace, including sample risks, controls, policies, and evidence.
+When `/health` returns HTTP 200, the installer prints the address in `APP_URL`. That address is `http://localhost:3001` unless you set `APP_URL` or `PUBLIC_URL` before the install. Open the printed address. It prints the administrator password once, earlier, while it writes `~/grcompliance/.env` (mode 600). The administrator email is `admin@grcompliance.local`. The first start also loads the **Latore LTD** demo workspace, including sample risks, controls, policies, and evidence.
 
 If `/health` still has not returned HTTP 200 after the retries, the installer exits non-zero and prints `docker compose logs` hints. It does not print the ready message. Set `HEALTH_RETRIES` to change the attempt count (default 90, five seconds apart).
 
@@ -64,6 +64,32 @@ Choose another directory with `--dir` or `GRC_HOME`:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --dir /opt/grcompliance
 ```
+
+## Installing on a server or with your own domain
+
+The installer writes `APP_URL` into `~/grcompliance/.env`. The app accepts that address for sign-in and uses it in links. The default is `http://localhost:3001`. The installer prints this address when `/health` returns HTTP 200. Open the printed address.
+
+`localhost`, `127.0.0.1`, a server IP, and a domain name are different addresses. Set `APP_URL` to the address you will open in the browser. If `APP_URL` is unset, the installer uses `PUBLIC_URL`.
+
+```bash
+export APP_URL=https://grc.example.com
+curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
+```
+
+Windows (PowerShell):
+
+```powershell
+$env:APP_URL = "https://grc.example.com"
+irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1 | iex
+```
+
+To change the address after the first install, edit `APP_URL` in `~/grcompliance/.env` and start the containers again from that directory:
+
+```bash
+docker compose up -d
+```
+
+Running the installer again keeps the existing `.env`, database, and uploaded files.
 
 ## Manual Docker Compose install
 
@@ -101,7 +127,7 @@ The database image is Postgres 16 with pgvector, which the schema uses for embed
 | `ENCRYPTION_KEY` | Encrypts sensitive values at rest. |
 | `ADMIN_EMAIL` | First administrator. Default `admin@grcompliance.local`. |
 | `ADMIN_PASSWORD` | First administrator password. Applied only on first start. |
-| `APP_URL` | Public URL of this instance, used in links. |
+| `APP_URL` | Address this instance accepts for sign-in and uses in links. Default `http://localhost:3001`. The installer reads `PUBLIC_URL` when `APP_URL` is unset. |
 | `APP_PORT` | Host port mapped to the app. |
 | `GRC_VERSION` | Image tag. `latest`, or a `v*` release tag. |
 | `AUTH_MODE` | `local` for the bundled login. `supabase` if you bring your own Supabase project. Local mode does not read Supabase settings. |
