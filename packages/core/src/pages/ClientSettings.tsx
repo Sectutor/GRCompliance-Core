@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/ta
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { DemoImportDialog } from "@/components/admin/DemoImportDialog";
 import { toast } from "sonner";
-import { COMMUNITY_SITE_URL, PREMIUM_AVAILABLE } from "@/lib/licenseLabel";
+import { COMMUNITY_SITE_URL, PREMIUM_AVAILABLE, isPremiumPlan } from "@/lib/licenseLabel";
 import { usePremiumOffer } from "@/components/license/usePremiumOffer";
 import {
     CreditCard,
@@ -92,7 +92,7 @@ export default function ClientSettings() {
         userRoleInClient === 'admin' ||
         userRoleInClient === 'owner';
 
-    const isPremiumOrg = client?.planTier === 'pro' || client?.planTier === 'enterprise';
+    const isPremiumOrg = isPremiumPlan(client?.planTier);
     const adminRoles = ['admin', 'owner', 'super_admin', 'super', 'enterprise_admin', 'ent_admin'];
     const canAccessBackupRestore = isPremiumOrg || adminRoles.includes(userGlobalRole || '');
 

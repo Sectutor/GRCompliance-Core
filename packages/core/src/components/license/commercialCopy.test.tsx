@@ -300,7 +300,7 @@ describe("upgrade and licence copy", () => {
     });
 
     it("scans user-facing source for edition names and prices", () => {
-        const failures = scanCommercialCopy();
+        const failures = [...scanCommercialCopy(), ...scanNonAdminPagesForGumroad()];
         expect(failures, failures.join("\n")).toEqual([]);
     });
 });
@@ -421,6 +421,23 @@ function tokenAllowed(ruleName: string, line: string): boolean {
 
 function ignoredPriceToken(line: string, token: string): boolean {
     return /\.replace\(/.test(line) && /^\$\d$/.test(token);
+}
+
+/** Self-hosted licence pages. The owner-only admin licence screen may still name the seller. */
+function scanNonAdminPagesForGumroad(): string[] {
+    const srcRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../..");
+    const pagesRoot = path.join(srcRoot, "pages");
+    const failures: string[] = [];
+    const brand = /\bGumroad\b|gumroad\.com/;
+    for (const file of walkSource(pagesRoot)) {
+        if (file.includes(`${path.sep}admin${path.sep}`)) continue;
+        const lines = stripSourceComments(fs.readFileSync(file, "utf8")).split("\n");
+        lines.forEach((line, index) => {
+            if (!brand.test(line)) return;
+            failures.push(`Gumroad ${path.relative(srcRoot, file)}:${index + 1} ${line.trim().slice(0, 180)}`);
+        });
+    }
+    return failures;
 }
 
 function scanCommercialCopy(): string[] {

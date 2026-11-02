@@ -5,13 +5,20 @@ export function visibleLicenseType(type?: string | null): "Community" | "Premium
 }
 
 /**
+ * Paid plan rows. `premium` is the current name. `pro` and `enterprise` are
+ * stored legacy values and stay paid.
+ */
+export function isPremiumPlan(tier?: string | null): boolean {
+    const value = (tier || "").trim().toLowerCase();
+    return value === "premium" || value === "pro" || value === "enterprise";
+}
+
+/**
  * Stored plan values stay in the database. The screen only says Community or Premium.
  * A legacy enterprise or pro row reads as Premium.
  */
 export function visiblePlanTier(tier?: string | null): "Community" | "Premium" {
-    const value = (tier || "").trim().toLowerCase();
-    if (value === "premium" || value === "enterprise" || value === "pro") return "Premium";
-    return "Community";
+    return isPremiumPlan(tier) ? "Premium" : "Community";
 }
 
 const FEATURE_LABELS: Record<string, string> = {

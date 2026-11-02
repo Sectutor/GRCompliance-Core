@@ -61,6 +61,7 @@ import { NotificationCenter } from "./notifications/NotificationCenter";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
 import { filterNavForEdition, isCommunityEdition } from "@/lib/communityNav";
 import { isPremiumEditionEnabled } from "@/lib/edition";
+import { isPremiumPlan } from "@/lib/licenseLabel";
 
 // ... (existing imports)
 
@@ -453,9 +454,11 @@ function DashboardLayoutContent({
       // Grace period check
       if (inGracePeriod) return;
 
-      // Handle missing or null planTier - default to 'free' for safety
-      const planTier = dbUser.planTier || 'free';
-      if (planTier === 'free' || planTier === 'enterprise') return;
+      // Community (including a legacy free row) has no checkout. Premium,
+      // including a legacy enterprise row, is already the paid edition. A
+      // legacy pro row still finishes payment when the subscription is inactive.
+      const planTier = (dbUser.planTier || "free").trim().toLowerCase();
+      if (!isPremiumPlan(planTier) || planTier !== "pro") return;
 
       // Handle missing or null subscriptionStatus - treat null/undefined as active for development
       const subscriptionStatus = dbUser.subscriptionStatus;
@@ -631,7 +634,7 @@ function DashboardLayoutContent({
 
     // Premium Feature: Threat Intelligence
     const premiumEdition = isPremiumEditionEnabled(import.meta.env.VITE_ENABLE_PREMIUM);
-    const isPremiumClient = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && premiumEdition;
+    const isPremiumClient = isPremiumPlan(clientInfo?.planTier) && premiumEdition;
     if (isPremiumClient) {
       groups.push({
         label: "Threat Intelligence",

@@ -195,7 +195,7 @@ describe("license upload, activate, and deactivate", () => {
         licenseRows.active = {
             licenseType: "trial",
             licenseStatus: "active",
-            licenseKey: "trial-key-123456",
+            licenseKey: "not-a-real-key",
             customerName: "Example",
             enabledFeatures: ["enterprise.scalability"],
         };

@@ -87,7 +87,7 @@ export default function ClientLicenseActivation() {
     activateLicenseMutation.mutate({
       clientId,
       licenseKey: licenseKey.trim(),
-      // Permalink kept; it is the published Gumroad product id.
+      // Permalink kept; it is the published product id.
       productPermalink: "complianceos-enterprise",
     });
   };
@@ -222,7 +222,7 @@ export default function ClientLicenseActivation() {
                       className="font-mono"
                     />
                     <p className="text-sm text-muted-foreground">
-                      You can find your license key in your Gumroad purchase confirmation email
+                      You can find your license key in your purchase confirmation email
                     </p>
                   </div>
                   
@@ -383,7 +383,7 @@ export default function ClientLicenseActivation() {
               <AlertTitle>License Information</AlertTitle>
               <AlertDescription>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>License keys are tied to your Gumroad account and purchase</li>
+                  <li>License keys come from your purchase confirmation email</li>
                   <li>Premium is the self-hosted paid edition</li>
                   <li>Community is free under AGPLv3</li>
                 </ul>
@@ -487,12 +487,11 @@ export default function ClientLicenseActivation() {
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Change License
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => window.open("https://app.gumroad.com/library", "_blank")}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        View in Gumroad
+                      <Button variant="outline" asChild>
+                        <a href="https://grcompliance.com" target="_blank" rel="noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Support
+                        </a>
                       </Button>
                       {licenseStatus.status === "active" && (
                         <Button
@@ -645,10 +644,10 @@ export default function ClientLicenseActivation() {
                     <div>
                       <h4 className="font-medium text-sm">Where do I find my license key?</h4>
                       <p className="text-sm text-muted-foreground">
-                        Your license key is included in the purchase confirmation email from Gumroad. 
-                        You can also find it in your Gumroad library at{" "}
-                        <a href="https://app.gumroad.com/library" className="text-primary hover:underline">
-                          app.gumroad.com/library
+                        Your license key is included in your purchase confirmation email.{" "}
+                        For help, visit{" "}
+                        <a href="https://grcompliance.com" target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                          grcompliance.com
                         </a>.
                       </p>
                     </div>
@@ -676,9 +675,11 @@ export default function ClientLicenseActivation() {
                   <h3 className="font-medium">Support Resources</h3>
                   
                   <div className="grid gap-3">
-                    <Button variant="outline" className="justify-start">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Gumroad Help Center
+                    <Button variant="outline" className="justify-start" asChild>
+                      <a href="https://grcompliance.com" target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Support
+                      </a>
                     </Button>
                     <Button variant="outline" className="justify-start">
                       <ExternalLink className="h-4 w-4 mr-2" />

@@ -70,7 +70,7 @@ const LicenseManagement: React.FC = () => {
       return;
     }
     setIsActivating(true);
-    toast.error('A license key is not activated in the browser. A workspace plan changes only after Gumroad verifies a purchase.');
+    toast.error('A license key is not activated in the browser. A workspace plan changes only after a purchase is verified.');
     setIsActivating(false);
   };
   

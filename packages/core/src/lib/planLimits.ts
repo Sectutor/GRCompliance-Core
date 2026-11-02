@@ -1,3 +1,5 @@
+import { isPremiumPlan } from "./licenseLabel";
+
 export const PLAN_LIMITS = {
     free: {
         maxPolicies: 10,
@@ -42,6 +44,6 @@ export const PLAN_LIMITS = {
 export type PlanTier = keyof typeof PLAN_LIMITS;
 
 export const getPlanLimits = (tier: string | null | undefined) => {
-    const validTier = (tier === 'pro' || tier === 'enterprise') ? tier : 'free';
-    return PLAN_LIMITS[validTier];
+    if (!isPremiumPlan(tier)) return PLAN_LIMITS.free;
+    return (tier || "").trim().toLowerCase() === "pro" ? PLAN_LIMITS.pro : PLAN_LIMITS.enterprise;
 };
