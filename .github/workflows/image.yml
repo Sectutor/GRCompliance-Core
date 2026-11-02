@@ -102,6 +102,7 @@ jobs:
       - name: Publish latest when commit is still the default branch head
         if: github.event_name == 'push' && github.ref_type == 'branch' && steps.tags.outputs.wants_latest == 'true'
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LATEST_REF: ${{ steps.tags.outputs.latest_ref }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
