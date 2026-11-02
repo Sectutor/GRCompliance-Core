@@ -101,7 +101,7 @@ export default function ManagedServicesPage() {
                                 </div>
                                 <h3 className="text-2xl font-bold mb-4">Fractional CISO Team</h3>
                                 <p className="text-slate-400 leading-relaxed text-lg">
-                                    Don't hire a $200k executive. Get an entire team of experts for a fraction of the cost, available whenever you need them.
+                                    Don't hire a full-time executive. Get an entire team of experts for a fraction of the cost, available whenever you need them.
                                 </p>
                             </motion.div>
 

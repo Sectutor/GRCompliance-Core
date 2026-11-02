@@ -6,7 +6,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLicense, FEATURES } from '@/lib/license/index';
-import { PREMIUM_AVAILABLE, PREMIUM_PRICING_PATH, visibleFeatureLabel, visibleLicenseType } from '@/lib/licenseLabel';
+import { PREMIUM_AVAILABLE, visibleFeatureLabel, visibleLicenseType } from '@/lib/licenseLabel';
+import { usePremiumOffer } from '@/components/license/usePremiumOffer';
 import { 
   Card, 
   CardContent, 
@@ -25,10 +26,8 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-  Alert,
-  AlertDescription,
-  AlertTitle
 } from '@complianceos/ui';
+import { Alert, AlertDescription, AlertTitle } from '@complianceos/ui/ui/alert';
 import { 
   CheckCircle, 
   XCircle, 
@@ -60,6 +59,7 @@ const LicenseManagement: React.FC = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
+  const { href: premiumHref } = usePremiumOffer();
   const licenseType = getLicenseType();
   const isCommunity = isCommunityEdition();
   const isEnterprise = isEnterpriseEdition();
@@ -339,13 +339,11 @@ const LicenseManagement: React.FC = () => {
                   Download License
                 </Button>
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => window.open(PREMIUM_PRICING_PATH, '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  {PREMIUM_AVAILABLE}
+                <Button variant="outline" className="w-full" asChild>
+                  <a href={premiumHref} target="_blank" rel="noreferrer">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    {PREMIUM_AVAILABLE}
+                  </a>
                 </Button>
               </CardContent>
               <CardFooter>
@@ -468,12 +466,10 @@ const LicenseManagement: React.FC = () => {
                 <p className="text-sm text-muted-foreground">
                   Don't have a license key?
                 </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => window.open(PREMIUM_PRICING_PATH, '_blank')}
-                >
-                  {PREMIUM_AVAILABLE}
+                <Button variant="outline" className="w-full" asChild>
+                  <a href={premiumHref} target="_blank" rel="noreferrer">
+                    {PREMIUM_AVAILABLE}
+                  </a>
                 </Button>
               </div>
             </CardFooter>

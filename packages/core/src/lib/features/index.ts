@@ -218,7 +218,7 @@ export const FEATURE_DEFINITIONS: Record<string, {
 
   // Enterprise Features
   [FEATURES.ENTERPRISE_SCALABILITY]: {
-    name: 'Enterprise Scalability',
+    name: 'Scalability',
     description: 'High-performance scaling for large deployments',
     category: FEATURE_CATEGORIES.ENTERPRISE,
     availableIn: ['COMMERCIAL'],
@@ -338,7 +338,7 @@ export const FEATURE_DEFINITIONS: Record<string, {
   },
 
   [FEATURES.INTEGRATION_ENTERPRISE_STORAGE]: {
-    name: 'Enterprise Storage',
+    name: 'External storage',
     description: 'Integration with S3, Azure Blob, etc.',
     category: FEATURE_CATEGORIES.INTEGRATION,
     availableIn: ['COMMERCIAL'],
@@ -366,7 +366,7 @@ export const FEATURE_DEFINITIONS: Record<string, {
 
   // Deployment Features
   [FEATURES.DEPLOYMENT_MANAGED_SAAS]: {
-    name: 'Managed SaaS',
+    name: 'Managed hosting',
     description: 'Fully managed cloud deployment',
     category: FEATURE_CATEGORIES.DEPLOYMENT,
     availableIn: ['COMMERCIAL', 'TRIAL'],

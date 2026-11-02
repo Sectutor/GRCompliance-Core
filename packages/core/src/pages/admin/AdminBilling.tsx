@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@complianceos/ui/ui/button";
 import { useLocation } from "wouter";
 import { Building2, CreditCard } from "lucide-react";
+import { visiblePlanTier } from "@/lib/licenseLabel";
 
 export default function AdminBillingPage() {
     const [, setLocation] = useLocation();
@@ -41,7 +42,7 @@ export default function AdminBillingPage() {
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Plan:</span>
                                         <span className="font-medium capitalize">
-                                            {client.planTier || 'Free'}
+                                            {visiblePlanTier(client.planTier)}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-sm">

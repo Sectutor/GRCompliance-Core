@@ -174,7 +174,7 @@ export default function FrameworksDashboard() {
                             },
                             {
                                 step: "Custom Frameworks",
-                                description: "Pro and Enterprise users can import proprietary control sets.",
+                                description: "Premium adds importing your own control sets.",
                                 targetId: "fw-import-custom-btn"
                             }
                         ]}

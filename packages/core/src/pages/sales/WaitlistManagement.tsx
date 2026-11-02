@@ -39,7 +39,7 @@ export default function WaitlistManagement() {
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteLead, setInviteLead] = useState<any | null>(null);
     const [inviteRole, setInviteRole] = useState<'viewer' | 'editor' | 'user' | 'admin'>('viewer');
-    const [invitePlanTier, setInvitePlanTier] = useState<'free' | 'pro' | 'enterprise'>('pro');
+    const [invitePlanTier, setInvitePlanTier] = useState<'community' | 'premium'>('community');
     const [inviteExpiresInDays, setInviteExpiresInDays] = useState<number>(30);
     const [inviteUsageLimit, setInviteUsageLimit] = useState<number | null>(1);
     const [statusFilter, setStatusFilter] = useState('all');
@@ -95,7 +95,7 @@ export default function WaitlistManagement() {
     const openInviteModal = (lead: any) => {
         setInviteLead(lead);
         setInviteRole('viewer');
-        setInvitePlanTier('pro');
+        setInvitePlanTier('community');
         setInviteExpiresInDays(30);
         setInviteUsageLimit(1);
         setIsInviteOpen(true);
@@ -333,15 +333,17 @@ export default function WaitlistManagement() {
                         <div className="space-y-2">
                             <Label>Plan Tier</Label>
                             <div className="flex gap-2">
-                                {(['free', 'pro', 'enterprise'] as const).map(p => (
+                                {([
+                                    ['community', 'Community'],
+                                    ['premium', 'Premium'],
+                                ] as const).map(([value, label]) => (
                                     <Button
-                                        key={p}
+                                        key={value}
                                         type="button"
-                                        variant={invitePlanTier === p ? 'default' : 'outline'}
-                                        onClick={() => setInvitePlanTier(p)}
-                                        className="capitalize"
+                                        variant={invitePlanTier === value ? 'default' : 'outline'}
+                                        onClick={() => setInvitePlanTier(value)}
                                     >
-                                        {p}
+                                        {label}
                                     </Button>
                                 ))}
                             </div>

@@ -32,7 +32,7 @@ import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@complianceos/ui/ui/alert";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { getBuildInfo } from "@/lib/features";
-import { visibleFeatureLabel } from "@/lib/licenseLabel";
+import { visibleFeatureLabel, visibleLicenseType } from "@/lib/licenseLabel";
 
 export default function LicenseManagementPage() {
   const [licenseKey, setLicenseKey] = useState("");
@@ -374,7 +374,7 @@ export default function LicenseManagementPage() {
                             <div className="grid grid-cols-2 gap-2">
                               <div>
                                 <span className="text-sm text-muted-foreground">Type:</span>
-                                <div className="font-medium">{validationResult.license?.type || "N/A"}</div>
+                                <div className="font-medium">{validationResult.license?.type ? visibleLicenseType(validationResult.license.type) : "N/A"}</div>
                               </div>
                               <div>
                                 <span className="text-sm text-muted-foreground">Status:</span>
@@ -400,7 +400,7 @@ export default function LicenseManagementPage() {
                                 <div className="flex flex-wrap gap-1">
                                   {validationResult.license.features.slice(0, 5).map((feature: string) => (
                                     <Badge key={feature} variant="secondary" className="text-xs">
-                                      {feature}
+                                      {visibleFeatureLabel(feature)}
                                     </Badge>
                                   ))}
                                   {validationResult.license.features.length > 5 && (

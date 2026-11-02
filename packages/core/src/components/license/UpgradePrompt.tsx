@@ -27,9 +27,16 @@ import {
 } from 'lucide-react';
 import { useLicense } from '@/lib/license/index';
 import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, isCommunityWorkspaceLimitMessage } from '@/lib/edition';
-import { PREMIUM_AVAILABLE, PREMIUM_PRICING_PATH } from '@/lib/licenseLabel';
+import { PREMIUM_AVAILABLE } from '@/lib/licenseLabel';
+import { usePremiumOffer } from './usePremiumOffer';
 
 export const COMMUNITY_WORKSPACE_LIMIT_EVENT = "grc-community-workspace-limit";
+
+/** The action link already says this. The description should not repeat it. */
+function promptDescription(description: string): string {
+  const offer = PREMIUM_AVAILABLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return description.replace(new RegExp(`\\s*${offer}\\s*`, "g"), " ").replace(/\s+/g, " ").trim();
+}
 
 interface UpgradePromptProps {
   trigger?: React.ReactNode;
@@ -54,6 +61,8 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   open: openProp,
   onOpenChange,
 }) => {
+  const { href } = usePremiumOffer();
+  const description = promptDescription(featureDescription);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = openProp ?? uncontrolledOpen;
   const setOpen = (next: boolean) => {
@@ -92,18 +101,18 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
               <DialogTitle className="flex items-center gap-2">
                 {featureName}
               </DialogTitle>
-              <DialogDescription>
-                {featureDescription}
-              </DialogDescription>
+              {description ? (
+                <DialogDescription>
+                  {description}
+                </DialogDescription>
+              ) : null}
             </div>
           </div>
         </DialogHeader>
 
-        <p className="text-sm">{PREMIUM_AVAILABLE}</p>
-
         <DialogFooter className="flex flex-col sm:flex-row gap-3">
           <Button className="sm:flex-1" asChild>
-            <a href={PREMIUM_PRICING_PATH} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
+            <a href={href} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
               {PREMIUM_AVAILABLE}
               <ArrowRight className="w-4 h-4 ml-2" />
             </a>
@@ -128,6 +137,7 @@ export const InlineUpgradePrompt: React.FC<{
   featureName?: string;
   compact?: boolean;
 }> = ({ featureName = 'this feature', compact = false }) => {
+  const { href } = usePremiumOffer();
   const { isCommunityEdition } = useLicense();
 
   if (!isCommunityEdition()) return null;
@@ -160,7 +170,7 @@ export const InlineUpgradePrompt: React.FC<{
         className="border-amber-300 text-amber-700 hover:bg-amber-100"
         asChild
       >
-        <a href={PREMIUM_PRICING_PATH} target="_blank" rel="noreferrer">
+        <a href={href} target="_blank" rel="noreferrer">
           {PREMIUM_AVAILABLE}
         </a>
       </Button>

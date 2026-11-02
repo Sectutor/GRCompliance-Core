@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/ta
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { DemoImportDialog } from "@/components/admin/DemoImportDialog";
 import { toast } from "sonner";
+import { COMMUNITY_SITE_URL, PREMIUM_AVAILABLE } from "@/lib/licenseLabel";
+import { usePremiumOffer } from "@/components/license/usePremiumOffer";
 import {
     CreditCard,
     Settings,
@@ -66,6 +68,7 @@ export default function ClientSettings() {
     const clientId = Number(params.id);
     const [location, setLocation] = useLocation();
     const { user } = useAuth();
+    const { purchaseUrl } = usePremiumOffer();
 
     // Lazy loaded to avoid potential circular dep issues or just keep clean
 
@@ -419,14 +422,20 @@ export default function ClientSettings() {
                                                     <Shield className="h-4 w-4 mr-2" />
                                                     View License Status
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="justify-start"
-                                                    onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank")} // published Gumroad product id; do not rename
-                                                >
-                                                    <CreditCard className="h-4 w-4 mr-2" />
-                                                    Purchase License
-                                                </Button>
+                                                {purchaseUrl ? (
+                                                    <Button variant="outline" className="justify-start" asChild>
+                                                        <a href={purchaseUrl} target="_blank" rel="noreferrer">
+                                                            <CreditCard className="h-4 w-4 mr-2" />
+                                                            Purchase License
+                                                        </a>
+                                                    </Button>
+                                                ) : (
+                                                    <Button variant="outline" className="justify-start" asChild>
+                                                        <a href={COMMUNITY_SITE_URL} target="_blank" rel="noreferrer">
+                                                            {PREMIUM_AVAILABLE}
+                                                        </a>
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="outline"
                                                     className="justify-start"

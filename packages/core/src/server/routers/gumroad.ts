@@ -14,6 +14,12 @@ import * as db from "../../db";
 import { clients } from "../../schema";
 import { eq } from "drizzle-orm";
 import { assertCanManageLicense, assertPlatformLicenseAdmin } from "../licenseAdmin";
+import { presentStoredLicense } from "../../lib/licenseLabel";
+
+function readPremiumPurchaseUrl(): string | null {
+  const value = (process.env.PREMIUM_PURCHASE_URL || "").trim();
+  return value || null;
+}
 
 export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any, publicProcedure: any) => {
   return t.router({
@@ -89,16 +95,26 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
         const isConfigured = !!config.gumroad?.accessToken;
         const validator = getEnhancedLicenseValidator();
 
+        const purchaseUrl = readPremiumPurchaseUrl();
         return {
           success: true,
           isConfigured,
           isGumroadEnabled: validator.isGumroadEnabled(),
           hasAccessToken: !!config.gumroad?.accessToken,
           hasWebhookSecret: !!config.gumroad?.webhookSecret,
-          // Default permalink kept; it matches the published Gumroad product.
-          productPermalink: config.gumroad?.productPermalink || 'complianceos-enterprise',
+          hasProductPermalink: !!config.gumroad?.productPermalink,
+          productPermalink: config.gumroad?.productPermalink || null,
+          purchaseUrl,
           message: isConfigured ? 'Gumroad is configured' : 'Gumroad is not configured'
         };
+      }),
+
+    /**
+     * Public purchase link. Unset PREMIUM_PURCHASE_URL hides the purchase button.
+     */
+    getPremiumOffer: publicProcedure
+      .query(() => {
+        return { purchaseUrl: readPremiumPurchaseUrl() };
       }),
 
     /**
@@ -157,6 +173,21 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
             };
           }
 
+          const stored = presentStoredLicense({
+            type: activeLicense.licenseType,
+            status: activeLicense.licenseStatus,
+          });
+          if (!stored.paid && String(activeLicense.licenseType || "").trim().toLowerCase() === "trial") {
+            return {
+              status: "expired",
+              type: "community",
+              licenseKey: activeLicense.licenseKey ? activeLicense.licenseKey.substring(0, 8) + "..." : undefined,
+              issuedTo: activeLicense.customerName || undefined,
+              message: "Using community edition",
+              features: [],
+            };
+          }
+
           // Validate license with Gumroad to ensure it's still valid
           try {
             const validator = getEnhancedLicenseValidator();
@@ -181,6 +212,21 @@ export const createGumroadRouter = (t: any, clientProcedure: any, isAuthed: any,
               validationResult: licenseInfo,
               validationType: 'status_check',
             });
+
+            const verified = presentStoredLicense({
+              type: licenseInfo.type || activeLicense.licenseType,
+              status: licenseInfo.status,
+            });
+            if (!verified.paid && String(licenseInfo.type || activeLicense.licenseType || "").trim().toLowerCase() === "trial") {
+              return {
+                status: "expired",
+                type: "community",
+                licenseKey: activeLicense.licenseKey.substring(0, 8) + "...",
+                issuedTo: activeLicense.customerName || licenseInfo.issuedTo,
+                message: "Using community edition",
+                features: [],
+              };
+            }
 
             return {
               status: licenseInfo.status,

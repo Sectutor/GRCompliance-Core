@@ -557,8 +557,8 @@ MATURITY: ${posture.maturityLevel}
                                                     <SelectContent>
                                                         <SelectItem value="sme">SME (1-50 employees)</SelectItem>
                                                         <SelectItem value="mid">Mid-Market (51-500)</SelectItem>
-                                                        <SelectItem value="enterprise">Enterprise (500-5000)</SelectItem>
-                                                        <SelectItem value="global">Global Enterprise (5000+)</SelectItem>
+                                                        <SelectItem value="enterprise">Large (500-5000)</SelectItem>
+                                                        <SelectItem value="global">Global (5000+)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>

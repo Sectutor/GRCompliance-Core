@@ -21,6 +21,7 @@ vi.mock("../db", () => ({
 }));
 
 import { clearPremiumEntitlementProvider, registerPremiumEntitlement } from "./premiumEntitlement";
+import { presentStoredLicense } from "../lib/licenseLabel";
 import { requirePremiumEdition } from "./trpc";
 
 const guard = (requirePremiumEdition as unknown as {
@@ -326,11 +327,11 @@ describe("Gumroad activation fails closed", () => {
             status: "valid",
             metadata: { gumroad: { saleId: "sale-1", purchaseId: "purchase-1" } },
         })).toBe("enterprise");
-        expect(tierFromVerifiedPurchase({
+        expect(() => tierFromVerifiedPurchase({
             type: "trial",
             status: "valid",
             metadata: { gumroad: { saleId: "sale-1", purchaseId: "purchase-1" } },
-        })).toBe("pro");
+        })).toThrow(/could not be verified/);
         expect(() => tierFromVerifiedPurchase({
             type: "community",
             status: "valid",
@@ -388,5 +389,24 @@ describe("Gumroad activation fails closed", () => {
         const writeAt = gumroad.indexOf("createLicenseActivation");
         expect(verifyAt).toBeGreaterThan(-1);
         expect(writeAt).toBeGreaterThan(verifyAt);
+    });
+
+    it("treats a trial key as expired Community and not a paid plan", () => {
+        expect(presentStoredLicense({ type: "trial", status: "active" })).toEqual({
+            type: "community",
+            status: "expired",
+            paid: false,
+        });
+        expect(presentStoredLicense({ type: "TRIAL", status: "valid" }).paid).toBe(false);
+        expect(presentStoredLicense({ type: "enterprise", status: "valid" })).toEqual({
+            type: "enterprise",
+            status: "valid",
+            paid: true,
+        });
+        const gumroad = readFileSync(path.join(repoRoot, "packages/core/src/server/routers/gumroad.ts"), "utf8");
+        expect(gumroad).toContain("presentStoredLicense");
+        expect(gumroad).toContain("PREMIUM_PURCHASE_URL");
+        expect(gumroad).not.toContain("complianceos-enterprise");
+        expect(gumroad).not.toContain("gumroad.com/l/");
     });
 });

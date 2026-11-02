@@ -10,6 +10,10 @@ const calls = vi.hoisted(() => ({
     validate: 0,
 }));
 
+const licenseRows = vi.hoisted(() => ({
+    active: null as null | Record<string, unknown>,
+}));
+
 vi.mock("../../lib/license/licenseDbService", () => ({
     licenseDbService: {
         isLicenseKeyActive: async () => {
@@ -18,7 +22,7 @@ vi.mock("../../lib/license/licenseDbService", () => ({
         },
         getActiveLicenseForClient: async () => {
             calls.lookup += 1;
-            return null;
+            return licenseRows.active;
         },
         getExpiringLicenses: async () => {
             calls.expiring += 1;
@@ -104,6 +108,7 @@ describe("license upload, activate, and deactivate", () => {
         calls.expired = 0;
         calls.logs = 0;
         calls.validate = 0;
+        licenseRows.active = null;
     });
 
     it("rejects an unauthenticated caller before any license write", async () => {
@@ -158,5 +163,50 @@ describe("license upload, activate, and deactivate", () => {
         await expect(platform.getExpiredLicenses()).resolves.toMatchObject({ success: true });
         expect(calls.expiring).toBe(1);
         expect(calls.expired).toBe(1);
+    });
+
+    it("reads PREMIUM_PURCHASE_URL and does not fall back to the old product page", async () => {
+        const previous = process.env.PREMIUM_PURCHASE_URL;
+        delete process.env.PREMIUM_PURCHASE_URL;
+        try {
+            await expect(caller({}).getPremiumOffer()).resolves.toEqual({ purchaseUrl: null });
+            const config = await caller({ user: { id: 1, role: "admin" } }).getGumroadConfig();
+            expect(config.purchaseUrl).toBeNull();
+            expect(config.productPermalink).toBeFalsy();
+            expect(JSON.stringify(config)).not.toContain("complianceos-enterprise");
+            expect(JSON.stringify(config)).not.toContain("gumroad.com/l/");
+        } finally {
+            if (previous === undefined) delete process.env.PREMIUM_PURCHASE_URL;
+            else process.env.PREMIUM_PURCHASE_URL = previous;
+        }
+
+        process.env.PREMIUM_PURCHASE_URL = " https://example.com/premium ";
+        try {
+            await expect(caller({}).getPremiumOffer()).resolves.toEqual({
+                purchaseUrl: "https://example.com/premium",
+            });
+        } finally {
+            if (previous === undefined) delete process.env.PREMIUM_PURCHASE_URL;
+            else process.env.PREMIUM_PURCHASE_URL = previous;
+        }
+    });
+
+    it("reports a stored trial licence as expired Community", async () => {
+        licenseRows.active = {
+            licenseType: "trial",
+            licenseStatus: "active",
+            licenseKey: "trial-key-123456",
+            customerName: "Example",
+            enabledFeatures: ["enterprise.scalability"],
+        };
+        const result = await caller({ user: { id: 3, role: "user" }, clientRole: "owner" })
+            .getLicenseStatus({ clientId: 4 });
+        expect(result).toMatchObject({
+            status: "expired",
+            type: "community",
+            features: [],
+            message: "Using community edition",
+        });
+        expect(calls.validate).toBe(0);
     });
 });

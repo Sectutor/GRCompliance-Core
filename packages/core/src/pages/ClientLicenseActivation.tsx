@@ -31,15 +31,16 @@ import {
   ArrowRight,
   Info
 } from "lucide-react";
-import { useToast } from "@complianceos/ui/ui/use-toast";
-import { PREMIUM_AVAILABLE, PREMIUM_PRICING_PATH, visibleFeatureLabel, visibleLicenseType } from "@/lib/licenseLabel";
+import { toast } from "sonner";
+import { COMMUNITY_SITE_URL, PREMIUM_AVAILABLE, visibleFeatureLabel, visibleLicenseType } from "@/lib/licenseLabel";
+import { usePremiumOffer } from "@/components/license/usePremiumOffer";
 import { PREMIUM_CAPABILITIES } from "@/lib/upgradeCopy";
 
 export default function ClientLicenseActivation() {
   const params = useParams();
   const clientId = Number(params.id);
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
+  const { href: premiumHref, purchaseUrl } = usePremiumOffer();
   
   const [licenseKey, setLicenseKey] = useState("");
   const [activeTab, setActiveTab] = useState("activate");
@@ -55,51 +56,31 @@ export default function ClientLicenseActivation() {
   
   // License activation mutation
   const activateLicenseMutation = trpc.gumroad.activateLicense.useMutation({
-    onSuccess: (data) => {
-      toast({
-        title: "License Activated",
-        description: "Your license has been successfully activated.",
-        variant: "default",
-      });
+    onSuccess: () => {
+      toast.success("Your license has been successfully activated.");
       refetchLicenseStatus();
       setLicenseKey("");
     },
     onError: (error) => {
-      toast({
-        title: "Activation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
     },
   });
   
   // License deactivation mutation
   const deactivateLicenseMutation = trpc.gumroad.deactivateLicense.useMutation({
     onSuccess: () => {
-      toast({
-        title: "License Deactivated",
-        description: "Your license has been deactivated.",
-        variant: "default",
-      });
+      toast.success("Your license has been deactivated.");
       refetchLicenseStatus();
     },
     onError: (error) => {
-      toast({
-        title: "Deactivation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
     },
   });
   
   // Handle license activation
   const handleActivateLicense = () => {
     if (!licenseKey.trim()) {
-      toast({
-        title: "License Key Required",
-        description: "Please enter a valid license key.",
-        variant: "destructive",
-      });
+      toast.error("Please enter a valid license key.");
       return;
     }
     
@@ -114,11 +95,7 @@ export default function ClientLicenseActivation() {
   // Handle license deactivation
   const handleDeactivateLicense = () => {
     if (!licenseStatus?.licenseKey) {
-      toast({
-        title: "No Active License",
-        description: "There is no active license to deactivate.",
-        variant: "destructive",
-      });
+      toast.error("There is no active license to deactivate.");
       return;
     }
     
@@ -231,7 +208,7 @@ export default function ClientLicenseActivation() {
                     Activate License
                   </CardTitle>
                   <CardDescription>
-                    Enter your Gumroad license key to activate premium features
+                    Enter your license key to activate premium features
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -239,7 +216,7 @@ export default function ClientLicenseActivation() {
                     <Label htmlFor="licenseKey">License Key</Label>
                     <Input
                       id="licenseKey"
-                      placeholder="Enter your Gumroad license key"
+                      placeholder="Enter your license key"
                       value={licenseKey}
                       onChange={(e) => setLicenseKey(e.target.value)}
                       className="font-mono"
@@ -283,14 +260,20 @@ export default function ClientLicenseActivation() {
                       )}
                     </Button>
                     
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank") /* published Gumroad product id */}
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Purchase License
-                    </Button>
+                    {purchaseUrl ? (
+                      <Button variant="outline" className="w-full" asChild>
+                        <a href={purchaseUrl} target="_blank" rel="noreferrer">
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Purchase License
+                        </a>
+                      </Button>
+                    ) : (
+                      <p className="text-sm text-center text-muted-foreground">
+                        <a href={COMMUNITY_SITE_URL} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                          {PREMIUM_AVAILABLE}
+                        </a>
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -601,7 +584,7 @@ export default function ClientLicenseActivation() {
                     <CardContent>
                       <p className="text-sm">{PREMIUM_AVAILABLE}</p>
                       <Button className="w-full mt-4" asChild>
-                        <a href={PREMIUM_PRICING_PATH} target="_blank" rel="noreferrer">
+                        <a href={premiumHref} target="_blank" rel="noreferrer">
                           {PREMIUM_AVAILABLE}
                         </a>
                       </Button>
