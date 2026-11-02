@@ -13,7 +13,7 @@ const navigation: EditionNavGroup[] = [
         ],
     },
     {
-        label: "AI & App Security",
+        label: "App Security",
         items: [
             { label: "Security Projects", path: "/projects" },
             { label: "AI Governance", path: "/ai-governance", isPremium: true },

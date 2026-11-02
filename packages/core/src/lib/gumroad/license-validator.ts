@@ -11,28 +11,29 @@ import {
   getFeaturesForProduct
 } from './index';
 
-const PAID_LICENSE_TYPES = new Set(["enterprise", "trial"]);
+const PAID_LICENSE_TYPES = new Set(["enterprise"]);
 
 /**
  * Map a Gumroad purchase to a plan tier. Anything short of a verified paid
  * purchase throws, so activation cannot invent a community or env license.
+ * A trial key is not a paid purchase.
  */
 export function tierFromVerifiedPurchase(licenseInfo: {
   type?: string;
   status?: string;
   metadata?: { gumroad?: { saleId?: string; purchaseId?: string } };
-}): "pro" | "enterprise" {
+}): "enterprise" {
   const gumroad = licenseInfo.metadata?.gumroad;
   const saleId = typeof gumroad?.saleId === "string" ? gumroad.saleId.trim() : "";
   const purchaseId = typeof gumroad?.purchaseId === "string" ? gumroad.purchaseId.trim() : "";
   const paid = licenseInfo.status === "valid"
     && saleId.length > 0
     && purchaseId.length > 0
-    && PAID_LICENSE_TYPES.has(String(licenseInfo.type));
+    && PAID_LICENSE_TYPES.has(String(licenseInfo.type || "").trim().toLowerCase());
   if (!paid) {
     throw new Error("License purchase could not be verified");
   }
-  return licenseInfo.type === "trial" ? "pro" : "enterprise";
+  return "enterprise";
 }
 
 export interface GumroadLicenseCache {

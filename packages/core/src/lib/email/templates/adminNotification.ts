@@ -4,6 +4,7 @@
 
 import { EmailService } from '../service';
 import { appOrigin } from '../../publicUrl';
+import { visibleLicenseType } from '../../licenseLabel';
 
 interface LicenseData {
   id: number;
@@ -65,16 +66,9 @@ function getSubject(notificationType: string, license: LicenseData): string {
  * Get product name based on license type
  */
 function getProductName(licenseType: string): string {
-  switch (licenseType) {
-    case 'enterprise':
-      return 'GRCompliance Enterprise';
-    case 'trial':
-      return 'GRCompliance Trial';
-    case 'community':
-      return 'GRCompliance Community';
-    default:
-      return 'GRCompliance';
-  }
+  return visibleLicenseType(licenseType) === 'Premium'
+    ? 'GRCompliance Premium'
+    : 'GRCompliance Community';
 }
 
 /**

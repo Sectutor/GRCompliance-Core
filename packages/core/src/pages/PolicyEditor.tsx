@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@complianceos/ui/ui/dialog";
-import RichTextEditor, { RichTextEditorRef } from "@/components/RichTextEditor";
+import { RichTextEditorRef } from "@/components/RichTextEditor";
+import { PolicyRefineChrome } from "@/components/policy/PolicyRefineChrome";
 import TurndownService from "turndown";
 
 import { asBlob } from "html-docx-js-typescript";
@@ -33,8 +34,8 @@ import { SlotNames } from "@/registry/slotNames";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import { PageGuide } from "@/components/PageGuide";
 
-import PolicyLinter from "@/components/policy/PolicyLinter";
 import { AiRewriteDialog } from "@/components/policy/AiRewriteDialog";
+import { usePolicyRefineAllowed } from "@/lib/policyRefineAccess";
 
 // Helper logic for Policy Analysis
 
@@ -92,6 +93,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
     const clientId = Number(rawClientId);
     const policyId = Number(rawPolicyId);
+    const refineAllowed = usePolicyRefineAllowed(clientId);
 
     console.log("[PolicyEditor] Resolved IDs:", {
         props,
@@ -1009,16 +1011,16 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
 
                         <Card>
                             <CardHeader className="pb-0 border-b mb-4">
-                                <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-4">
-                                    <div className="pb-4">
+                                <div className="flex flex-col gap-4">
+                                    <div className="min-w-0 w-full">
                                         <CardTitle>Policy Content</CardTitle>
-                                        <CardDescription>
+                                        <CardDescription className="max-w-none">
                                             {viewMode === "edit"
                                                 ? "Edit your policy content using the rich text editor below"
                                                 : "Preview how your policy will appear"}
                                         </CardDescription>
                                     </div>
-                                    <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full xl:w-auto max-w-full">
+                                    <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full max-w-full">
                                         <div className="w-full overflow-x-auto no-scrollbar">
                                             <TabsList id="policy-view-tabs" className="bg-transparent p-0 gap-1 h-auto flex w-max min-w-full">
                                                 <TabsTrigger
@@ -1158,39 +1160,36 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                         <div>
                                             <Label>Policy Content</Label>
                                             {isContentReady ? (
-                                                <RichTextEditor
-                                                    value={content}
+                                                <PolicyRefineChrome
+                                                    ref={editorRef}
+                                                    clientId={clientId}
+                                                    content={content}
                                                     onChange={setContent}
-                                                    className="min-h-[400px]"
                                                     onAiRewrite={handleAiRewrite}
                                                     onAiFix={handleAiFixPlaceholders}
                                                     onComment={handleInlineComment}
                                                     onCheckCompliance={handleCheckCompliance}
-                                                    ref={editorRef}
+                                                    linter={{
+                                                        onInsertSection: (html) => {
+                                                            setContent((prev) => `${prev || ""}\n${html}`);
+                                                        },
+                                                        onReplaceContent: (html) => {
+                                                            setContent(html);
+                                                        },
+                                                        clientId,
+                                                        policyId,
+                                                        orgName: clientData?.name,
+                                                        onPublish: () => setShowPublishDialog(true),
+                                                        onExportWord: handleExportWord,
+                                                        publishDisabled: policy?.approvalStatus !== 'approved',
+                                                        publishTooltip: policy?.approvalStatus === 'requested' ? "Awaiting Review" : "Requires Approval",
+                                                    }}
                                                 />
                                             ) : (
                                                 <div className="min-h-[400px] flex items-center justify-center bg-slate-50 rounded-lg border">
                                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                                 </div>
                                             )}
-                                        </div>
-                                        <div id="policy-linter-section">
-                                            <PolicyLinter
-                                                content={content}
-                                                onInsertSection={(html) => {
-                                                    setContent((prev) => `${prev || ""}\n${html}`);
-                                                }}
-                                                onReplaceContent={(html) => {
-                                                    setContent(html);
-                                                }}
-                                                clientId={clientId}
-                                                policyId={policyId}
-                                                orgName={clientData?.name}
-                                                onPublish={() => setShowPublishDialog(true)}
-                                                onExportWord={handleExportWord}
-                                                publishDisabled={policy?.approvalStatus !== 'approved'}
-                                                publishTooltip={policy?.approvalStatus === 'requested' ? "Awaiting Review" : "Requires Approval"}
-                                            />
                                         </div>
                                         <div className="mt-8 border-t pt-6" id="collaboration-hub">
                                             <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
@@ -2509,13 +2508,15 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     Assign to Employees
                                 </Button>
 
-                                <Button
-                                    className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
-                                    onClick={handleAiFixPlaceholders}
-                                >
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    Fix Placeholders
-                                </Button>
+                                {refineAllowed && (
+                                    <Button
+                                        className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
+                                        onClick={handleAiFixPlaceholders}
+                                    >
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Fix Placeholders
+                                    </Button>
+                                )}
 
                                 <Button
                                     className="w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold"
@@ -2524,22 +2525,19 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                     <FileText className="mr-2 h-4 w-4" />
                                     Export as Word
                                 </Button>
-                                <Slot
-                                    name={SlotNames.POLICY_REWRITE_BUTTON}
-                                    props={{
-                                        content,
-                                        name,
-                                        clientId,
-                                        policyId,
-                                        onRewrite: (html: string) => setContent(html),
-                                        className: "w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold",
-                                        variant: "ghost"
-                                    }}
-                                />
-                                {import.meta.env.VITE_ENABLE_PREMIUM !== 'true' && (
-                                    <div className="text-xs text-muted-foreground px-2 py-1">
-                                        AI rewrite is part of the paid edition.
-                                    </div>
+                                {refineAllowed && (
+                                    <Slot
+                                        name={SlotNames.POLICY_REWRITE_BUTTON}
+                                        props={{
+                                            content,
+                                            name,
+                                            clientId,
+                                            policyId,
+                                            onRewrite: (html: string) => setContent(html),
+                                            className: "w-full justify-start bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] hover:text-white transition-all font-bold",
+                                            variant: "ghost"
+                                        }}
+                                    />
                                 )}
                                 <div className="space-y-1">
                                     <Button

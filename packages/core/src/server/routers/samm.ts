@@ -62,10 +62,9 @@ export const createSammRouter = (t: any, clientProcedure: any) => {
                 practiceId: z.string(),
             }))
             .query(async ({ input }: { input: { clientId: number, practiceId: string } }) => {
-                // Placeholder for AI guidance logic
-                // In a real implementation, this would call llmService.generate
+                // Fixed guidance text. This does not call a model.
                 return {
-                    guidance: `AI guidance for ${input.practiceId} based on your current policies...`,
+                    guidance: `Guidance for ${input.practiceId} based on your current policies...`,
                     suggestions: [
                         "Implement automated secure code review",
                         "Establish a clear vulnerability disclosure policy",

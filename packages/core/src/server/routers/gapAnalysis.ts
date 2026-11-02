@@ -205,7 +205,7 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any, recordProc
             .input(z.object({ assessmentId: z.number() }))
             .mutation(async ({ input }: any) => {
                 return {
-                    executiveSummary: "Assessment completed. Upgrade to Premium for AI-generated insights.",
+                    executiveSummary: "Assessment completed.",
                     keyRecommendations: ["Review high priority gaps.", "Allocate budget for remediation."]
                 };
             }),

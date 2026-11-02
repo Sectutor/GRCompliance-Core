@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Plus, Trash2, CheckCircle2, Paperclip, Upload, X, Search, ChevronRight, Filter, Info, AlertCircle, Clock, Shield, User, BarChart3, Download, BookOpen, LayoutGrid } from "lucide-react";
 import EvidenceFileUpload from "@/components/EvidenceFileUpload";
-import EvidenceAnalysisButton from "@/components/EvidenceAnalysisButton";
 import { GoogleDriveFileBrowser } from "@/components/integrations/GoogleDriveFileBrowser";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useState, useMemo } from "react";
@@ -362,17 +361,17 @@ export default function Evidence() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 w-full max-w-full p-6 pb-10">
+      <div className="space-y-6 w-full max-w-full min-w-0 pb-10">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Button variant="ghost" size="sm" onClick={() => setLocation(`/clients/${clientId}`)} className="h-8 w-8 p-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1 min-w-0">
+              <Button variant="ghost" size="sm" onClick={() => setLocation(`/clients/${clientId}`)} className="h-8 w-8 p-0 shrink-0">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Evidence & Documents</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight break-words min-w-0">Evidence & Documents</h1>
             </div>
-            <p className="text-slate-500 ml-10">{client?.name} &bull; Phase 2: Implementation</p>
+            <p className="text-slate-500 ml-10 break-words">{client?.name} &bull; Phase 2: Implementation</p>
           </div>
 
           <PageGuide
@@ -603,15 +602,15 @@ export default function Evidence() {
         {/* Framework Selector - High Assurance Implementation */}
         <div className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-premium p-6 mb-8 relative overflow-hidden" id="evidence-framework-selector">
           <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-[#5844ED] to-blue-600 text-white shadow-lg shadow-[#5844ED]/20 hover:scale-105 transition-transform duration-300">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10 min-w-0">
+            <div className="flex items-center gap-5 min-w-0">
+              <div className="flex items-center justify-center h-16 w-16 shrink-0 rounded-2xl bg-gradient-to-br from-[#5844ED] to-blue-600 text-white shadow-lg shadow-[#5844ED]/20 hover:scale-105 transition-transform duration-300">
                 <Shield className="h-8 w-8" />
               </div>
-              <div>
-                <Label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#5844ED]/70 mb-2 block leading-none">Compliance Identity</Label>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
+              <div className="min-w-0">
+                <Label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#5844ED]/70 mb-2 block leading-tight">Compliance Identity</Label>
+                <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight break-words min-w-0">
                     {frameworkFilter === 'all' ? 'Consolidated Frameworks' : frameworkFilter}
                   </h2>
                   <Badge className="bg-[#5844ED]/10 text-[#5844ED] border-[#5844ED]/20 shadow-none h-6 px-3 text-[10px] font-black tracking-wider animate-pulse uppercase">LIVE VIEW</Badge>
@@ -624,7 +623,7 @@ export default function Evidence() {
                 <div className="relative group ml-1">
                   <LayoutGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-hover:text-[#5844ED] transition-colors" />
                   <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
-                    <SelectTrigger className="w-[320px] h-11 pl-10 bg-white border-transparent hover:bg-slate-50 transition-all rounded-xl font-bold text-slate-700 shadow-sm focus:ring-[#5844ED]/20 relative">
+                    <SelectTrigger className="w-full max-w-[320px] h-11 pl-10 bg-white border-transparent hover:bg-slate-50 transition-all rounded-xl font-bold text-slate-700 shadow-sm focus:ring-[#5844ED]/20 relative">
                       <SelectValue placeholder="Switch Framework..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200 shadow-2xl">
@@ -926,13 +925,6 @@ export default function Evidence() {
                   </Button>
                 </div>
                 <EvidenceFileUpload evidenceId={viewingFiles} clientId={clientId} />
-                <div className="pt-4 border-t border-slate-100">
-                  <Label className="text-sm font-semibold mb-3 block">AI Compliance Analysis</Label>
-                  <EvidenceAnalysisButton
-                    evidenceId={viewingFiles}
-                    controlName={evidenceList?.find(e => e.id === viewingFiles)?.control?.name}
-                  />
-                </div>
               </div>
             </EnhancedDialog>
           )

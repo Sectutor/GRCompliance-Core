@@ -4,6 +4,8 @@ import { LATORE_DEMO_NAME } from "../lib/edition";
 import {
     accessRecordWorkspace,
     authorizeWorkspace,
+    bindRecordWorkspace,
+    readProcedureInput,
     resolveClaimedWorkspaceId,
     type WorkspaceAccessDirectory,
 } from "./workspaceAccess";
@@ -133,6 +135,75 @@ describe("record workspace access", () => {
             { directory: directory({ memberships: [] }) },
         );
         expect(access).toEqual({ clientId: 9, clientRole: "owner" });
+    });
+});
+
+describe("readProcedureInput", () => {
+    it("reads the record id from tRPC v11 getRawInput when rawInput and input are unset", async () => {
+        await expect(readProcedureInput({
+            getRawInput: async () => ({ id: 50, clientId: 1 }),
+        })).resolves.toEqual({ id: 50, clientId: 1 });
+        await expect(readProcedureInput({
+            getRawInput: async () => ({ policyId: 12 }),
+            input: undefined,
+            rawInput: undefined,
+        })).resolves.toEqual({ policyId: 12 });
+    });
+
+    it("keeps the older rawInput and parsed input shapes", async () => {
+        await expect(readProcedureInput({ rawInput: { id: 4 } })).resolves.toEqual({ id: 4 });
+        await expect(readProcedureInput({ input: { assignmentId: 8 } })).resolves.toEqual({ assignmentId: 8 });
+        await expect(readProcedureInput(undefined)).resolves.toEqual({});
+    });
+});
+
+describe("bindRecordWorkspace", () => {
+    const memberOf = (clientId: number, role = "editor") =>
+        directory({ memberships: [{ clientId, role }] });
+
+    function run(middleware: ReturnType<typeof bindRecordWorkspace>, opts: Record<string, unknown>) {
+        const fn = (middleware as unknown as { _middlewares: Array<(opts: unknown) => Promise<unknown>> })._middlewares[0];
+        return fn({
+            ctx: { user },
+            path: "clientPolicies.get",
+            type: "query",
+            next: (nextOpts?: { ctx?: unknown }) => nextOpts?.ctx ?? { ok: true },
+            ...opts,
+        });
+    }
+
+    it("authorizes a policy when only getRawInput carries the record id", async () => {
+        const seen: unknown[] = [];
+        const access = await run(
+            bindRecordWorkspace(async (raw) => {
+                seen.push(raw);
+                return 1;
+            }, { directory: memberOf(1) }),
+            { getRawInput: async () => ({ id: 50 }) },
+        );
+        expect(seen).toEqual([{ id: 50 }]);
+        expect(access).toMatchObject({ clientId: 1, clientRole: "editor" });
+    });
+
+    it("authorizes an assignment lookup from policyId on getRawInput", async () => {
+        const access = await run(
+            bindRecordWorkspace(async (raw) => {
+                const policyId = Number((raw as { policyId?: unknown }).policyId);
+                return Number.isInteger(policyId) && policyId > 0 ? 3 : null;
+            }, { directory: memberOf(3) }),
+            { getRawInput: async () => ({ policyId: 12 }) },
+        );
+        expect(access).toMatchObject({ clientId: 3, clientRole: "editor" });
+    });
+
+    it("still reports the record missing when the body never arrives", async () => {
+        await expect(run(
+            bindRecordWorkspace(async (raw) => {
+                const id = Number((raw as { id?: unknown }).id);
+                return Number.isInteger(id) && id > 0 ? 1 : null;
+            }, { directory: memberOf(1) }),
+            {},
+        )).rejects.toMatchObject({ code: "NOT_FOUND", message: "Record not found" });
     });
 });
 

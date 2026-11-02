@@ -21,6 +21,7 @@ import { Label } from "@complianceos/ui/ui/label";
 import { toast } from "sonner";
 import { Building2, Plus, Trash2, Edit, Check, X, Search } from "lucide-react";
 import { format } from "date-fns";
+import { visiblePlanTier } from "@/lib/licenseLabel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Checkbox } from "@complianceos/ui/ui/checkbox";
 import {
@@ -117,7 +118,6 @@ export default function OrganizationManagement() {
         updateMutation.mutate({
             id: editClient.id,
             name: formData.get("name") as string,
-            planTier: formData.get("planTier") as string,
             status: formData.get("status") as string,
             activeModules: activeModules
         });
@@ -289,10 +289,11 @@ export default function OrganizationManagement() {
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <Badge variant="outline" className={
-                                                    client.planTier === 'enterprise' ? 'border-purple-200 bg-purple-50 text-purple-700' :
-                                                        client.planTier === 'pro' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'text-slate-600'
+                                                    visiblePlanTier(client.planTier) === "Premium"
+                                                        ? "border-purple-200 bg-purple-50 text-purple-700"
+                                                        : "text-slate-600"
                                                 }>
-                                                    {client.planTier ? client.planTier.toUpperCase() : 'FREE'}
+                                                    {visiblePlanTier(client.planTier)}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="py-4">
@@ -369,7 +370,7 @@ export default function OrganizationManagement() {
                 open={!!editClient}
                 onOpenChange={(open) => !open && setEditClient(null)}
                 title={`Edit Organization: ${editClient?.name}`}
-                description="Update subscription plan and active modules."
+                description="Update the organization. The plan reads as Community or Premium."
                 footer={
                     <div className="flex justify-end gap-2 w-full">
                         <Button type="submit" form="edit-org-form" disabled={updateMutation.isPending}>
@@ -386,15 +387,10 @@ export default function OrganizationManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="planTier">Plan Tier</Label>
-                                <Select name="planTier" defaultValue={editClient.planTier || 'free'}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="free">Free</SelectItem>
-                                        <SelectItem value="pro">Pro</SelectItem>
-                                        <SelectItem value="enterprise">Enterprise</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label>Plan</Label>
+                                <div className="flex h-10 items-center rounded-md border px-3 text-sm">
+                                    {visiblePlanTier(editClient.planTier)}
+                                </div>
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="status">Status</Label>

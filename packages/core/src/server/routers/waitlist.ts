@@ -105,7 +105,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                                 label: `Auto Invite: ${input.firstName || ''} ${input.lastName || ''}`.trim(),
                                 email: input.email,
                                 role: 'viewer',
-                                planTier: 'pro',
+                                planTier: 'community',
                                 maxClients: 2,
                                 accessDurationType: 'lifetime',
                                 waitlistId: lead.id,
@@ -121,7 +121,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                                 const { subject, html } = generateMagicLinkEmail({
                                     inviteUrl,
                                     recipientEmail: input.email,
-                                    planTier: 'pro',
+                                    planTier: 'community',
                                     role: 'viewer',
                                     expiresInDays: 30
                                 });
@@ -180,7 +180,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
             .input(z.object({
                 id: z.number(),
                 role: z.enum(['viewer', 'editor', 'admin']).optional().default('viewer'),
-                planTier: z.enum(['free', 'pro', 'enterprise']).optional().default('pro'),
+                planTier: z.enum(['community', 'premium', 'free', 'pro', 'enterprise']).optional().default('community'),
                 expiresInDays: z.number().optional().default(30),
                 usageLimit: z.number().int().min(1).nullable().optional().default(1),
             }))
@@ -201,7 +201,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                         label: `Waitlist Invite: ${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
                         email: lead.email,
                         role: input.role || 'viewer',
-                        planTier: input.planTier || 'pro',
+                        planTier: input.planTier || 'community',
                         maxClients: 2,
                         accessDurationType: 'lifetime',
                         waitlistId: lead.id,
@@ -220,7 +220,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                         const { subject, html } = generateMagicLinkEmail({
                             inviteUrl,
                             recipientEmail: lead.email,
-                            planTier: input.planTier || 'pro',
+                            planTier: input.planTier || 'community',
                             role: input.role || 'viewer',
                             expiresInDays: input.expiresInDays || 30
                         });

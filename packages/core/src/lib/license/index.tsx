@@ -8,6 +8,7 @@
 
 import * as React from 'react';
 import { FEATURES as FEATURE_FLAGS, BUILD_TYPE, FEATURE_DEFINITIONS, isFeatureAvailableInBuild } from '../features';
+import { presentStoredLicense } from '../licenseLabel';
 
 export type LicenseType = 'community' | 'enterprise' | 'trial';
 export type LicenseStatus = 'valid' | 'expired' | 'invalid' | 'suspended';
@@ -94,7 +95,8 @@ export class LicenseValidator {
     const featuresToCheck = Array.isArray(feature) ? feature : [feature];
     const missingFeatures: string[] = [];
     
-    if (!this.licenseInfo) {
+    const licenseInfo = this.displayedLicense();
+    if (!licenseInfo) {
       const result: LicenseValidationResult = {
         isValid: false,
         error: 'No license information available',
@@ -105,11 +107,11 @@ export class LicenseValidator {
     }
     
     // Check license status
-    if (this.licenseInfo.status !== 'valid') {
+    if (licenseInfo.status !== 'valid') {
       const result: LicenseValidationResult = {
         isValid: false,
-        license: this.licenseInfo,
-        error: `License is ${this.licenseInfo.status}`,
+        license: licenseInfo,
+        error: `License is ${licenseInfo.status}`,
         missingFeatures: featuresToCheck
       };
       this.validationCache.set(cacheKey, result);
@@ -120,7 +122,7 @@ export class LicenseValidator {
     for (const feat of featuresToCheck) {
       if (!isFeatureAvailableInBuild(feat)) {
         missingFeatures.push(`${feat} (not available in ${BUILD_TYPE} build)`);
-      } else if (!this.licenseInfo.features.includes(feat)) {
+      } else if (!licenseInfo.features.includes(feat)) {
         missingFeatures.push(`${feat} (not included in license)`);
       }
     }
@@ -128,7 +130,7 @@ export class LicenseValidator {
     const isValid = missingFeatures.length === 0;
     const result: LicenseValidationResult = {
       isValid,
-      license: this.licenseInfo,
+      license: licenseInfo,
       ...(missingFeatures.length > 0 && { missingFeatures }),
       ...(!isValid && { error: 'Required features not available' })
     };
@@ -147,15 +149,30 @@ export class LicenseValidator {
   /**
    * Get current license information
    */
+  /**
+   * Trial is not a paid edition. Callers see Community with an expired status.
+   */
+  private displayedLicense(): LicenseInfo | null {
+    if (!this.licenseInfo) return null;
+    if ((this.licenseInfo.type || "").toLowerCase() !== "trial") return this.licenseInfo;
+    const presented = presentStoredLicense(this.licenseInfo);
+    return {
+      ...this.licenseInfo,
+      type: presented.type,
+      status: "expired",
+      features: [],
+    };
+  }
+
   getLicenseInfo(): LicenseInfo | null {
-    return this.licenseInfo;
+    return this.displayedLicense();
   }
   
   /**
    * Get license type
    */
   getLicenseType(): LicenseType {
-    return this.licenseInfo?.type || 'community';
+    return this.displayedLicense()?.type || 'community';
   }
   
   /**

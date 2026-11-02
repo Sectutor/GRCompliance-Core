@@ -1,6 +1,5 @@
 import { registry } from './index';
 import { SlotNames } from './slotNames';
-import EvidenceAnalysisButton from '@/components/EvidenceAnalysisButton';
 import SmartLinkButton from '@/components/controls/SmartLinkButton';
 import GenerateGuidanceButton from '@/components/controls/GenerateGuidanceButton';
 import { PolicyRiskSuggestion } from '@/components/policy/PolicyRiskSuggestion';
@@ -17,9 +16,6 @@ import SecurityAdvisorStatus from '@/components/security/SecurityAdvisorStatus';
 export function registerPremium() {
     console.log('[Registry] Registering PREMIUM AI components...');
     
-    // Audit Hub
-    registry.register(SlotNames.EVIDENCE_TOOLBAR_ACTIONS, EvidenceAnalysisButton);
-
     // Controls Page
     registry.register(SlotNames.CONTROL_HEADER_ACTIONS, SmartLinkButton);
     registry.register(SlotNames.CONTROL_EDIT_ACTIONS, GenerateGuidanceButton);

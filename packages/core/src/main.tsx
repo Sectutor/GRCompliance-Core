@@ -34,7 +34,7 @@ console.log('[License] Current license:', {
 // Register premium features based on license
 if (licenseValidator.isEnterpriseEdition() || licenseValidator.isTrialEdition()) {
   registerPremium();
-  console.log('[Registry] Premium features registered (Enterprise/Trial Edition)');
+  console.log('[Registry] Premium features registered');
 } else {
   console.log('[Registry] Premium features disabled (Community Edition)');
 }

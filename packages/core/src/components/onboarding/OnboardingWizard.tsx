@@ -130,7 +130,7 @@ export function OnboardingWizard() {
                     <div className="relative z-10">
                         <Badge variant="secondary" className="bg-white/20 text-white border-none mb-4 backdrop-blur-md">
                             <Sparkles className="h-3 w-3 mr-1 text-yellow-300" />
-                            AI Setup Assistant
+                            Setup assistant
                         </Badge>
                         <h2 className="text-3xl font-bold tracking-tight">Welcome to GRCompliance</h2>
                         <p className="text-white/70 mt-2">Let's build your security foundation in 60 seconds.</p>

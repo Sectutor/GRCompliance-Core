@@ -132,7 +132,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
             console.warn(`[PolicyCreate] Plan limit reached for client ${data.clientId}`);
             throw new TRPCError({
               code: "FORBIDDEN",
-              message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxPolicies} policies. Please upgrade to Pro.`
+              message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxPolicies} policies. Please upgrade to Premium.`
             });
           }
         }
@@ -768,6 +768,12 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
         return { success: true };
       }),
+
+    refineAllowed: clientEditorProcedure.use(checkPremiumAccess)
+      .input(z.object({
+        clientId: z.number(),
+      }))
+      .query(() => ({ allowed: true as const })),
 
     refine: clientEditorProcedure.use(checkPremiumAccess)
       .input(z.object({

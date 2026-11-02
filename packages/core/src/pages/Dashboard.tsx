@@ -391,7 +391,7 @@ export default function Dashboard() {
               howToUse={[
                 { step: "Analyze Posture", description: "View the 'Live Posture Score' for real-time compliance readiness.", targetId: "dash-posture-score" },
                 { step: "Track Benchmarks", description: "Monitor compliance trends over time against target goals.", targetId: "dash-compliance-trend" },
-                { step: "Critical Actions", description: "Address 'AI Posture Insights' and 'Overdue Assessments' immediately.", targetId: "dash-critical-actions" },
+                { step: "Critical Actions", description: "Address 'Posture insights' and 'Overdue Assessments' immediately.", targetId: "dash-critical-actions" },
                 { step: "Switch Context", description: "Filter view by specific organization nodes (clients) or frameworks.", targetId: "dash-filters-bar" }
               ]}
               scenarios={[
@@ -403,7 +403,7 @@ export default function Dashboard() {
                 {
                   title: "Investigating Posture Drift",
                   example: "You notice the compliance score dropped by 5% overnight. You need to identify if this is a data error or a security regression.",
-                  auditTip: "Check 'AI Posture Insights'. A drop often signifies expired evidence or new assets coming into scope that haven't been implemented yet."
+                  auditTip: "Check 'Posture insights'. A drop often signifies expired evidence or new assets coming into scope that haven't been implemented yet."
                 }
               ]}
               integrations={[
@@ -446,7 +446,7 @@ export default function Dashboard() {
                     <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                       <BrainCircuit className="h-5 w-5" />
                     </div>
-                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">AI Posture Insights</h3>
+                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Posture insights</h3>
                   </div>
                   <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">Workspace data</Badge>
                 </div>
@@ -520,7 +520,6 @@ export default function Dashboard() {
           {/* Filters & Actions Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 mt-8 relative z-10 pb-4 border-b border-slate-200 min-w-0" id="dash-filters-bar">
             <div className="flex flex-wrap items-center gap-4 min-w-0">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-4 md:mb-0">Command Interface</h2>
               {/* View Mode Toggle */}
               <div className="flex items-center bg-slate-100 rounded-lg p-1">
                 <button
@@ -555,11 +554,11 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500/50 group">
                   <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Context:</span>
                   <select
-                    className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-blue-600 max-w-[150px] truncate outline-none appearance-none transition-colors"
+                    className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-blue-600 min-w-[12rem] max-w-[18rem] truncate outline-none appearance-none transition-colors"
                     value={clientId || ""}
                     onChange={(e) => setClientId(e.target.value || undefined)}
                   >
-                    <option value="" className="bg-white">Global Fleet</option>
+                    <option value="" className="bg-white">All workspaces</option>
                     {clients.map((client) => (
                       <option key={client.id} value={client.id} className="bg-white text-slate-900">
                         {client.name}
@@ -574,13 +573,13 @@ export default function Dashboard() {
 
               {/* Light Standard Selector */}
               <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl px-4 py-2 shadow-sm transition-all hover:bg-slate-50 focus-within:ring-2 focus-within:ring-purple-500/50 group">
-                <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Protocol:</span>
+                <span className="text-slate-500 font-semibold text-xs tracking-wider uppercase">Framework:</span>
                 <select
                   className="bg-transparent border-none focus:ring-0 cursor-pointer pr-8 font-bold text-slate-900 focus:text-purple-600 outline-none appearance-none transition-colors"
                   value={framework || ""}
                   onChange={(e) => setFramework(e.target.value || undefined)}
                 >
-                  <option value="" className="bg-white">All Protocols</option>
+                  <option value="" className="bg-white">All frameworks</option>
                   <option value="ISO 27001" className="bg-white text-slate-900">ISO 27001</option>
                   <option value="SOC 2" className="bg-white text-slate-900">SOC 2</option>
                   <option value="NIS2" className="bg-white text-slate-900">NIS2</option>
@@ -631,7 +630,7 @@ export default function Dashboard() {
                     variant="error"
                   />
                   <AnimatedMetricCard
-                    title="Portfolio Reach"
+                    title="Workspaces"
                     value={overview?.totalClients || 0}
                     icon={<Users className="w-5 h-5" />}
                     variant="info"

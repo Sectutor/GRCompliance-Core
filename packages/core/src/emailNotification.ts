@@ -4,6 +4,7 @@ import { CalendarEvent } from "./db";
 import * as schema from "./schema";
 import { eq, and } from "drizzle-orm";
 import { createInAppNotification } from "./lib/notificationService";
+import { duePhrase, reviewDuePhrase } from "./lib/duePhrase";
 import { appOrigin } from "./lib/publicUrl";
 
 /**
@@ -27,13 +28,6 @@ function formatEventsForNotification(events: CalendarEvent[], title: string): st
     content += `### ${clientName}\n\n`;
 
     for (const event of clientEvents) {
-      const dueDate = new Date(event.date).toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-
       const typeLabel = event.type === 'control_review' ? '🔵 Control Review' :
         event.type === 'policy_renewal' ? '🟣 Policy Renewal' :
           event.type === 'risk_review' ? '🔴 Risk Review' :
@@ -45,7 +39,7 @@ function formatEventsForNotification(events: CalendarEvent[], title: string): st
 
       content += `- **${event.title}**\n`;
       content += `  - Type: ${typeLabel}\n`;
-      content += `  - Due: ${dueDate}\n`;
+      content += `  - ${duePhrase(event.date)}\n`;
       content += `  - Priority: ${priorityLabel}\n`;
       content += `  - ${event.description}\n\n`;
     }
@@ -413,7 +407,7 @@ export async function sendPolicyReviewNotification(clientId?: number, daysAhead:
 
     content += `- **${policy.clientPolicyId || policy.name}**: ${policy.name}\n`;
     content += `  - Last Updated: ${lastUpdate.toLocaleDateString()}\n`;
-    content += `  - Review Due: ${reviewDue.toLocaleDateString()}\n`;
+    content += `  - ${reviewDuePhrase(reviewDue)}\n`;
     content += `  - Owner: ${policy.owner || 'Unassigned'}\n\n`;
   });
 

@@ -151,11 +151,13 @@ Automatic evidence collection and the GitHub, SIEM, SOAR, threat-intel and vulne
 
 Community is the default. Premium APIs stay forbidden until the paid edition registers a server entitlement provider at boot (`registerPremiumEntitlement` in `packages/core/src/server/premiumEntitlement.ts`). `VITE_ENABLE_PREMIUM`, `BUILD_TYPE`, a license key string, `INSTANCE_LICENSE_TIER`, a platform administrator, a workspace owner, and a client admin do not authorize those APIs. The published image is Community.
 
-`VITE_ENABLE_PREMIUM=true` may still show premium navigation in a browser bundle, with a Pro badge. `dev:enterprise`, `dev:trial`, `build:enterprise`, and `build:trial` set that flag for the client only. `server:enterprise` and `server:trial` do not. They start the same Community server as `npm run server`, and they print that they do not unlock premium APIs. An unset flag, or any value other than exact `true`, hides that navigation.
+`VITE_ENABLE_PREMIUM=true` may still show premium navigation in a browser bundle. That flag does not authorize the server. The Community server is `npm run server`. An unset flag, or any value other than exact `true`, hides that navigation.
 
 The image omits premium navigation such as Workbench, AI Governance, Threat Modeling, CRM, and Advisor Workbench. Controls, the governance dashboard, the risk register, policies, and evidence stay in the menu, and the governance dashboard does not show a Premium badge.
 
 A community instance can keep the seeded **Latore LTD** demo plus one other workspace. Latore does not consume that one real workspace, and administrators are counted the same way as every other owner. The server enforces that cap on create and on switching. `VITE_ENABLE_PREMIUM`, a client-supplied plan, and `users.maxClients` do not raise it. Workspaces that already exist are left in place; the owner can still open Latore and the earliest other workspace. Another real workspace needs a commercial license from [grcompliance.com](https://grcompliance.com/). Putting a license key in the environment, or writing `planTier`, modules, or branding through the client update API, does not upgrade the workspace. The plan changes only after Gumroad verifies a purchase. The workspace cap does not consult the premium entitlement provider.
+
+Optional AI features stay in Core and run only when you configure your own OpenAI or Anthropic key. Those requests are sent to that provider. They do not run when no key is set.
 
 The first page does not show a cookie or advertising consent dialog. GRCompliance does not load third-party tracking, analytics, or advertising scripts. Sign-in uses strictly necessary session storage. Set `GRC_COOKIE_CONSENT=1` only if you want an optional notice that records a browser preference and still loads no third-party scripts.
 

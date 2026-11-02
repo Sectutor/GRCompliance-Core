@@ -48,6 +48,7 @@ import {
 } from "@complianceos/ui/ui/alert-dialog";
 import { UserPlus, User, Mail, Clock, XCircle, Loader2, Trash2, Link as LinkIcon, Copy, Info } from "lucide-react";
 import { toast } from "sonner";
+import { visiblePlanTier } from "@/lib/licenseLabel";
 import { format } from "date-fns";
 
 export default function UserInvitations() {
@@ -352,7 +353,7 @@ function MagicLinksSection() {
     const [label, setLabel] = useState("");
     const [email, setEmail] = useState("");
     const [role, setRole] = useState("viewer");
-    const [planTier, setPlanTier] = useState("free");
+    const [planTier, setPlanTier] = useState("community");
     const [maxClients, setMaxClients] = useState(2);
     const [durationType, setDurationType] = useState<"lifetime" | "limited">("lifetime");
     const [durationDays, setDurationDays] = useState(14);
@@ -463,7 +464,7 @@ function MagicLinksSection() {
                             <Label htmlFor="label">Internal Label</Label>
                             <Input
                                 id="label"
-                                placeholder="e.g. Early Adopter Pro Link"
+                                placeholder="e.g. Workspace invite link"
                                 value={label}
                                 onChange={(e) => setLabel(e.target.value)}
                                 required
@@ -504,9 +505,8 @@ function MagicLinksSection() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="free">Free</SelectItem>
-                                        <SelectItem value="pro">Pro</SelectItem>
-                                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                                        <SelectItem value="community">Community</SelectItem>
+                                        <SelectItem value="premium">Premium</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -656,8 +656,8 @@ function MagicLinksSection() {
                                                             <Badge variant="outline" className="capitalize">
                                                                 {link.role}
                                                             </Badge>
-                                                            <Badge className="capitalize bg-blue-50 text-blue-700 border-blue-100">
-                                                                {link.planTier}
+                                                            <Badge className="bg-blue-50 text-blue-700 border-blue-100">
+                                                                {visiblePlanTier(link.planTier)}
                                                             </Badge>
                                                         </div>
                                                         <span className="text-xs text-slate-500">

@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { frameworks } from "@/data/frameworks";
 
 import { trpc } from "@/lib/trpc";
+import { isPremiumPlan } from "@/lib/licenseLabel";
 import { CircularProgress } from "@complianceos/ui/ui/circular-progress";
 import { FrameworkImportDialog } from "@/components/settings/FrameworkImportDialog";
 import { toast } from "sonner";
@@ -112,7 +113,7 @@ export default function FrameworksDashboard() {
     const { userRole: clientRole, isPremiumStatus } = useClientContext();
     const isGlobalAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.role === 'super_admin';
     const isClientAdmin = clientRole === 'owner' || clientRole === 'admin';
-    const hasPremiumTier = client?.planTier === 'pro' || client?.planTier === 'enterprise';
+    const hasPremiumTier = isPremiumPlan(client?.planTier);
 
     // Admins bypass the environment check
     const isPremium = isPremiumStatus;
@@ -174,7 +175,7 @@ export default function FrameworksDashboard() {
                             },
                             {
                                 step: "Custom Frameworks",
-                                description: "Pro and Enterprise users can import proprietary control sets.",
+                                description: "Premium adds importing your own control sets.",
                                 targetId: "fw-import-custom-btn"
                             }
                         ]}

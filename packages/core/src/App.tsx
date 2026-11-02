@@ -468,6 +468,12 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
   return <Component {...rest} />;
 }
 
+function ClientBillingSettingsRedirect() {
+  const params = useParams();
+  if (!params.id) return <Redirect to="/clients" />;
+  return <Redirect to={`/clients/${params.id}/settings?tab=billing`} />;
+}
+
 function ClientControlsAlias() {
   const { selectedClientId } = useClientContext();
   if (selectedClientId) return <Redirect to={`/clients/${selectedClientId}/controls`} />;
@@ -939,6 +945,7 @@ function Router() {
         <Route path="/clients/:id/employees/:employeeId">
           {(_params) => <ProtectedRoute component={EmployeeDetails} />}
         </Route>
+        <Route path="/clients/:id/settings/billing" component={ClientBillingSettingsRedirect} />
         <Route path="/clients/:id/settings">
           {(_params) => <ProtectedRoute component={ClientSettings} />}
         </Route>
@@ -1611,9 +1618,9 @@ function Router() {
           {(_params) => <PremiumGuard><ProtectedRoute component={AdvisorWorkbench} /></PremiumGuard>}
         </Route>
 
-        {/* Generic client workspace route - redirect to governance dashboard */}
+        {/* Workspace home. Governance is Premium, so Open must land here. */}
         <Route path="/clients/:id">
-          {(_params) => <Redirect to={`/clients/${_params.id}/governance`} />}
+          {(_params) => <ProtectedRoute component={ClientWorkspace} />}
         </Route>
 
         <Route path="/compliance">

@@ -2,5 +2,5 @@
 // These functions are dynamically imported in routers.ts
 
 export async function retrieveControls(input: any) {
-    throw new Error('AI features are available in the Premium edition. Please upgrade to access this feature.');
+    throw new Error('This capability is not included in Core.');
 }

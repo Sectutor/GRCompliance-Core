@@ -313,7 +313,7 @@ export default function ClientWorkspace() {
                   {
                     step: "3. Document",
                     title: "Draft Policies",
-                    desc: "Create policies using AI templates.",
+                    desc: "Create policies using templates.",
                     link: `/clients/${clientId}/policies`,
                     icon: BookOpen,
                     color: "text-purple-400",

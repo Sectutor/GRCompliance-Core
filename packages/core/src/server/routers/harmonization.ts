@@ -1,8 +1,10 @@
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, and, inArray, desc } from "drizzle-orm";
+import { requireWorkspaceRole } from "../recordAccess";
 
 export const createHarmonizationRouter = (t: any, protectedProcedure: any) => {
     return t.router({
@@ -39,7 +41,10 @@ export const createHarmonizationRouter = (t: any, protectedProcedure: any) => {
                 .where(eq(schema.implementationPlans.id, input.planId))
                 .limit(1);
 
-            if (!plan || !plan.frameworkId) throw new Error("Plan or Framework not found");
+            if (!plan || !plan.frameworkId) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Record not found" });
+            }
+            await requireWorkspaceRole({ user: ctx?.user, clientId: plan.clientId, minRole: "viewer" });
 
             // 2. Find ALL other separate plans for this client that are "Completed" or "In Progress"
             // We want to find controls implemented elsewhere

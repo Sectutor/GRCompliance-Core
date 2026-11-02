@@ -1,4 +1,6 @@
 
+import { visiblePlanTier } from "../../../lib/licenseLabel";
+
 export interface MagicLinkEmailProps {
     inviteUrl: string;
     recipientEmail: string;
@@ -17,8 +19,7 @@ export function generateMagicLinkEmail({
     expiresInDays
 }: MagicLinkEmailProps): { subject: string; html: string } {
 
-    // Capitalize for display
-    const planDisplay = planTier.charAt(0).toUpperCase() + planTier.slice(1);
+    const planDisplay = visiblePlanTier(planTier);
     const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
 
     const subject = `You've been invited to join GRCompliance (${planDisplay} Access)`;

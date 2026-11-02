@@ -13,7 +13,7 @@ import { Progress } from "@complianceos/ui/ui/progress";
 import { toast } from 'sonner';
 import { KanbanBoard } from '../project/KanbanBoard';
 import { FrameworkViewRouter } from './frameworks/FrameworkViewRouter';
-import { LayoutGrid, List, Wand2, Sparkles, CheckSquare, Loader2 } from 'lucide-react';
+import { LayoutGrid, List, Sparkles, CheckSquare } from 'lucide-react';
 import { HarmonizationAnalyzer } from '@/components/harmonization/HarmonizationAnalyzer';
 import { CertificationTracker } from '@/components/audit/CertificationTracker';
 import { PageGuide } from "@/components/PageGuide";
@@ -51,20 +51,6 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
         if (phase === 'Act') return "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 data-[state=active]:bg-emerald-200 data-[state=active]:text-emerald-900 border-emerald-200";
         return "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200";
     };
-
-    const autoAssignMutation = trpc.implementation.autoAssignPdca.useMutation({
-        onSuccess: (data: any) => {
-            utils.implementation.getPlan.invalidate();
-            toast.success(`Lifecycle Orchestrated`, {
-                description: `Decomposed requirements into ${data.updatedCount} PDCA tasks.`
-            });
-        },
-        onError: (error: any) => {
-            toast.error(`Orchestration Failed`, {
-                description: error.message || "An unexpected error occurred."
-            });
-        }
-    });
 
     const createTaskMutation = trpc.implementation.createTask.useMutation({
         onSuccess: () => {
@@ -177,7 +163,6 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                                 { step: "Do", description: "Execute tasks and implement controls." },
                                 { step: "Check", description: "Monitor results and gather evidence." },
                                 { step: "Act", description: "Optimize and address non-conformities." },
-                                { step: "Orchestrate", description: "Use the 'Orchestrate AI Lifecycle' button to auto-generate tasks." }
                             ]}
                         />
                         <Button
@@ -245,20 +230,6 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                                             <Plus className="w-3.5 h-3.5 mr-2" />
                                             Manual Add
                                         </Button>
-                                        <Button
-                                            variant="soft"
-                                            size="sm"
-                                            onClick={() => autoAssignMutation.mutate({ planId })}
-                                            disabled={autoAssignMutation.isPending}
-                                            className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold h-8 text-[11px]"
-                                        >
-                                            {autoAssignMutation.isPending ? (
-                                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                                            ) : (
-                                                <Wand2 className="w-3.5 h-3.5 mr-2" />
-                                            )}
-                                            {autoAssignMutation.isPending ? "Orchestrating..." : "Orchestrate AI Lifecycle"}
-                                        </Button>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
                                             <ListFilter className="w-4 h-4" />
                                         </Button>
@@ -288,7 +259,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                                                     <div className="p-4 bg-white rounded-xl border border-slate-100 space-y-3 shadow-sm">
                                                         <div className="flex items-center gap-2">
                                                             <Sparkles className="w-4 h-4 text-amber-500" />
-                                                            <span className="text-xs font-bold text-slate-900">AI Readiness Probe</span>
+                                                            <span className="text-xs font-bold text-slate-900">Readiness tip</span>
                                                         </div>
                                                         <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
                                                             This phase focuses on the foundation of your ISMS. Complete the risk assessment tasks to unlock the next phase of implementation.
@@ -427,7 +398,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-[11px] text-indigo-800/80 leading-relaxed font-medium">
-                                        Based on your progress in the <strong>{activeTab}</strong> phase, the AI suggests focusing on automated evidence collection for logic-based controls.
+                                        Based on your progress in the <strong>{activeTab}</strong> phase, focus on the tasks that are still open in this phase.
                                     </p>
                                 </CardContent>
                             </Card>

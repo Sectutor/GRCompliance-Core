@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'wouter';
+import { duePhrase } from '@/lib/duePhrase';
 import { trpc } from '@/lib/trpc';
 import {
     Card,
@@ -207,12 +208,7 @@ export default function VendorQuestionnairePortal() {
                                 )}
                                 <div className="flex items-center gap-3 text-sm">
                                     <Clock className="text-slate-400" size={18} />
-                                    <span className="text-slate-600 font-medium w-24">Due Date:</span>
-                                    <span className="text-slate-900">
-                                        {questionnaireData.dueDate
-                                            ? new Date(questionnaireData.dueDate).toLocaleDateString()
-                                            : 'Not specified'}
-                                    </span>
+                                    <span className="text-slate-900">{duePhrase(questionnaireData.dueDate)}</span>
                                 </div>
                             </div>
                         </div>

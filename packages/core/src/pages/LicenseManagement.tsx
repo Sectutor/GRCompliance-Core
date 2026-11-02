@@ -6,6 +6,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLicense, FEATURES } from '@/lib/license/index';
+import { PREMIUM_AVAILABLE, visibleFeatureLabel, visibleLicenseType } from '@/lib/licenseLabel';
+import { usePremiumOffer } from '@/components/license/usePremiumOffer';
 import { 
   Card, 
   CardContent, 
@@ -24,14 +26,11 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-  Alert,
-  AlertDescription,
-  AlertTitle
 } from '@complianceos/ui';
+import { Alert, AlertDescription, AlertTitle } from '@complianceos/ui/ui/alert';
 import { 
   CheckCircle, 
   XCircle, 
-  Clock, 
   Zap, 
   Users, 
   Shield, 
@@ -51,7 +50,6 @@ const LicenseManagement: React.FC = () => {
     getLicenseType, 
     isCommunityEdition, 
     isEnterpriseEdition, 
-    isTrialEdition,
     validateFeature 
   } = useLicense();
   
@@ -61,10 +59,10 @@ const LicenseManagement: React.FC = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
+  const { href: premiumHref } = usePremiumOffer();
   const licenseType = getLicenseType();
   const isCommunity = isCommunityEdition();
   const isEnterprise = isEnterpriseEdition();
-  const isTrial = isTrialEdition();
   
   const handleActivateLicense = async () => {
     if (!licenseKey.trim()) {
@@ -72,7 +70,7 @@ const LicenseManagement: React.FC = () => {
       return;
     }
     setIsActivating(true);
-    toast.error('A license key is not activated in the browser. A workspace plan changes only after Gumroad verifies a purchase.');
+    toast.error('A license key is not activated in the browser. A workspace plan changes only after a purchase is verified.');
     setIsActivating(false);
   };
   
@@ -109,16 +107,11 @@ const LicenseManagement: React.FC = () => {
   };
   
   const getLicenseBadge = () => {
-    switch (licenseType) {
-      case 'community':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Community Edition</Badge>;
-      case 'enterprise':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Enterprise Edition</Badge>;
-      case 'trial':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Trial Edition</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+    const label = visibleLicenseType(licenseType);
+    if (label === "Premium") {
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Premium</Badge>;
     }
+    return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Community</Badge>;
   };
   
   const getLicenseStatusBadge = () => {
@@ -152,7 +145,7 @@ const LicenseManagement: React.FC = () => {
   const getFeatureCategory = (featureId: string) => {
     if (featureId.includes('ai.')) return 'AI Intelligence';
     if (featureId.includes('advisor.')) return 'Advisor Tools';
-    if (featureId.includes('enterprise.')) return 'Enterprise Scale';
+    if (featureId.includes('enterprise.')) return 'Premium';
     if (featureId.includes('security.')) return 'Security & Compliance';
     if (featureId.includes('reporting.')) return 'Professional Reporting';
     if (featureId.includes('integration.')) return 'Integration Ecosystem';
@@ -346,13 +339,11 @@ const LicenseManagement: React.FC = () => {
                   Download License
                 </Button>
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => window.open('/pricing', '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View Pricing
+                <Button variant="outline" className="w-full" asChild>
+                  <a href={premiumHref} target="_blank" rel="noreferrer">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    {PREMIUM_AVAILABLE}
+                  </a>
                 </Button>
               </CardContent>
               <CardFooter>
@@ -368,22 +359,11 @@ const LicenseManagement: React.FC = () => {
               <Shield className="h-4 w-4" />
               <AlertTitle>Community Edition</AlertTitle>
               <AlertDescription>
-                You're using the free Community Edition (AGPLv3). Upgrade to Enterprise for AI features, 
-                white-labeling, enterprise scalability, and professional support.
+                You're using the free Community Edition (AGPLv3). Premium is the self-hosted paid edition. It includes MCP, automatic evidence collection (including API evidence ingest), integrations (GitHub, SIEM, SOAR, threat intel, and vulnerability scanners), the Prowler and Trivy scanner add-ons, and multilingual support.
               </AlertDescription>
             </Alert>
           )}
           
-          {isTrial && (
-            <Alert className="bg-amber-50 border-amber-200">
-              <Clock className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800">Trial Edition</AlertTitle>
-              <AlertDescription className="text-amber-700">
-                You're using a trial license. Some features may be limited. 
-                Upgrade to Enterprise for full access before your trial expires.
-              </AlertDescription>
-            </Alert>
-          )}
         </TabsContent>
         
         <TabsContent value="features" className="space-y-6">
@@ -414,7 +394,7 @@ const LicenseManagement: React.FC = () => {
                           >
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium">
-                                {feature.split('.').pop()?.replace('_', ' ')}
+                                {visibleFeatureLabel(feature)}
                               </span>
                               {isAvailable ? (
                                 <CheckCircle className="w-4 h-4 text-green-500" />
@@ -486,12 +466,10 @@ const LicenseManagement: React.FC = () => {
                 <p className="text-sm text-muted-foreground">
                   Don't have a license key?
                 </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => window.open('/pricing', '_blank')}
-                >
-                  View Pricing & Purchase
+                <Button variant="outline" className="w-full" asChild>
+                  <a href={premiumHref} target="_blank" rel="noreferrer">
+                    {PREMIUM_AVAILABLE}
+                  </a>
                 </Button>
               </div>
             </CardFooter>

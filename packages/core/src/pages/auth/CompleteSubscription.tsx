@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Shield, CreditCard, LogOut, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { isPremiumPlan } from "@/lib/licenseLabel";
 
 export default function CompleteSubscription() {
     const { user, signOut } = useAuth();
@@ -29,8 +30,8 @@ export default function CompleteSubscription() {
             // Simpler: Just re-use the tier from DB and default interval.
 
             const interval = "month"; // Defaulting to month for recovery flow
-            const tier = dbUser.planTier === 'enterprise' ? 'enterprise' :
-                dbUser.planTier === 'pro' ? 'pro' : 'startup';
+            const storedTier = (dbUser.planTier || "").trim().toLowerCase();
+            const tier = storedTier === "pro" ? "pro" : isPremiumPlan(storedTier) ? "enterprise" : "startup";
 
             toast.loading("Preparing checkout...");
 

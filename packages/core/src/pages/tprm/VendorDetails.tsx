@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useLocation } from "wouter";
+import { duePhrase } from "@/lib/duePhrase";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -881,7 +882,7 @@ export default function VendorDetails() {
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <span>Status: <strong className="text-slate-700">{assessment.status}</strong></span>
                                             <span>•</span>
-                                            <span>Due: {assessment.dueDate ? format(new Date(assessment.dueDate), 'MMM d, yyyy') : 'No date'}</span>
+                                            <span>{duePhrase(assessment.dueDate)}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">

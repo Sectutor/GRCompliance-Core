@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/ta
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { DemoImportDialog } from "@/components/admin/DemoImportDialog";
 import { toast } from "sonner";
+import { COMMUNITY_SITE_URL, PREMIUM_AVAILABLE, isPremiumPlan } from "@/lib/licenseLabel";
+import { usePremiumOffer } from "@/components/license/usePremiumOffer";
 import {
     CreditCard,
     Settings,
@@ -46,17 +48,36 @@ import { PersonalizationReference } from "@/components/settings/PersonalizationR
 import { ListTodo, ShoppingBag, History } from "lucide-react";
 import { BackupRestoreSettings } from "@/components/settings/BackupRestoreSettings";
 
+const SETTINGS_TAB_TITLES: Record<string, string> = {
+    general: "General",
+    policy: "Policy Settings",
+    team: "Team",
+    branding: "Branding",
+    billing: "Billing",
+    license: "Licence",
+    integrations: "Integrations",
+    "backup-restore": "Backup / Restore",
+    frameworks: "Frameworks",
+    data: "Demo Data",
+    onboarding: "Onboarding",
+    "email-templates": "Emails",
+};
+
 export default function ClientSettings() {
     const params = useParams();
     const clientId = Number(params.id);
     const [location, setLocation] = useLocation();
     const { user } = useAuth();
+    const { purchaseUrl } = usePremiumOffer();
 
     // Lazy loaded to avoid potential circular dep issues or just keep clean
 
 
     const [isDeletingClient, setIsDeletingClient] = useState(false);
     const [isImportingData, setIsImportingData] = useState(false);
+    const initialTab = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("tab") || "general";
+    const [activeTab, setActiveTab] = useState(initialTab);
+    const settingsTitle = SETTINGS_TAB_TITLES[activeTab] ?? "Settings";
 
     const { data: dbUser } = trpc.users.me.useQuery();
     const { data: client, isLoading, refetch } = trpc.clients.get.useQuery({ id: clientId });
@@ -71,7 +92,7 @@ export default function ClientSettings() {
         userRoleInClient === 'admin' ||
         userRoleInClient === 'owner';
 
-    const isPremiumOrg = client?.planTier === 'pro' || client?.planTier === 'enterprise';
+    const isPremiumOrg = isPremiumPlan(client?.planTier);
     const adminRoles = ['admin', 'owner', 'super_admin', 'super', 'enterprise_admin', 'ent_admin'];
     const canAccessBackupRestore = isPremiumOrg || adminRoles.includes(userGlobalRole || '');
 
@@ -94,7 +115,7 @@ export default function ClientSettings() {
 
     if (isLoading) {
         return (
-            <DashboardLayout>
+            <DashboardLayout title={settingsTitle}>
                 <div className="flex items-center justify-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
@@ -104,7 +125,7 @@ export default function ClientSettings() {
 
     if (!client) {
         return (
-            <DashboardLayout>
+            <DashboardLayout title={settingsTitle}>
                 <div className="text-center py-12">
                     <p className="text-muted-foreground">Client not found</p>
                 </div>
@@ -112,11 +133,8 @@ export default function ClientSettings() {
         );
     }
 
-    const queryParams = new URLSearchParams(window.location.search);
-    const initialTab = queryParams.get("tab") || "general";
-
     return (
-        <DashboardLayout>
+        <DashboardLayout title={settingsTitle}>
             <div className="space-y-8 w-full max-w-full">
                 <Breadcrumb
                     items={[
@@ -178,7 +196,7 @@ export default function ClientSettings() {
                     </CardContent>
                 </Card>
 
-                <Tabs defaultValue={initialTab} className="space-y-8">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
                     <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-[#1C4D8D]/20 rounded-xl">
                         <TabsTrigger
                             value="general"
@@ -220,7 +238,7 @@ export default function ClientSettings() {
                             className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                         >
                             <Shield className="mr-2 h-4 w-4" />
-                            License
+                            Licence
                         </TabsTrigger>
                         <TabsTrigger
                             value="integrations"
@@ -404,14 +422,20 @@ export default function ClientSettings() {
                                                     <Shield className="h-4 w-4 mr-2" />
                                                     View License Status
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="justify-start"
-                                                    onClick={() => window.open("https://gumroad.com/l/complianceos-enterprise", "_blank")} // published Gumroad product id; do not rename
-                                                >
-                                                    <CreditCard className="h-4 w-4 mr-2" />
-                                                    Purchase License
-                                                </Button>
+                                                {purchaseUrl ? (
+                                                    <Button variant="outline" className="justify-start" asChild>
+                                                        <a href={purchaseUrl} target="_blank" rel="noreferrer">
+                                                            <CreditCard className="h-4 w-4 mr-2" />
+                                                            Purchase License
+                                                        </a>
+                                                    </Button>
+                                                ) : (
+                                                    <Button variant="outline" className="justify-start" asChild>
+                                                        <a href={COMMUNITY_SITE_URL} target="_blank" rel="noreferrer">
+                                                            {PREMIUM_AVAILABLE}
+                                                        </a>
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="outline"
                                                     className="justify-start"

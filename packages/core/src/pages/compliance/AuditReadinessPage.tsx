@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Send, UserPlus, Mail, BookOpen, ArrowRight } from "lucide-react";
 import { EmailQuestionsDialog } from "@/components/gap-analysis/EmailQuestionsDialog";
 import { ChecklistProgressWidget } from "@/components/readiness/ChecklistProgressWidget";
+import { auditReadinessQuestion } from "@/lib/auditQuestion";
 
 // --- Types ---
 type Assessment = {
@@ -243,7 +244,7 @@ export default function AuditReadinessPage() {
 
     if (isLoadingAssessments) {
         return (
-            <DashboardLayout>
+            <DashboardLayout title="Audit Readiness">
                 <div className="flex h-[80vh] items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                 </div>
@@ -252,15 +253,15 @@ export default function AuditReadinessPage() {
     }
 
     return (
-        <DashboardLayout>
-            <div className="space-y-6 max-w-7xl mx-auto p-2">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <DashboardLayout title="Audit Readiness">
+            <div className="space-y-6 max-w-7xl mx-auto p-2 min-w-0">
+                <div className="flex flex-col xl:flex-row justify-between items-start gap-4 min-w-0">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Audit Readiness Assessment</h1>
                         <p className="text-slate-500 mt-1">Evaluate and prove your organization's compliance readiness.</p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 max-w-full min-w-0">
                         {selectedAssessmentId && (
                             <>
                                 <Button variant="outline" onClick={() => generateReportMutation.mutate({ id: parseInt(selectedAssessmentId) })} disabled={generateReportMutation.isLoading}>
@@ -503,7 +504,7 @@ export default function AuditReadinessPage() {
                                                                                     <span className="text-xs text-muted-foreground uppercase tracking-wide">{control.category || 'General'}</span>
                                                                                 </div>
                                                                                 <h3 className="font-semibold text-slate-900 mb-1">
-                                                                                    {control.name.endsWith('?') ? control.name : `Is the ${control.name} implemented and effective?`}
+                                                                                    {auditReadinessQuestion(control.name)}
                                                                                 </h3>
                                                                                 <p className="text-sm text-slate-500 line-clamp-2 md:line-clamp-none">
                                                                                     {control.description}

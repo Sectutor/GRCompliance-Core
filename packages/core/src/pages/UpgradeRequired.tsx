@@ -4,6 +4,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { useLocation, Link } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
+import { PREMIUM_CAPABILITIES, upgradeBody, upgradeHeadline } from "@/lib/upgradeCopy";
 
 export default function UpgradeRequired() {
     const [location] = useLocation();
@@ -42,11 +43,11 @@ export default function UpgradeRequired() {
                 </div>
 
                 <h1 className="text-3xl font-bold tracking-tight mb-2">
-                    {featureName} is a Premium Feature
+                    {upgradeHeadline(featureName)}
                 </h1>
 
                 <p className="text-muted-foreground max-w-md mb-8 text-lg">
-                    Upgrade to a Pro or Enterprise plan to unlock {featureName}, along with advanced reporting, AI automation, and unlimited users.
+                    {upgradeBody(featureName)}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -65,30 +66,16 @@ export default function UpgradeRequired() {
                     </Link>
                 </div>
 
-                <div className="mt-12 p-6 bg-muted/30 rounded-lg max-w-2xl border">
-                    <h3 className="font-semibold mb-4">What's included in Premium?</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left text-sm">
-                        <div className="flex items-start gap-2">
-                            <div className="text-green-500 mt-0.5">✓</div>
-                            <span>Federal Compliance (FedRAMP, CMMC)</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <div className="text-green-500 mt-0.5">✓</div>
-                            <span>Advanced Vendor Risk Management (TPRM)</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <div className="text-green-500 mt-0.5">✓</div>
-                            <span>Custom Framework Imports</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <div className="text-green-500 mt-0.5">✓</div>
-                            <span>AI-Powered Compliance Advisor</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <div className="text-green-500 mt-0.5">✓</div>
-                            <span>Audit Hub & External Sharing</span>
-                        </div>
-                    </div>
+                <div className="mt-12 p-6 bg-muted/30 rounded-lg max-w-2xl border text-left">
+                    <h3 className="font-semibold mb-4 text-center">What's included in Premium?</h3>
+                    <ul className="space-y-3 text-sm">
+                        {PREMIUM_CAPABILITIES.map((item) => (
+                            <li key={item} className="flex items-start gap-2">
+                                <div className="text-green-500 mt-0.5">✓</div>
+                                <span>{item}</span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
         </DashboardLayout>

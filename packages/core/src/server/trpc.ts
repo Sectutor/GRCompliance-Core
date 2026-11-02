@@ -9,6 +9,7 @@ import {
     authorizeWorkspace,
     bindRecordWorkspace,
     PLATFORM_ADMIN_ROLES,
+    readProcedureInput,
     resolveClaimedWorkspaceId,
 } from "./workspaceAccess";
 export { router, publicProcedure, middleware, t };
@@ -122,15 +123,13 @@ export const isAdmin = middleware(async ({ ctx, next, path }) => {
 
 export const checkClientAccess = middleware(async (opts) => {
     const { ctx, next, path } = opts;
-    const rawInput = (opts as any).rawInput;
-    const typedInput = (opts as any).input; // Try to get parsed input
 
     if (!ctx.user) {
         debugError(`[checkClientAccess Debug] UNAUTHORIZED for path: ${path}`);
         throw new TRPCError({ code: 'UNAUTHORIZED', message: "Authentication required for client access." });
     }
 
-    const input = typedInput || rawInput || {};
+    const input = await readProcedureInput(opts);
     // Do not treat a row id as a workspace id. clients.get still accepts `{ id }`.
     // Other legacy callers that pass the workspace as `id` are handled inside
     // resolveClaimedWorkspaceId. Record procedures are excluded.

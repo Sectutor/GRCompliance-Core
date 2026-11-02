@@ -1,7 +1,7 @@
 /**
  * Upgrade Prompt Components
  * 
- * Various ways to prompt users to upgrade from Community to Enterprise edition
+ * Various ways to prompt users to upgrade from Community to Premium.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -15,32 +15,34 @@ import {
   DialogTrigger,
 } from '@complianceos/ui';
 import { Button } from '@complianceos/ui';
-import { Badge } from '@complianceos/ui';
 import {
   Zap,
   Users,
   Shield,
   BarChart,
   Cloud,
-  CheckCircle,
-  XCircle,
   Lock,
   ArrowRight,
-  Sparkles,
   Crown,
-  Rocket,
 } from 'lucide-react';
 import { useLicense } from '@/lib/license/index';
 import { COMMUNITY_WORKSPACE_LIMIT_MESSAGE, isCommunityWorkspaceLimitMessage } from '@/lib/edition';
+import { PREMIUM_AVAILABLE } from '@/lib/licenseLabel';
+import { usePremiumOffer } from './usePremiumOffer';
 
 export const COMMUNITY_WORKSPACE_LIMIT_EVENT = "grc-community-workspace-limit";
+
+/** The action link already says this. The description should not repeat it. */
+function promptDescription(description: string): string {
+  const offer = PREMIUM_AVAILABLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return description.replace(new RegExp(`\\s*${offer}\\s*`, "g"), " ").replace(/\s+/g, " ").trim();
+}
 
 interface UpgradePromptProps {
   trigger?: React.ReactNode;
   featureId?: string;
   featureName?: string;
   featureDescription?: string;
-  showTrialOption?: boolean;
   size?: 'sm' | 'md' | 'lg';
   /** When set, the dialog is controlled by the caller (used for server FORBIDDEN responses). */
   open?: boolean;
@@ -54,23 +56,19 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   trigger,
   featureId = 'premium.feature',
   featureName = 'Premium Feature',
-  featureDescription = 'This feature requires an Enterprise license',
-  showTrialOption = true,
+  featureDescription = 'This feature is part of Premium',
   size = 'md',
   open: openProp,
   onOpenChange,
 }) => {
+  const { href } = usePremiumOffer();
+  const description = promptDescription(featureDescription);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = openProp ?? uncontrolledOpen;
   const setOpen = (next: boolean) => {
     if (openProp === undefined) setUncontrolledOpen(next);
     onOpenChange?.(next);
   };
-  const { isCommunityEdition, isTrialEdition } = useLicense();
-
-  const isCommunity = isCommunityEdition();
-  const isTrial = isTrialEdition();
-
   const getFeatureIcon = () => {
     if (featureId.includes('ai.')) return <Zap className="w-6 h-6" />;
     if (featureId.includes('advisor.')) return <Users className="w-6 h-6" />;
@@ -102,162 +100,22 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             <div>
               <DialogTitle className="flex items-center gap-2">
                 {featureName}
-                {isTrial && (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                    Trial
-                  </Badge>
-                )}
               </DialogTitle>
-              <DialogDescription>
-                {featureDescription}
-              </DialogDescription>
+              {description ? (
+                <DialogDescription>
+                  {description}
+                </DialogDescription>
+              ) : null}
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Feature highlight */}
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h4 className="font-medium">What you get with Enterprise:</h4>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>AI-Powered Intelligence Suite</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>White-label Branding & Customization</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Enterprise Scalability (10,000+ users)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Professional Support & SLA</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Commercial Use Rights</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Edition comparison */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                <h4 className="font-medium">Community Edition</h4>
-              </div>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Free & Open Source (AGPLv3)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Self-hosted</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Basic GRC Features</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                  <span>No AI Features</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                  <span>No White-labeling</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
-              <div className="flex items-center gap-2 mb-3">
-                <Crown className="w-4 h-4 text-primary" />
-                <h4 className="font-medium">Enterprise Edition</h4>
-              </div>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Federal Compliance (FedRAMP, CMMC)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>AI-Powered Intelligence</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>White-label Branding</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Enterprise Scalability</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Professional Support</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>Commercial License</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Pricing info */}
-          <div className="bg-muted/30 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Pricing</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-3 border rounded-lg">
-                <div className="font-bold text-2xl">$199<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                <div className="text-sm font-medium mt-1">Per Advisor</div>
-                <div className="text-xs text-muted-foreground mt-1">For consultants & MSPs</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg bg-primary/5 border-primary/20">
-                <div className="font-bold text-2xl">$999<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                <div className="text-sm font-medium mt-1">Enterprise</div>
-                <div className="text-xs text-muted-foreground mt-1">Unlimited users & clients</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg">
-                <div className="font-bold text-2xl">Custom</div>
-                <div className="text-sm font-medium mt-1">On-Premises</div>
-                <div className="text-xs text-muted-foreground mt-1">Air-gapped deployments</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <DialogFooter className="flex flex-col sm:flex-row gap-3">
-          {showTrialOption && !isTrial && (
-            <Button
-              variant="outline"
-              className="sm:flex-1"
-              onClick={() => {
-                setOpen(false);
-                window.open('/start-trial', '_blank');
-              }}
-            >
-              <Rocket className="w-4 h-4 mr-2" />
-              Start 30-Day Trial
-            </Button>
-          )}
-
-          <Button
-            className="sm:flex-1"
-            onClick={() => {
-              setOpen(false);
-              window.open('/pricing', '_blank');
-            }}
-          >
-            View Pricing & Upgrade
-            <ArrowRight className="w-4 h-4 ml-2" />
+          <Button className="sm:flex-1" asChild>
+            <a href={href} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
+              {PREMIUM_AVAILABLE}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </a>
           </Button>
 
           <Button
@@ -279,6 +137,7 @@ export const InlineUpgradePrompt: React.FC<{
   featureName?: string;
   compact?: boolean;
 }> = ({ featureName = 'this feature', compact = false }) => {
+  const { href } = usePremiumOffer();
   const { isCommunityEdition } = useLicense();
 
   if (!isCommunityEdition()) return null;
@@ -287,7 +146,7 @@ export const InlineUpgradePrompt: React.FC<{
     return (
       <div className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 px-2 py-1 rounded">
         <Lock className="w-3 h-3" />
-        <span>Upgrade for {featureName}</span>
+        <span>{PREMIUM_AVAILABLE}</span>
       </div>
     );
   }
@@ -299,9 +158,9 @@ export const InlineUpgradePrompt: React.FC<{
           <Crown className="w-5 h-5 text-amber-600" />
         </div>
         <div>
-          <h4 className="font-medium text-amber-900">Upgrade to Enterprise</h4>
+          <h4 className="font-medium text-amber-900">{PREMIUM_AVAILABLE}</h4>
           <p className="text-sm text-amber-700">
-            Unlock {featureName} and all premium features
+            {PREMIUM_AVAILABLE}
           </p>
         </div>
       </div>
@@ -309,9 +168,11 @@ export const InlineUpgradePrompt: React.FC<{
         size="sm"
         variant="outline"
         className="border-amber-300 text-amber-700 hover:bg-amber-100"
-        onClick={() => window.open('/pricing', '_blank')}
+        asChild
       >
-        Upgrade Now
+        <a href={href} target="_blank" rel="noreferrer">
+          {PREMIUM_AVAILABLE}
+        </a>
       </Button>
     </div>
   );
@@ -423,7 +284,6 @@ export function CommunityWorkspaceLimitHost() {
       featureId="enterprise.workspaces"
       featureName="Additional workspaces"
       featureDescription={message}
-      showTrialOption={false}
     />
   );
 }

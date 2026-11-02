@@ -3,6 +3,7 @@ import { Button } from '@complianceos/ui/ui/button';
 import { Input } from '@complianceos/ui/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@complianceos/ui/ui/select';
 import { Badge } from '@complianceos/ui/ui/badge';
+import { duePhrase } from '@/lib/duePhrase';
 import { trpc } from '@/lib/trpc';
 import { useParams, Link, useLocation } from 'wouter';
 import { Loader2, Download, AlertCircle, BarChart3, Shield, FileText, CheckCircle } from 'lucide-react';
@@ -394,7 +395,7 @@ export default function RACIMatrix() {
                                             <>
                                               <span>•</span>
                                               <span className={new Date(assignment.dueDate) < new Date() ? 'text-red-600' : ''}>
-                                                Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                                                {duePhrase(assignment.dueDate)}
                                               </span>
                                             </>
                                           )}

@@ -89,7 +89,7 @@ export function CreateDealDialog({ trigger, onSuccess }: CreateDealDialogProps) 
                         <Label htmlFor="title">Deal Title</Label>
                         <Input 
                             id="title" 
-                            placeholder="e.g. Enterprise License - Acme Corp" 
+                            placeholder="e.g. Annual agreement - Acme Corp" 
                             {...form.register('title')} 
                         />
                         {form.formState.errors.title && (

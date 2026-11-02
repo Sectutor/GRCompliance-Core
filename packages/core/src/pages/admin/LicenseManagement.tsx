@@ -32,6 +32,7 @@ import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@complianceos/ui/ui/alert";
 import { Separator } from "@complianceos/ui/ui/separator";
 import { getBuildInfo } from "@/lib/features";
+import { visibleFeatureLabel, visibleLicenseType } from "@/lib/licenseLabel";
 
 export default function LicenseManagementPage() {
   const [licenseKey, setLicenseKey] = useState("");
@@ -136,13 +137,13 @@ export default function LicenseManagementPage() {
           <AlertTitle>Build Information</AlertTitle>
           <AlertDescription className="flex items-center gap-4">
             <span>
-              <strong>Edition:</strong> {buildInfo.isCommunity ? "AGPLv3 Community" : buildInfo.isTrial ? "Commercial Trial" : "Commercial Enterprise"}
+              <strong>Edition:</strong> {buildInfo.isCommunity ? "AGPLv3 Community" : "Premium"}
             </span>
             <span>
               <strong>Features:</strong> {buildInfo.featureCount} available
             </span>
             <span>
-              <strong>Build Type:</strong> {buildInfo.buildType}
+              <strong>Build:</strong> {buildInfo.isCommunity ? "Community" : "Premium"}
             </span>
           </AlertDescription>
         </Alert>
@@ -193,7 +194,7 @@ export default function LicenseManagementPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Edition</span>
                     <span className="text-sm font-medium">
-                      {buildInfo.isCommunity ? "Community" : buildInfo.isTrial ? "Trial" : "Enterprise"}
+                      {buildInfo.isCommunity ? "Community" : "Premium"}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -305,7 +306,7 @@ export default function LicenseManagementPage() {
                 {buildInfo.features.slice(0, 12).map((feature) => (
                   <div key={feature} className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="truncate">{feature}</span>
+                    <span className="truncate">{visibleFeatureLabel(feature)}</span>
                   </div>
                 ))}
                 {buildInfo.features.length > 12 && (
@@ -373,7 +374,7 @@ export default function LicenseManagementPage() {
                             <div className="grid grid-cols-2 gap-2">
                               <div>
                                 <span className="text-sm text-muted-foreground">Type:</span>
-                                <div className="font-medium">{validationResult.license?.type || "N/A"}</div>
+                                <div className="font-medium">{validationResult.license?.type ? visibleLicenseType(validationResult.license.type) : "N/A"}</div>
                               </div>
                               <div>
                                 <span className="text-sm text-muted-foreground">Status:</span>
@@ -399,7 +400,7 @@ export default function LicenseManagementPage() {
                                 <div className="flex flex-wrap gap-1">
                                   {validationResult.license.features.slice(0, 5).map((feature: string) => (
                                     <Badge key={feature} variant="secondary" className="text-xs">
-                                      {feature}
+                                      {visibleFeatureLabel(feature)}
                                     </Badge>
                                   ))}
                                   {validationResult.license.features.length > 5 && (

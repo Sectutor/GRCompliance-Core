@@ -61,6 +61,7 @@ import { NotificationCenter } from "./notifications/NotificationCenter";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
 import { filterNavForEdition, isCommunityEdition } from "@/lib/communityNav";
 import { isPremiumEditionEnabled } from "@/lib/edition";
+import { isPremiumPlan } from "@/lib/licenseLabel";
 
 // ... (existing imports)
 
@@ -146,6 +147,13 @@ function isPathActive(navPath: string, currentPath: string, currentSearch: strin
       return false;
     }
 
+    // A menu item that names ?tab= is only that tab. Prefix matching
+    // /clients/:id/settings would otherwise treat every settings tab as
+    // "Backup / Restore", because that query string is the longest path.
+    if (navTab) {
+      return navUrl.pathname === currUrl.pathname && navTab === currTab;
+    }
+
     // Prefix match for other sections (e.g. /risks)
     if (navUrl.pathname !== '/' && navUrl.pathname !== '/dashboard' && currUrl.pathname.startsWith(navUrl.pathname)) {
       const nextChar = currUrl.pathname.charAt(navUrl.pathname.length);
@@ -160,8 +168,10 @@ function isPathActive(navPath: string, currentPath: string, currentSearch: strin
 
 export default function DashboardLayout({
   children,
+  title,
 }: {
   children: React.ReactNode;
+  title?: string;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -225,7 +235,7 @@ export default function DashboardLayout({
       }
     >
       <TourProvider>
-        <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+        <DashboardLayoutContent setSidebarWidth={setSidebarWidth} title={title}>
           {children}
         </DashboardLayoutContent>
       </TourProvider>
@@ -236,11 +246,13 @@ export default function DashboardLayout({
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  title?: string;
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  title,
 }: DashboardLayoutContentProps) {
   const { user, signOut } = useAuth();
   const [location, setLocation] = useLocation();
@@ -442,9 +454,11 @@ function DashboardLayoutContent({
       // Grace period check
       if (inGracePeriod) return;
 
-      // Handle missing or null planTier - default to 'free' for safety
-      const planTier = dbUser.planTier || 'free';
-      if (planTier === 'free' || planTier === 'enterprise') return;
+      // Community (including a legacy free row) has no checkout. Premium,
+      // including a legacy enterprise row, is already the paid edition. A
+      // legacy pro row still finishes payment when the subscription is inactive.
+      const planTier = (dbUser.planTier || "free").trim().toLowerCase();
+      if (!isPremiumPlan(planTier) || planTier !== "pro") return;
 
       // Handle missing or null subscriptionStatus - treat null/undefined as active for development
       const subscriptionStatus = dbUser.subscriptionStatus;
@@ -590,7 +604,7 @@ function DashboardLayoutContent({
             label: "Policies",
             path: "/client-policies",
             submenu: [
-              { label: "View All Policies", path: "/client-policies" },
+              { label: "All policies", path: "/client-policies" },
               { label: "Policy Templates", path: "/policy-templates" },
             ]
           },
@@ -620,7 +634,7 @@ function DashboardLayoutContent({
 
     // Premium Feature: Threat Intelligence
     const premiumEdition = isPremiumEditionEnabled(import.meta.env.VITE_ENABLE_PREMIUM);
-    const isPremiumClient = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && premiumEdition;
+    const isPremiumClient = isPremiumPlan(clientInfo?.planTier) && premiumEdition;
     if (isPremiumClient) {
       groups.push({
         label: "Threat Intelligence",
@@ -640,7 +654,7 @@ function DashboardLayoutContent({
 
 
     groups.push({
-      label: "AI & App Security",
+      label: "App Security",
       items: [
         { icon: Shield, label: "Security Projects", path: "/projects" },
         { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
@@ -1201,7 +1215,7 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-2">
               <div className="h-6 w-1 bg-primary rounded-full hidden md:block" />
               <span className="tracking-tight text-slate-900 font-bold text-sm md:text-base">
-                {activeMenuItem?.label ?? "Dashboard"}
+                {title ?? activeMenuItem?.label ?? "Dashboard"}
               </span>
             </div>
           </div>

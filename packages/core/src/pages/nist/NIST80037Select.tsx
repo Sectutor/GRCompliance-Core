@@ -226,7 +226,7 @@ export default function NIST80037Select() {
     };
 
     const handleAiTailoring = () => {
-        toast.success("AI Tailoring applied to 3 controls");
+        toast.success("Tailoring note added");
         setControls(prev => [
             ...prev,
             { id: "SC-7", title: "Boundary Protection", family: "System and Communications Protection", tailoring: "Tailored (Modified)", type: "Technical" }
@@ -394,14 +394,14 @@ export default function NIST80037Select() {
 
                                         <div className="p-8 bg-slate-900 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
                                             <div className="relative z-10 space-y-4 text-center md:text-left">
-                                                <h4 className="text-xl font-black tracking-tight">AI Assessment: Baseline Alignment</h4>
+                                                <h4 className="text-xl font-black tracking-tight">Baseline alignment</h4>
                                                 <p className="text-slate-400 font-medium max-w-lg leading-relaxed">
                                                     {isAligned
                                                         ? `Our AI analysis confirms that your Categorization High-Water Mark (${highWaterMark}) matches the selected baseline. ${tailoredCount} tailoring actions identified.`
                                                         : `Warning: Your selected baseline (${baselineLevel.toUpperCase()}) does not match your Categorization High-Water Mark (${highWaterMark}). Consider adjusting to align with FIPS-199.`}
                                                 </p>
                                                 <Button onClick={handleAiTailoring} className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold gap-2">
-                                                    <Zap className="w-4 h-4" /> Apply AI Tailoring Advice
+                                                    <Zap className="w-4 h-4" /> Apply tailoring note
                                                 </Button>
                                             </div>
                                             <div className="relative z-10 grid grid-cols-2 gap-4">

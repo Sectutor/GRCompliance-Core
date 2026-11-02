@@ -3072,15 +3072,28 @@ async function seedGapModule(clientId: number) {
 async function seedAuditModule(clientId: number) {
   const db = await getDb();
   try {
-    // 1. Evidence Requests
-    await db.insert(schema.evidenceRequests).values({
-      clientId,
-      clientControlId: 1, // Mock
-      requesterId: 1,
-      assigneeId: 1,
-      status: "open",
-      description: "Please provide the latest firewall configuration backup."
-    } as any);
+    // 1. Evidence request for the information security policy control (CC-001 / A.5.1).
+    const controlRows = await db.select({
+      id: clientControls.id,
+      code: clientControls.clientControlId,
+      name: controls.name,
+      catalogId: controls.controlId,
+    }).from(clientControls)
+      .innerJoin(controls, eq(clientControls.controlId, controls.id))
+      .where(eq(clientControls.clientId, clientId));
+    const policyControl = controlRows.find((row) => row.name === "Policies for information security")
+      ?? controlRows.find((row) => row.catalogId === "A.5.1")
+      ?? controlRows.find((row) => row.code === "CC-001");
+    if (policyControl) {
+      await db.insert(schema.evidenceRequests).values({
+        clientId,
+        clientControlId: policyControl.id,
+        requesterId: 1,
+        assigneeId: 1,
+        status: "open",
+        description: "Please provide the latest approved information security policy, and evidence it has been published and communicated."
+      } as any);
+    }
 
     // 2. Audit Logs
     await db.insert(schema.auditLogs).values([

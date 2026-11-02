@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { visibleLicenseType } from "@/lib/licenseLabel";
 import { 
   BarChart, 
   Bar, 
@@ -94,12 +95,12 @@ export default function LicenseAnalyticsPage() {
   })) || [];
   
   const licenseTypeData = analyticsData?.analytics?.licenseTypes?.map(item => ({
-    name: item.type.charAt(0).toUpperCase() + item.type.slice(1),
+    name: visibleLicenseType(item.type),
     value: item.count,
   })) || [];
   
   const revenueData = analyticsData?.analytics?.revenueByType?.map(item => ({
-    name: item.type.charAt(0).toUpperCase() + item.type.slice(1),
+    name: visibleLicenseType(item.type),
     revenue: item.revenue,
   })) || [];
   
@@ -368,7 +369,7 @@ export default function LicenseAnalyticsPage() {
                             <div>
                               <div className="font-medium">{license.customerName || 'Unknown Customer'}</div>
                               <div className="text-sm text-muted-foreground">
-                                {license.licenseType} • Expires {license.expiresAt ? format(new Date(license.expiresAt), 'MMM dd, yyyy') : 'Never'}
+                                {visibleLicenseType(license.licenseType)} • Expires {license.expiresAt ? format(new Date(license.expiresAt), 'MMM dd, yyyy') : 'Never'}
                               </div>
                             </div>
                             <Button size="sm" variant="outline">
@@ -411,7 +412,7 @@ export default function LicenseAnalyticsPage() {
                             <div>
                               <div className="font-medium">{license.customerName || 'Unknown Customer'}</div>
                               <div className="text-sm text-muted-foreground">
-                                {license.licenseType} • Expired {license.expiresAt ? format(new Date(license.expiresAt), 'MMM dd, yyyy') : 'Unknown'}
+                                {visibleLicenseType(license.licenseType)} • Expired {license.expiresAt ? format(new Date(license.expiresAt), 'MMM dd, yyyy') : 'Unknown'}
                               </div>
                             </div>
                             <Button size="sm" variant="destructive">
@@ -499,23 +500,14 @@ export default function LicenseAnalyticsPage() {
                   {/* Usage by License Type */}
                   <div>
                     <h3 className="font-medium mb-4">Usage by License Type</h3>
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2">
                       <Card>
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-sm">Enterprise</CardTitle>
+                          <CardTitle className="text-sm">Premium</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">892</div>
-                          <div className="text-sm text-muted-foreground">71% of total usage</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-sm">Trial</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">312</div>
-                          <div className="text-sm text-muted-foreground">25% of total usage</div>
+                          <div className="text-sm text-muted-foreground">Paid edition usage</div>
                         </CardContent>
                       </Card>
                       <Card>
@@ -524,7 +516,7 @@ export default function LicenseAnalyticsPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">43</div>
-                          <div className="text-sm text-muted-foreground">3% of total usage</div>
+                          <div className="text-sm text-muted-foreground">Community edition usage</div>
                         </CardContent>
                       </Card>
                     </div>
@@ -708,9 +700,10 @@ export default function LicenseAnalyticsPage() {
                       <div className="text-sm text-green-600">+15% growth</div>
                     </div>
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">Average Revenue per License</div>
-                      <div className="text-2xl font-bold">$87.50</div>
-                      <div className="text-sm text-green-600">+8% increase</div>
+                      <div className="text-sm font-medium">Licences in range</div>
+                      <div className="text-2xl font-bold">
+                        {analyticsData?.analytics?.totalLicenses ?? 0}
+                      </div>
                     </div>
                   </div>
                   

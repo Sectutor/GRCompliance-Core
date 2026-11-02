@@ -1,6 +1,7 @@
 
 import { toast } from "sonner";
 import React, { useState } from "react";
+import { duePhrase } from "@/lib/duePhrase";
 import { trpc } from "@/lib/trpc";
 import { useClientContext } from "@/contexts/ClientContext";
 import { useLocation, useParams } from "wouter";
@@ -382,7 +383,7 @@ export const ProjectDetail = () => {
                                                 </TableCell>
                                                 <TableCell><Badge variant="secondary">{t.treatment.status}</Badge></TableCell>
                                                 <TableCell className="text-slate-500">
-                                                    {t.treatment.dueDate ? format(new Date(t.treatment.dueDate), 'MMM d, yyyy') : 'No date'}
+                                                    {duePhrase(t.treatment.dueDate)}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex gap-2 justify-end">

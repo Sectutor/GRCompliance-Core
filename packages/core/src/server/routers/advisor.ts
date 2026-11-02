@@ -14,6 +14,11 @@ import {
 import { eq, sql, and } from "drizzle-orm";
 import { getDb } from '../../db';
 import * as schema from '../../schema';
+import { isPlatformAdmin, requireWorkspaceRole } from "../recordAccess";
+
+async function requireAdvisorWorkspace(ctx: any, clientId: number, minRole: "viewer" | "editor" = "viewer") {
+    return requireWorkspaceRole({ user: ctx?.user, clientId, minRole });
+}
 
 // Helper to get guidance
 async function getGuidance(input: { clientId: number, controlTitle: string, controlDescription: string, controlId: string }) {
@@ -77,7 +82,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 controlTitle: z.string(),
                 controlDescription: z.string()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     return await getGuidance(input);
                 } catch (error: any) {
@@ -95,7 +101,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 vulnerability: z.string(),
                 assets: z.array(z.string())
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     return await analyzeRisk(input);
                 } catch (error: any) {
@@ -113,7 +120,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 vendorPreference: z.string().optional(),
                 budgetConstraint: z.enum(['low', 'medium', 'high']).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     const result = await suggestTechnologies({
                         clientId: input.clientId,
@@ -136,7 +144,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 controlId: z.number(),
                 selectedTech: z.string().optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     const result = await generateImplementationPlan({
                         clientId: input.clientId,
@@ -158,7 +167,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 regulationId: z.string(),
                 articleId: z.string()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     const result = await explainMapping({
                         clientId: input.clientId,
@@ -188,7 +198,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                     content: z.string()
                 })).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     const result = await askQuestion({
                         clientId: input.clientId,
@@ -219,10 +230,11 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                     description: z.string()
                 })
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId, "editor");
                 const { AgentService } = await import('../../lib/ai/agent-service');
                 try {
-                    return await AgentService.executeAction(input.clientId, input.userId, input.action);
+                    return await AgentService.executeAction(input.clientId, String(ctx.user.id), input.action);
                 } catch (error: any) {
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
@@ -237,7 +249,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 vendorId: z.number(),
                 scanId: z.number().optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     const result = await generateVendorMitigationPlan({
                         clientId: input.clientId,
@@ -261,7 +274,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 riskContext: z.string().optional(),
                 currentMitigations: z.array(z.string()).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId);
                 try {
                     const result = await generateRiskMitigationPlan({
                         clientId: input.clientId,
@@ -287,7 +301,8 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 context: z.string().optional(),
                 mode: z.enum(['draft', 'improve', 'expand'])
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                await requireAdvisorWorkspace(ctx, input.clientId, "editor");
                 const { generateBcpContent } = await import('../../lib/advisor/service');
                 try {
                     return await generateBcpContent(input);
@@ -304,7 +319,12 @@ export function createAdvisorRouter(t: any, protectedProcedure: any) {
                 clientId: z.number().optional(),
                 type: z.enum(['all', 'policies', 'evidence', 'knowledge_base', 'risks']).default('all')
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
+                if (input.clientId) {
+                    await requireAdvisorWorkspace(ctx, input.clientId, "editor");
+                } else if (!isPlatformAdmin(ctx?.user?.role)) {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Client ID is required for this operation" });
+                }
                 const dbConn = await getDb();
                 const { IndexingService } = await import('../../lib/advisor/indexing');
 

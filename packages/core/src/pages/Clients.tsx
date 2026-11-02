@@ -229,15 +229,10 @@ export default function Clients() {
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {isCommunityEdition
-                        ? "The Community Edition includes a single workspace. To manage multiple clients, please upgrade to the Enterprise version."
-                        : `Your current Subscription (DIY) plan allows for up to ${ownedClientsLimit} organizations.`
+                        ? "The Community Edition includes a single workspace."
+                        : `Your current plan allows for up to ${ownedClientsLimit} organizations.`
                       }
                     </p>
-                    {!isCommunityEdition && (
-                      <p className="text-sm text-muted-foreground">
-                        Upgrade to Managed or vCISO tiers for unlimited client management and AI-powered evidence triage.
-                      </p>
-                    )}
                   </div>
                 </div>
               ) : (

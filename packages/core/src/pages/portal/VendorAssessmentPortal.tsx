@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { duePhrase } from "@/lib/duePhrase";
 import { trpc } from "@/lib/trpc";
 import { useParams } from "wouter";
 import { Button } from "@complianceos/ui/ui/button";
@@ -91,9 +92,7 @@ export default function VendorAssessmentPortal() {
                     <p className="text-lg text-slate-600 mt-2">
                         Requested by {data?.vendorName ? "Compliance Team" : "Client"} for {data?.vendorName}
                     </p>
-                    {data?.request?.dueDate && (
-                        <p className="text-sm text-red-500 mt-1">Due Date: {new Date(data.request.dueDate!).toLocaleDateString()}</p>
-                    )}
+                    <p className="text-sm text-red-500 mt-1">{duePhrase(data?.request?.dueDate)}</p>
                 </div>
 
                 {sections.map((section: any, idx: number) => (
