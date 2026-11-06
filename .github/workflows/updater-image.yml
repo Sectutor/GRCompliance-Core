@@ -1,0 +1,150 @@
+name: Updater image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "updater/**"
+      - ".github/workflows/updater-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+# A newer push to the same branch cancels the older build so it cannot
+# finish last and move :1 backwards.
+concurrency:
+  group: updater-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/sectutor/grcompliance-updater
+          flavor: |
+            latest=false
+          labels: |
+            org.opencontainers.image.title=GRCompliance Core updater
+            org.opencontainers.image.description=Admin-triggered updater sidecar for GRCompliance Core
+            org.opencontainers.image.url=https://grcompliance.com/
+            org.opencontainers.image.source=https://github.com/Sectutor/GRCompliance-Core
+            org.opencontainers.image.licenses=AGPL-3.0-only
+          tags: |
+            type=raw,value=1,enable={{is_default_branch}}
+            type=raw,value=1.0.0,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      # Push the immutable sha- tag with the build, then move :1 and :1.0.0
+      # only if this commit is still the default branch head.
+      - name: Separate floating tags from immutable tags
+        id: tags
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          immutable="$(printf '%s\n' "${TAGS}" | sed -e '/^[[:space:]]*$/d' -e '/:1$/d' -e '/:1\.0\.0$/d')"
+          case "${immutable}" in
+            *:sha-*) ;;
+            *)
+              echo "::error::Build did not produce a sha- tag"
+              exit 1
+              ;;
+          esac
+          floating="$(printf '%s\n' "${TAGS}" | sed -n -e '/:1$/p' -e '/:1\.0\.0$/p')"
+          {
+            echo "immutable<<EOF"
+            printf '%s\n' "${immutable}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          {
+            echo "floating<<EOF"
+            if [ -n "${floating}" ]; then
+              printf '%s\n' "${floating}"
+            fi
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          if [ -n "${floating}" ]; then
+            echo "wants_floating=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "wants_floating=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      # updater/Dockerfile copies updater/src, so the context is the repo root.
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: updater/Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.immutable }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Publish floating tags when commit is still the default branch head
+        if: steps.tags.outputs.wants_floating == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FLOATING: ${{ steps.tags.outputs.floating }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLOATING}" ] || [ -z "${DIGEST}" ]; then
+            echo "::error::Missing image reference or digest; refusing to move floating tags"
+            exit 1
+          fi
+
+          gh_api() {
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$@"
+          }
+
+          default_branch="$(gh_api "https://api.github.com/repos/${GITHUB_REPOSITORY}" | jq -r '.default_branch')"
+          if [ -z "${default_branch}" ] || [ "${default_branch}" = "null" ]; then
+            echo "::error::GitHub API did not return the default branch"
+            exit 1
+          fi
+          remote_sha="$(
+            gh_api \
+              --get \
+              --data-urlencode "sha=${default_branch}" \
+              --data-urlencode "per_page=1" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits" \
+              | jq -r '.[0].sha'
+          )"
+          if [ -z "${remote_sha}" ] || [ "${remote_sha}" = "null" ]; then
+            echo "::error::GitHub API did not return the head of ${default_branch}"
+            exit 1
+          fi
+          if [ "${remote_sha}" != "${GITHUB_SHA}" ]; then
+            echo "::notice title=Leaving floating tags unchanged::${GITHUB_SHA} is not the head of ${default_branch} (${remote_sha}). The sha- tag was already pushed."
+            exit 0
+          fi
+
+          printf '%s\n' "${FLOATING}" | while IFS= read -r ref; do
+            [ -z "${ref}" ] && continue
+            repo="${ref%:*}"
+            echo "Commit ${GITHUB_SHA} is still the head of ${default_branch}; moving ${ref}"
+            docker buildx imagetools create --tag "${ref}" "${repo}@${DIGEST}"
+          done
