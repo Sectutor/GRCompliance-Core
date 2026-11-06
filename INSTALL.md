@@ -62,6 +62,18 @@ git config core.hooksPath .githooks
 
 The pre-commit hook rejects internal-doc paths and runs gitleaks on staged changes when gitleaks is installed. [`.pre-commit-config.yaml`](.pre-commit-config.yaml) is the same check for the pre-commit framework (`pre-commit install`). CI scans the current tree and, in git mode, only the commits added by the push or pull request.
 
+## Container upgrade
+
+Self-hosted containers update from **Settings → Updates**. The button says **Update available → Upgrade now** when a pinned Core release is available. The app does not get the Docker socket. Set `GRC_AIRGAP=1` to disable the button.
+
+The manual fallback, from any directory, is:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --upgrade
+```
+
+`--upgrade` keeps `.env`, the database, and uploaded files. If the new container does not become healthy, the updater starts the previous image and restores the database backup when the schema version changed. Details are in [Updates](docs/updates.md).
+
 ## Next
 
 - [Contributing](CONTRIBUTING.md)

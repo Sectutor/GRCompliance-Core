@@ -44,7 +44,4 @@ Before deploying the app, you need a hosted PostgreSQL database.
 -   **CORS:** If your frontend and backend domains differ (unlikely on Netlify), ensure `CORS_ORIGIN` is set correctly.
 
 ## Alternative: Docker / VPS
-You can also deploy as a standard Node.js app using Docker.
-1.  Build the frontend (`npm run build`).
-2.  Start the server (`npm run server`).
-3.  Serve the `dist` folder as static files from Express (requires code modification to `index.ts` to serve static assets).
+The supported container install is [the Docker README](../DOCKER_README.md). An administrator upgrades that stack from **Settings → Updates**, or with `install.sh --upgrade`. The app container does not mount the Docker socket.

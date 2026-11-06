@@ -11,6 +11,7 @@ INSTALL_DIR="${GRC_HOME:-${HOME}/grcompliance}"
 UPGRADE=0
 FRESH=0
 BIND_LOCAL=0
+SECRET_ADDED=0
 if [[ "${GRC_BIND_LOCAL:-0}" == "1" ]]; then
   BIND_LOCAL=1
 fi
@@ -158,6 +159,11 @@ write_env() {
   postgres_user="${POSTGRES_USER:-grc}"
   postgres_db="${POSTGRES_DB:-grcompliance}"
   grc_version="${GRC_VERSION:-latest}"
+  updater_secret="$(openssl rand -hex 32)"
+  airgap=0
+  if [[ "${GRC_AIRGAP:-0}" == "1" || "${GRC_AIRGAP:-}" == "true" ]]; then
+    airgap=1
+  fi
   umask 077
   cat > .env <<EOF
 POSTGRES_USER=${postgres_user}
@@ -172,6 +178,9 @@ ADMIN_PASSWORD=${admin_password}
 APP_URL=${public_url}
 APP_PORT=${app_port}
 GRC_VERSION=${grc_version}
+GRC_UPDATER_VERSION=${GRC_UPDATER_VERSION:-1}
+GRC_AIRGAP=${airgap}
+UPDATER_SECRET=${updater_secret}
 AUTH_MODE=local
 EOF
   chmod 600 .env
@@ -189,6 +198,29 @@ EOF
   echo "Admin email: ${admin_email}"
   echo "Admin password (shown once): ${admin_password}"
   echo "Store this password now. It will not be printed again."
+}
+
+ensure_updater_state() {
+  mkdir -p updater-state
+  if [[ ! -f updater-state/release.env ]]; then
+    umask 077
+    : > updater-state/release.env
+    chmod 600 updater-state/release.env
+  fi
+}
+
+ensure_updater_secret() {
+  SECRET_ADDED=0
+  if awk -F= '$1=="UPDATER_SECRET" && length($2)>0 { found=1 } END { exit found ? 0 : 1 }' .env; then
+    return
+  fi
+  local secret
+  secret="$(openssl rand -hex 32)"
+  umask 077
+  printf '\nUPDATER_SECRET=%s\n' "${secret}" >> .env
+  chmod 600 .env
+  SECRET_ADDED=1
+  echo "Added UPDATER_SECRET to ${INSTALL_DIR}/.env. Other values were not changed."
 }
 
 download_compose() {
@@ -258,7 +290,11 @@ wait_for_health() {
         echo "Re-run left the existing database and uploaded files in place."
       fi
       if [[ "${UPGRADE}" -eq 1 ]]; then
-        echo "Upgrade finished. The existing .env was left unchanged."
+        if [[ "${SECRET_ADDED}" -eq 1 ]]; then
+          echo "Upgrade finished. Existing secrets were kept. UPDATER_SECRET was added because it was missing."
+        else
+          echo "Upgrade finished. The existing .env was left unchanged."
+        fi
       fi
       echo "Upgrade later with:"
       echo "  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade"
@@ -278,11 +314,24 @@ EOF
 }
 
 start_stack() {
-  local version
+  local version image app_pull updater_pull
   version="$(awk -F= '$1=="GRC_VERSION" { print $2 }' .env)"
   version="${version:-latest}"
   export GRC_VERSION="${version}"
-  if compose_cmd pull app; then
+  image="$(awk -F= '$1=="GRC_IMAGE" { print substr($0, index($0, "=")+1); exit }' .env)"
+  if [[ -n "${image}" ]]; then
+    export GRC_IMAGE="${image}"
+  fi
+  app_pull=0
+  updater_pull=0
+  compose_cmd pull app || app_pull=$?
+  compose_cmd pull updater || updater_pull=$?
+  if [[ "${app_pull}" -eq 0 && "${updater_pull}" -eq 0 ]]; then
+    compose_cmd up -d --no-build --remove-orphans
+  elif [[ "${app_pull}" -eq 0 ]]; then
+    echo "Published updater image is not available. Building the sidecar from source."
+    ensure_source
+    GRC_BUILD_CONTEXT="${INSTALL_DIR}/src" compose_cmd up -d --build --no-deps updater
     compose_cmd up -d --no-build --remove-orphans
   else
     echo "Published image ${IMAGE}:${version} is not available. Building from source."
@@ -302,6 +351,8 @@ main() {
   else
     write_env
   fi
+  ensure_updater_secret
+  ensure_updater_state
   start_stack
   wait_for_health
 }

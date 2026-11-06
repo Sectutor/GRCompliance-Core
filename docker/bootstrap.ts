@@ -7,6 +7,7 @@ import { hashPassword } from '../packages/core/src/server/localAuth';
 import { ensureDefaultDataSeeded, getDb, getUserByEmail, seedSampleData } from '../packages/core/src/db';
 import { ensureAnnexACatalog } from '../packages/core/src/server/ensureAnnexACatalog';
 import { users } from '../packages/core/src/schema';
+import { currentAppVersion, SCHEMA_VERSION } from '../packages/core/src/server/updates/schemaVersion';
 
 function sslOption(databaseUrl: string) {
     const disabled = process.env.DATABASE_SSL === 'false' || /(?:\?|&)sslmode=disable(?:&|$)/.test(databaseUrl);
@@ -43,6 +44,37 @@ async function ensureEvidenceRequestAssignees() {
     await db.execute(sql`ALTER TABLE evidence_requests ADD COLUMN IF NOT EXISTS assignee_employee_id integer`);
     await db.execute(sql`ALTER TABLE evidence_requests ALTER COLUMN assignee_id DROP NOT NULL`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_er_assignee_employee ON evidence_requests (assignee_employee_id)`);
+}
+
+async function ensureUpdateMetadata() {
+    const db = await getDb();
+    await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS schema_meta (
+            id integer PRIMARY KEY,
+            schema_version integer NOT NULL,
+            app_version text,
+            updated_at timestamp DEFAULT now(),
+            CONSTRAINT schema_meta_singleton CHECK (id = 1)
+        )
+    `);
+    await db.execute(sql`
+        INSERT INTO schema_meta (id, schema_version, app_version)
+        VALUES (1, ${SCHEMA_VERSION}, ${currentAppVersion()})
+        ON CONFLICT (id) DO UPDATE
+        SET schema_version = GREATEST(schema_meta.schema_version, EXCLUDED.schema_version),
+            app_version = EXCLUDED.app_version,
+            updated_at = now()
+    `);
+    await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS upgrade_events (
+            run_id text PRIMARY KEY,
+            state text NOT NULL,
+            actor_user_id integer,
+            details text,
+            created_at timestamp DEFAULT now()
+        )
+    `);
+    console.log(`[bootstrap] schema_version=${SCHEMA_VERSION} app_version=${currentAppVersion()}`);
 }
 
 async function ensureLocalCredentialsTable() {
@@ -111,6 +143,7 @@ async function main() {
         throw new Error('DATABASE_URL is required');
     }
     await applySchema(databaseUrl);
+    await ensureUpdateMetadata();
     await ensureEvidenceRequestAssignees();
     await ensureDefaultDataSeeded();
     await ensureLocalCredentialsTable();

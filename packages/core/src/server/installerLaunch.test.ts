@@ -87,10 +87,39 @@ describe("one-line installer contract", () => {
         const dockerfile = read("Dockerfile");
         expect(compose).toContain("image: docker.io/library/redis:7-alpine");
         expect(compose).toContain("image: docker.io/pgvector/pgvector:pg16");
-        expect(compose).toContain("image: ghcr.io/sectutor/grcompliance-core:${GRC_VERSION:-latest}");
+        expect(compose).toContain("image: ${GRC_IMAGE:-ghcr.io/sectutor/grcompliance-core:${GRC_VERSION:-latest}}");
         expect(compose).not.toMatch(/^\s*image:\s+redis:/m);
         expect(compose).not.toMatch(/^\s*image:\s+pgvector\//m);
         expect(dockerfile).toContain("FROM docker.io/library/node:20-bookworm-slim");
         expect(dockerfile).not.toMatch(/^FROM node:/m);
+    });
+
+    it("ships the updater sidecar and keeps the Docker socket off the app", () => {
+        const compose = read("docker-compose.yml");
+        const install = read("install.sh");
+        const services = compose.split(/^services:\n/m)[1].split(/^volumes:\n/m)[0];
+        const blocks: Record<string, string> = {};
+        let current = "";
+        let buf: string[] = [];
+        for (const line of services.split("\n")) {
+            const match = /^  ([a-z0-9-]+):\s*$/.exec(line);
+            if (match) {
+                if (current) blocks[current] = buf.join("\n");
+                current = match[1];
+                buf = [line];
+            } else if (current) {
+                buf.push(line);
+            }
+        }
+        if (current) blocks[current] = buf.join("\n");
+        expect(blocks.app).not.toContain("docker.sock");
+        expect(blocks.updater).toContain("/var/run/docker.sock:/var/run/docker.sock");
+        expect(blocks.app).toContain("UPDATER_URL: http://updater:9090");
+        expect(blocks.updater).not.toContain("ports:");
+        expect(install).toContain("compose_cmd pull updater");
+        expect(install).toContain("UPDATER_SECRET");
+        expect(install).toContain("curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade");
+        expect(read("packages/core/src/server/updates/routes.ts")).not.toContain("maxClients");
+        expect(read("packages/core/src/server/updates/routes.ts")).not.toContain("registerPremiumEntitlement");
     });
 });

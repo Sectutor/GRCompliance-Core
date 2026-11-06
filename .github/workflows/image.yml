@@ -19,6 +19,8 @@ concurrency:
 
 jobs:
   image:
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -145,3 +147,33 @@ jobs:
           echo "Commit ${GITHUB_SHA} is still the head of ${default_branch}; moving ${LATEST_REF}"
           repo="${LATEST_REF%:*}"
           docker buildx imagetools create --tag "${LATEST_REF}" "${repo}@${DIGEST}"
+
+  # Attaches release-manifest.json to a GitHub Release. It does not run on
+  # pull requests, and it does not publish until a v* tag is pushed.
+  manifest:
+    needs: image
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write the Core release manifest
+        env:
+          GRC_VERSION: ${{ github.ref_name }}
+          GRC_IMAGE_DIGEST: ${{ needs.image.outputs.digest }}
+          GRC_NOTES: GRCompliance Core
+        run: node scripts/write-release-manifest.mjs > release-manifest.json
+
+      - name: Attach the manifest to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release-manifest.json --clobber
+          else
+            gh release create "$tag" release-manifest.json --title "$tag" --notes "GRCompliance Core ${tag}"
+          fi

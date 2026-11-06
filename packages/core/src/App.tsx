@@ -62,6 +62,7 @@ const ClientSettings = lazy(() => import("./pages/ClientSettings"));
 const OnboardingSettings = lazy(() => import("./pages/settings/OnboardingSettings"));
 const SecuritySettings = lazy(() => import("./pages/settings/SecuritySettings"));
 const IntegrationsPage = lazy(() => import("./pages/settings/IntegrationsPage"));
+const UpdateSettings = lazy(() => import("./pages/settings/UpdateSettings"));
 const PersonnelComplianceHub = lazy(() => import("./pages/PersonnelComplianceHub"));
 const ClientActivity = lazy(() => import("./pages/ClientActivity"));
 
@@ -1693,6 +1694,9 @@ function Router() {
                 </Route>
                 <Route path="/settings/integrations">
                   <ProtectedRoute component={IntegrationsPage} />
+                </Route>
+                <Route path="/settings/updates">
+                  <ProtectedRoute component={UpdateSettings} />
                 </Route>
                 <Route path="/settings">
                   <Redirect to="/settings/security" />

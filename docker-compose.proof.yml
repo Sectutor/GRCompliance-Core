@@ -1,0 +1,69 @@
+# Disposable stack for scripts/test/upgrade-sidecar-e2e.sh.
+# Local tags stand in for two published GHCR releases. Do not use this file for a real install.
+name: grcproof
+
+services:
+  db:
+    image: docker.io/pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: grc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: grcompliance
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grc -d grcompliance"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  app:
+    image: ${GRC_IMAGE:-grc-proof:1.0.0}
+    environment:
+      PORT: "3001"
+      DATABASE_URL: postgres://grc:${POSTGRES_PASSWORD}@db:5432/grcompliance?sslmode=disable
+      UPDATER_URL: http://updater:9090
+      UPDATER_SECRET: ${UPDATER_SECRET:?}
+      GRC_AIRGAP: "0"
+    ports:
+      - "127.0.0.1:${APP_PORT:-18081}:3001"
+    volumes:
+      - grc_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  updater:
+    image: grc-updater:proof
+    build:
+      context: ${GRC_BUILD_CONTEXT:?}
+      dockerfile: updater/Dockerfile
+    environment:
+      COMPOSE_PROJECT_NAME: grcproof
+      UPDATER_SECRET: ${UPDATER_SECRET:?}
+      DATABASE_URL: postgres://grc:${POSTGRES_PASSWORD}@db:5432/grcompliance?sslmode=disable
+      GRC_VERSION: ${GRC_VERSION:-1.0.0}
+      GRC_AIRGAP: "0"
+      GRC_ALLOWED_IMAGES: grc-proof
+      GRC_MIN_FREE_BYTES: "10000000"
+      HEALTH_TIMEOUT_SECONDS: "40"
+      GRC_RELEASE_MANIFEST_FILE: /compose/manifest.json
+      COMPOSE_DIR: /compose
+      APP_SERVICE: app
+      DB_SERVICE: db
+      APP_HEALTH_URL: http://app:3001/health
+      UPLOADS_DIR: /uploads
+      BACKUP_DIR: /backups
+      RELEASE_ENV_FILE: /compose/updater-state/release.env
+      STACK_ENV_FILE: /compose/.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PROOF_DIR:?}:/compose
+      - grc_uploads:/uploads
+      - grc_backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  grc_uploads:
+  grc_backups:

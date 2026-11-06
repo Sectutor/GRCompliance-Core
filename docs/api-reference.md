@@ -53,7 +53,19 @@ Stripe webhook handler for subscription updates.
 
 ### Monitoring
 **GET** `/api/health`
-System health check. Returns status 200 if DB is connected.
+System health check. Returns status 200 if the database is connected. The body includes `edition` (`core`), `version`, and `schemaVersion`.
+
+### Self-hosted updates
+Administrator only. The app proxies these to the updater sidecar. They do not download Premium artifacts.
+
+**GET** `/api/updates/status`
+Current version, schema version, air-gap flag, and upgrade progress.
+
+**POST** `/api/updates/check`
+Look for a newer pinned Core release on GitHub Releases or GHCR.
+
+**POST** `/api/updates/upgrade`
+Start the backup, pull, and recreate. Returns 202. A non-administrator receives 403. `GRC_AIRGAP=1` returns 403.
 
 **GET** `/api/metrics`
 Prometheus metrics (Requires Admin role).

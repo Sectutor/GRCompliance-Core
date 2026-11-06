@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: ghcr.io/sectutor/grcompliance-core:${GRC_VERSION:-latest}
+    image: ${GRC_IMAGE:-ghcr.io/sectutor/grcompliance-core:${GRC_VERSION:-latest}}
     build:
       context: ${GRC_BUILD_CONTEXT:-.}
       dockerfile: Dockerfile
@@ -61,6 +61,10 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@grcompliance.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
       APP_URL: ${APP_URL:?}
+      GRC_VERSION: ${GRC_VERSION:-latest}
+      GRC_AIRGAP: ${GRC_AIRGAP:-0}
+      UPDATER_URL: http://updater:9090
+      UPDATER_SECRET: ${UPDATER_SECRET:?}
       VITE_ENABLE_PREMIUM: "false"
       VITE_APP_MODE: production
       ENABLE_THREAT_SCHEDULER: "false"
@@ -69,6 +73,8 @@ services:
       RATE_LIMITING_ENABLED: ${RATE_LIMITING_ENABLED:-false}
     ports:
       - "${APP_PORT:-3001}:3001"
+    env_file:
+      - updater-state/release.env
     volumes:
       - grc_uploads:/app/uploads
     healthcheck:
@@ -79,7 +85,49 @@ services:
       start_period: 180s
     restart: unless-stopped
 
+  # Docker socket stays on this sidecar. The app service above does not mount it.
+  updater:
+    image: ghcr.io/sectutor/grcompliance-updater:${GRC_UPDATER_VERSION:-1}
+    build:
+      context: ${GRC_BUILD_CONTEXT:-.}
+      dockerfile: updater/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      UPDATER_SECRET: ${UPDATER_SECRET:?}
+      DATABASE_URL: ${DATABASE_URL:?}
+      GRC_VERSION: ${GRC_VERSION:-latest}
+      GRC_AIRGAP: ${GRC_AIRGAP:-0}
+      GRC_ALLOWED_IMAGES: ${GRC_ALLOWED_IMAGES:-ghcr.io/sectutor/grcompliance-core}
+      GRC_GITHUB_REPO: ${GRC_GITHUB_REPO:-Sectutor/GRCompliance-Core}
+      GRC_MIN_FREE_BYTES: ${GRC_MIN_FREE_BYTES:-2147483648}
+      HEALTH_TIMEOUT_SECONDS: ${GRC_HEALTH_TIMEOUT:-180}
+      GRC_RELEASE_MANIFEST_FILE: ${GRC_RELEASE_MANIFEST_FILE:-}
+      GRC_RELEASE_MANIFEST_URL: ${GRC_RELEASE_MANIFEST_URL:-}
+      COMPOSE_DIR: /compose
+      APP_SERVICE: app
+      DB_SERVICE: db
+      APP_HEALTH_URL: http://app:3001/health
+      UPLOADS_DIR: /uploads
+      BACKUP_DIR: /backups
+      RELEASE_ENV_FILE: /compose/updater-state/release.env
+      STACK_ENV_FILE: /compose/.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${GRC_COMPOSE_DIR:-.}:/compose
+      - grc_uploads:/uploads
+      - grc_backups:/backups
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9090/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
 volumes:
   grc_postgres:
   grc_redis:
   grc_uploads:
+  grc_backups:
