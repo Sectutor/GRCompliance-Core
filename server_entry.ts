@@ -56,6 +56,9 @@ import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
 import { localForgotPasswordHandler, localLoginHandler, localResetPasswordHandler } from './packages/core/src/server/localAuth';
 import { hasPremiumEntitlementProvider } from './packages/core/src/server/premiumEntitlement';
+import { createUpdateRouter, liveUpdateDeps } from './packages/core/src/server/updates/routes';
+import { auditUpdate, markUpgradeStarted, noteUpgradeTerminal } from './packages/core/src/server/updates/audit';
+import { CORE_EDITION, currentAppVersion, SCHEMA_VERSION } from './packages/core/src/server/updates/schemaVersion';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -83,7 +86,14 @@ app.get(['/health', '/api/health'], async (req, res) => {
     try {
         const dbConn = await getDb();
         await dbConn.execute(sql`SELECT 1`);
-        res.status(200).json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+        res.status(200).json({
+            status: 'ok',
+            database: 'connected',
+            edition: CORE_EDITION,
+            version: currentAppVersion(),
+            schemaVersion: SCHEMA_VERSION,
+            timestamp: new Date().toISOString(),
+        });
     } catch (e: any) {
         console.error('[Health] Database connection check failed:', e);
         res.status(503).json({ status: 'error', database: 'disconnected', details: e.message });
@@ -217,7 +227,12 @@ app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) =>
         });
     }
 });
-// APIs
+// APIs. The update route talks to the sidecar. This process does not mount the Docker socket.
+app.use('/api/updates', createUpdateRouter(liveUpdateDeps({
+    audit: auditUpdate,
+    noteTerminal: noteUpgradeTerminal,
+    markStarted: markUpgradeStarted,
+})));
 app.use('/api/export', exportRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/ai', aiRouter);

@@ -41,6 +41,7 @@ On Linux and macOS, install with:
 }
 $script:BindLocal = $BindLocal.IsPresent -or ($env:GRC_BIND_LOCAL -eq "1")
 $script:FreshInstall = $false
+$script:SecretAdded = $false
 if ($env:HEALTH_RETRIES) {
     if ($env:HEALTH_RETRIES -notmatch '^[1-9][0-9]*$') {
         Write-Error "HEALTH_RETRIES must be a positive integer (got: $($env:HEALTH_RETRIES))."
@@ -184,6 +185,9 @@ ADMIN_PASSWORD=$adminPassword
 APP_URL=$publicUrl
 APP_PORT=$appPort
 GRC_VERSION=$version
+GRC_UPDATER_VERSION=$(if ($env:GRC_UPDATER_VERSION) { $env:GRC_UPDATER_VERSION } else { "1" })
+GRC_AIRGAP=$(if ($env:GRC_AIRGAP -eq "1" -or $env:GRC_AIRGAP -eq "true") { "1" } else { "0" })
+UPDATER_SECRET=$(New-SecretHex 32)
 AUTH_MODE=local
 "@
     $path = Join-Path (Get-Location) ".env"
@@ -205,6 +209,24 @@ function Get-AppUrl {
     $line = Select-String -Path .env -Pattern "^APP_URL=" | Select-Object -First 1
     if ($line) { return ($line.Line -split "=", 2)[1] }
     return "http://localhost:$(Get-AppPort)"
+}
+
+function Ensure-UpdaterSecret {
+    $secretLine = Select-String -Path .env -Pattern "^UPDATER_SECRET=.+" | Select-Object -First 1
+    if ($secretLine) { return }
+    $secret = New-SecretHex 32
+    Add-Content -Path .env -Value "`nUPDATER_SECRET=$secret" -Encoding ascii
+    $script:SecretAdded = $true
+    Write-Host "Added UPDATER_SECRET to .env. Other values were not changed."
+}
+
+function Ensure-UpdaterState {
+    $state = Join-Path (Get-Location) "updater-state"
+    New-Item -ItemType Directory -Force -Path $state | Out-Null
+    $release = Join-Path $state "release.env"
+    if (-not (Test-Path $release)) {
+        New-Item -ItemType File -Path $release | Out-Null
+    }
 }
 
 function Invoke-Compose {
@@ -232,12 +254,38 @@ if (Test-Path $envPath) {
 } else {
     Write-EnvFile
 }
+Ensure-UpdaterSecret
+Ensure-UpdaterState
 
 $versionLine = Select-String -Path .env -Pattern "^GRC_VERSION=" | Select-Object -First 1
 $env:GRC_VERSION = if ($versionLine) { ($versionLine.Line -split "=", 2)[1] } else { "latest" }
+$imageLine = Select-String -Path .env -Pattern "^GRC_IMAGE=" | Select-Object -First 1
+if ($imageLine) { $env:GRC_IMAGE = ($imageLine.Line -split "=", 2)[1] }
 
 Invoke-Compose pull app
-if ($LASTEXITCODE -eq 0) {
+$appPull = $LASTEXITCODE
+Invoke-Compose pull updater
+$updaterPull = $LASTEXITCODE
+if ($appPull -eq 0 -and $updaterPull -eq 0) {
+    Invoke-Compose up -d --no-build --remove-orphans
+} elseif ($appPull -eq 0) {
+    Write-Host "Published updater image is not available. Building the sidecar from source."
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Fail "git is required to build the updater image locally."
+    }
+    if (Test-Path "src/.git") {
+        git -C src fetch --depth 1 origin $GitRef
+        if ($LASTEXITCODE -ne 0) { Fail "git fetch failed" }
+        git -C src checkout --detach FETCH_HEAD
+        if ($LASTEXITCODE -ne 0) { Fail "git checkout failed" }
+    } else {
+        if (Test-Path src) { Remove-Item -Recurse -Force src }
+        git clone --depth 1 --branch $GitRef $GitUrl src
+        if ($LASTEXITCODE -ne 0) { Fail "git clone failed" }
+    }
+    $env:GRC_BUILD_CONTEXT = Join-Path $Dir "src"
+    Invoke-Compose up -d --build --no-deps updater
+    if ($LASTEXITCODE -ne 0) { Fail "updater build failed" }
     Invoke-Compose up -d --no-build --remove-orphans
 } else {
     Write-Host "Published image ${Image}:$($env:GRC_VERSION) is not available. Building from source."
@@ -289,7 +337,11 @@ if ($script:FreshInstall) {
     Write-Host "Re-run left the existing database and uploaded files in place."
 }
 if ($Upgrade) {
-    Write-Host "Upgrade finished. The existing .env was left unchanged."
+    if ($script:SecretAdded) {
+        Write-Host "Upgrade finished. Existing secrets were kept. UPDATER_SECRET was added because it was missing."
+    } else {
+        Write-Host "Upgrade finished. The existing .env was left unchanged."
+    }
 }
 Write-Host "Upgrade later with:"
 Write-Host '  iex "& { $(irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1) } -Upgrade"'

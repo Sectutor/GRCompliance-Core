@@ -780,6 +780,7 @@ function DashboardLayoutContent({
               { label: "Invitations", path: "/settings/invitations" },
               { label: "Integrations", path: "/settings/integrations" },
               { label: "Backup / Restore", path: "/settings?tab=backup-restore" },
+              ...(adminRoles.includes(userRole) ? [{ label: "Updates", path: "/settings/updates" }] : []),
             ]
           },
           ...(isAdminOrOwner ? [{ icon: GraduationCap, label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
