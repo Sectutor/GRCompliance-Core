@@ -9,7 +9,8 @@ cd "$root"
 bash "$root/scripts/check-public-tree.sh"
 
 if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks protect --staged --redact --no-banner --exit-code 1
+  gitleaks protect --staged --redact --no-banner --exit-code 1 --config "$root/.gitleaks.toml"
 else
   echo "warning: gitleaks is not installed; CI will still scan the push" >&2
+  echo "warning: install gitleaks, or run: pre-commit install" >&2
 fi

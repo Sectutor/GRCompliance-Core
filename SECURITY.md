@@ -18,3 +18,5 @@ Security fixes apply to the default branch of this repository. Release tags olde
 - Agent transcripts (`.cursor/`, `.claude/`, `*.chat.md`)
 
 Generate `JWT_SECRET` and `ENCRYPTION_KEY` locally. The application does not ship a usable default for either value.
+
+Pushes to the default branch are scanned with gitleaks across the full history. Pull requests are scanned on the diff. A finding fails the check. Install the local hook with `git config core.hooksPath .githooks`.
