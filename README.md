@@ -10,49 +10,78 @@ The public site is [grcompliance.com](https://grcompliance.com).
 
 ## What you can do
 
-Core includes a control library, a risk register, policies, evidence linked to controls, and an audit workspace. The frameworks page loads the catalogue below. Optional model calls stay in Core and run after an administrator stores a provider key in the app. The service supports OpenAI, Anthropic, and Google Gemini.
+Core includes a control library, a risk register, policies, evidence linked to controls, and an audit workspace. Frameworks Library on a fresh install lists the 14 frameworks below. Optional model calls stay in Core and run after an administrator stores a provider key in the app. The service supports OpenAI, Anthropic, and Google Gemini.
 
-## Supported frameworks
+## Frameworks Library
 
-The frameworks page loads **27** frameworks. The names below are the `name` fields of `export const frameworks` in [`packages/core/src/data/frameworks/index.ts`](packages/core/src/data/frameworks/index.ts), in that order.
+A fresh Core install lists **14** frameworks on Frameworks Library.
 
-1. ISO 27001:2022
-2. ISO 22301:2019
-3. HITRUST-Aligned (Representative)
-4. SOC 2 Type II
-5. NIST CSF 2.0
-6. NIST SP 800-171 r2
-7. PCI DSS v4.0.1
-8. CIS Controls v8
-9. CSA CCM v4
-10. NIST SP 800-53 Rev 5
-11. FedRAMP Moderate
-12. Cyber Essentials / Plus
-13. NIST AI RMF
-14. OWASP AISVS (AI Security)
-15. OWASP ASVS (App Security)
-16. OWASP MASVS (Mobile Security)
-17. OWASP SAMM (Maturity Model)
-18. OWASP API Security Top 10
-19. OWASP Web Top 10
-20. OWASP Web Top 10 (2021)
-21. Australian Essential Eight
-22. CMMC 2.0
-23. SOC 1 Type II
-24. TISAX
-25. NIST SP 800-161
-26. Secure Controls Framework (SCF)
-27. OWASP ML Security Top 10
+The page is [`packages/core/src/pages/FrameworksDashboard.tsx`](packages/core/src/pages/FrameworksDashboard.tsx). It reads `export const frameworks` in [`packages/core/src/data/frameworks/index.ts`](packages/core/src/data/frameworks/index.ts) and keeps the entries that leave `isObligation` unset. That filter is the whole difference between the 27 names in the file and the 14 cards on the screen. The cards are not Premium-only. Boot does not insert these 14 into the controls table. The first-boot seed in `ensureDefaultDataSeeded` (`packages/core/src/db.ts`) writes 38 sample rows under the names `ISO 27001` (18), `NIS2` (10), `NIST CSF` (8), and `SOC 2` (2). Those four strings are not the library cards.
 
-The catalogue label for item 6 is `NIST SP 800-171 r2`. The bundled requirements in [`packages/core/src/data/frameworks/nist-800-171.ts`](packages/core/src/data/frameworks/nist-800-171.ts) are NIST SP 800-171 Revision 3.
+These are the 14, in catalogue order:
 
-SOC 1 Type II, TISAX, and Secure Controls Framework (SCF) are marked `bring-your-own` in the catalogue. Their publisher text is not in this repository. You upload a workbook. CSA CCM v4 is imported from a workbook as well. HITRUST-Aligned (Representative) and FedRAMP Moderate are representative lists in the catalogue. Control-text licences are recorded in [docs/framework-licensing.md](docs/framework-licensing.md).
+1. CIS Controls v8
+2. CSA CCM v4
+3. Cyber Essentials / Plus
+4. NIST AI RMF
+5. OWASP AISVS (AI Security)
+6. OWASP ASVS (App Security)
+7. OWASP MASVS (Mobile Security)
+8. OWASP SAMM (Maturity Model)
+9. OWASP API Security Top 10
+10. OWASP Web Top 10
+11. OWASP Web Top 10 (2021)
+12. Australian Essential Eight
+13. Secure Controls Framework (SCF)
+14. OWASP ML Security Top 10
 
-The control import route also accepts FedRAMP Low, FedRAMP High, and OWASP SCVS ([`packages/core/src/server/routers/frameworks.ts`](packages/core/src/server/routers/frameworks.ts)). Those three are not entries in the catalogue above, so they are not part of the 27.
+### 12 with control rows in the repository
 
-### Obligations the app loads
+| Framework | Rows | Where the rows live |
+| --- | ---: | --- |
+| CIS Controls v8 | 18 | [`cis.ts`](packages/core/src/data/frameworks/cis.ts). Ids `1.1` through `18.1`, one row per CIS Control. |
+| Cyber Essentials / Plus | 24 | [`cyberessentials.ts`](packages/core/src/data/frameworks/cyberessentials.ts). The file calls the list representative. |
+| NIST AI RMF | 73 | [`nist_ai_rmf.ts`](packages/core/src/data/frameworks/nist_ai_rmf.ts). The file calls this the full set of 73 subcategories. |
+| OWASP AISVS (AI Security) | 191 | [`owaspAisvs.catalog.json`](packages/core/src/data/frameworks/owaspAisvs.catalog.json) |
+| OWASP ASVS (App Security) | 286 | [`owaspAsvs.catalog.json`](packages/core/src/data/frameworks/owaspAsvs.catalog.json) |
+| OWASP MASVS (Mobile Security) | 20 | [`owaspMasvs.catalog.json`](packages/core/src/data/frameworks/owaspMasvs.catalog.json) |
+| OWASP SAMM (Maturity Model) | 90 | [`owaspSamm.catalog.json`](packages/core/src/data/frameworks/owaspSamm.catalog.json) |
+| OWASP API Security Top 10 | 10 | [`owaspApiTop10.catalog.json`](packages/core/src/data/frameworks/owaspApiTop10.catalog.json) |
+| OWASP Web Top 10 | 10 | [`owaspTop10_2025.catalog.json`](packages/core/src/data/frameworks/owaspTop10_2025.catalog.json) |
+| OWASP Web Top 10 (2021) | 10 | [`owaspTop10_2021.catalog.json`](packages/core/src/data/frameworks/owaspTop10_2021.catalog.json) |
+| Australian Essential Eight | 304 | [`essentialEight.catalog.json`](packages/core/src/data/frameworks/essentialEight.catalog.json) |
+| OWASP ML Security Top 10 | 10 | [`owaspMlTop10.catalog.json`](packages/core/src/data/frameworks/owaspMlTop10.catalog.json) |
 
-The obligations page loads a separate list of **15** entries from `export const regulations` in [`packages/core/src/data/regulations/index.ts`](packages/core/src/data/regulations/index.ts):
+### Listed in the library, with no control rows
+
+These two cards are in the 14. This repository does not ship their control text. The import route reads a workbook you supply.
+
+- CSA CCM v4. There is no CSA catalogue file under `packages/core/src/data/frameworks/`.
+- Secure Controls Framework (SCF). The catalogue sets `contentPolicy` to `bring-your-own`.
+
+### Catalogue entries on Compliance Obligations
+
+The other **13** names in `export const frameworks` set `isObligation: true`. Frameworks Library skips them. A fresh install shows them on Compliance Obligations ([`packages/core/src/pages/RegulationsDashboard.tsx`](packages/core/src/pages/RegulationsDashboard.tsx)), which renders `frameworks.filter(f => f.isObligation)`. They are not Premium-only.
+
+| Framework | Rows | Where the rows live |
+| --- | ---: | --- |
+| ISO 27001:2022 | 123 | [`iso27001.ts`](packages/core/src/data/frameworks/iso27001.ts) |
+| ISO 22301:2019 | 25 | [`iso22301.ts`](packages/core/src/data/frameworks/iso22301.ts) |
+| HITRUST-Aligned (Representative) | 127 | [`hitrust.ts`](packages/core/src/data/frameworks/hitrust.ts). The file calls the list representative. |
+| SOC 2 Type II | 61 | [`soc2.ts`](packages/core/src/data/frameworks/soc2.ts). Each row is an identifier and a short title. |
+| NIST CSF 2.0 | 106 | [`nistCsf20.catalog.json`](packages/core/src/data/frameworks/nistCsf20.catalog.json) |
+| NIST SP 800-171 r2 | 130 | [`nist-800-171.ts`](packages/core/src/data/frameworks/nist-800-171.ts). The catalogue name says r2. The file is Revision 3: 97 active and 33 withdrawn. |
+| PCI DSS v4.0.1 | 351 | [`pci.ts`](packages/core/src/data/frameworks/pci.ts). 280 requirement ids and 71 headings. Rows are identifiers, not the PCI SSC requirement text. |
+| NIST SP 800-53 Rev 5 | 1,196 | [`nist-800-53-rev5.json`](packages/core/src/data/frameworks/nist-800-53-rev5.json), flattened by [`nist80053Catalog.ts`](packages/core/src/data/frameworks/nist80053Catalog.ts). 1,014 active and 182 withdrawn. |
+| FedRAMP Moderate | 32 | [`fedramp.ts`](packages/core/src/data/frameworks/fedramp.ts). 17 shared rows, plus 3 in the Low list, plus 12 Moderate rows. The file calls the list representative. |
+| CMMC 2.0 | 0 | Catalogue description only. No control array under `packages/core/src/data/frameworks/`. |
+| SOC 1 Type II | 0 | `contentPolicy` is `bring-your-own`. |
+| TISAX | 0 | `contentPolicy` is `bring-your-own`. |
+| NIST SP 800-161 | 297 | [`nist800161.catalog.json`](packages/core/src/data/frameworks/nist800161.catalog.json) |
+
+SOC 1 Type II, TISAX, and CMMC 2.0 are the obligation cards with no bundled control rows. Control-text licences for the rows that are bundled are in [docs/framework-licensing.md](docs/framework-licensing.md).
+
+The same obligations page also lists **15** regulations from `export const regulations` in [`packages/core/src/data/regulations/index.ts`](packages/core/src/data/regulations/index.ts):
 
 1. UK GDPR (United Kingdom General Data Protection Regulation)
 2. VCDPA (Virginia Consumer Data Protection Act)
@@ -70,7 +99,9 @@ The obligations page loads a separate list of **15** entries from `export const 
 14. Australia Privacy Act 1988 & APPs
 15. Architectural Privacy Standards (GPC & IAB TCF)
 
-Source files for GDPR, the EU NIS2 Directive, EU DORA, CCPA / CPRA, and the EU AI Act exist under `packages/core/src/data/regulations/`. That index does not import them, so the obligations page does not show them. `cmmc.ts` in the same folder is also not imported there. CMMC 2.0 is framework 22 above.
+Source files for GDPR, the EU NIS2 Directive, EU DORA, CCPA / CPRA, and the EU AI Act exist under `packages/core/src/data/regulations/`. That index does not import them, so the obligations page does not show them. `cmmc.ts` in the same folder is also not imported there. The CMMC 2.0 card above is the catalogue entry only.
+
+The control import route in [`packages/core/src/server/routers/frameworks.ts`](packages/core/src/server/routers/frameworks.ts) also accepts FedRAMP Low (20 rows in `fedramp.ts`), FedRAMP High (43 rows), and OWASP SCVS. Those three are not cards on Frameworks Library or Compliance Obligations.
 
 ## Editions
 
