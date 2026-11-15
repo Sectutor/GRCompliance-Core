@@ -19,6 +19,7 @@
 param(
     [switch]$Upgrade,
     [switch]$BindLocal,
+    [switch]$Public,
     [string]$Dir = $(if ($env:GRC_HOME) { $env:GRC_HOME } else { Join-Path $HOME "grcompliance" })
 )
 
@@ -40,6 +41,7 @@ On Linux and macOS, install with:
     exit 1
 }
 $script:BindLocal = $BindLocal.IsPresent -or ($env:GRC_BIND_LOCAL -eq "1")
+$script:PublicBind = $Public.IsPresent -or ($env:GRC_PUBLIC_BIND -eq "1")
 $script:FreshInstall = $false
 $script:SecretAdded = $false
 if ($env:HEALTH_RETRIES) {
@@ -154,6 +156,12 @@ function Test-PublicUrl([string]$Url) {
     }
 }
 
+function Get-BindAddress {
+    if ($script:PublicBind) { return "0.0.0.0" }
+    if ($env:BIND_ADDRESS) { return $env:BIND_ADDRESS }
+    return "127.0.0.1"
+}
+
 function Get-PublicUrl([string]$AppPort) {
     $url = if ($env:APP_URL) { $env:APP_URL } elseif ($env:PUBLIC_URL) { $env:PUBLIC_URL } else { "http://localhost:$AppPort" }
     Test-PublicUrl $url
@@ -172,6 +180,8 @@ function Write-EnvFile {
     $postgresUser = if ($env:POSTGRES_USER) { $env:POSTGRES_USER } else { "grc" }
     $postgresDb = if ($env:POSTGRES_DB) { $env:POSTGRES_DB } else { "grcompliance" }
     $version = if ($env:GRC_VERSION) { $env:GRC_VERSION } else { "latest" }
+    $bindAddress = Get-BindAddress
+    $allowSignup = if ($env:GRC_ALLOW_SIGNUP -eq "1" -or $env:GRC_ALLOW_SIGNUP -eq "true") { "1" } else { "0" }
     $content = @"
 POSTGRES_USER=$postgresUser
 POSTGRES_PASSWORD=$postgresPassword
@@ -184,6 +194,8 @@ ADMIN_EMAIL=$adminEmail
 ADMIN_PASSWORD=$adminPassword
 APP_URL=$publicUrl
 APP_PORT=$appPort
+BIND_ADDRESS=$bindAddress
+GRC_ALLOW_SIGNUP=$allowSignup
 GRC_VERSION=$version
 GRC_UPDATER_VERSION=$(if ($env:GRC_UPDATER_VERSION) { $env:GRC_UPDATER_VERSION } else { "1" })
 GRC_AIRGAP=$(if ($env:GRC_AIRGAP -eq "1" -or $env:GRC_AIRGAP -eq "true") { "1" } else { "0" })
@@ -193,10 +205,7 @@ AUTH_MODE=local
     $path = Join-Path (Get-Location) ".env"
     Write-RestrictedText -Path $path -Content $content
     $script:FreshInstall = $true
-    Write-Host "Created $path"
-    Write-Host "Admin email: $adminEmail"
-    Write-Host "Admin password (shown once): $adminPassword"
-    Write-Host "Store this password now. It will not be printed again."
+    Write-Host "Created $path (restricted to this user)."
 }
 
 function Get-AppPort {
@@ -231,10 +240,11 @@ function Ensure-UpdaterState {
 
 function Invoke-Compose {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$ComposeArgs)
+    $log = Join-Path (Get-Location) "install.log"
     if ($script:BindLocal) {
-        & docker compose -f docker-compose.yml -f docker-compose.local-ports.yml @ComposeArgs
+        & docker compose -f docker-compose.yml -f docker-compose.local-ports.yml @ComposeArgs *>> $log
     } else {
-        & docker compose -f docker-compose.yml @ComposeArgs
+        & docker compose -f docker-compose.yml @ComposeArgs *>> $log
     }
 }
 
@@ -257,6 +267,7 @@ if (Test-Path $envPath) {
 Ensure-UpdaterSecret
 Ensure-UpdaterState
 
+$env:BIND_ADDRESS = Get-BindAddress
 $versionLine = Select-String -Path .env -Pattern "^GRC_VERSION=" | Select-Object -First 1
 $env:GRC_VERSION = if ($versionLine) { ($versionLine.Line -split "=", 2)[1] } else { "latest" }
 $imageLine = Select-String -Path .env -Pattern "^GRC_IMAGE=" | Select-Object -First 1
@@ -328,7 +339,22 @@ Inspect the stack from ${Dir}:
 "@
 }
 $appUrl = Get-AppUrl
+$adminLine = Select-String -Path .env -Pattern "^ADMIN_EMAIL=" | Select-Object -First 1
+$adminEmail = if ($adminLine) { ($adminLine.Line -split "=", 2)[1] } else { "admin@grcompliance.local" }
 Write-Host "GRCompliance is up: $appUrl"
+Write-Host ""
+Write-Host "URL:               $appUrl"
+Write-Host "Admin username:    $adminEmail"
+Write-Host "One-time password: ADMIN_PASSWORD in $envPath (restricted). It is not printed here."
+Write-Host "Install log:       $(Join-Path $Dir 'install.log')"
+Write-Host ""
+Write-Host "Next steps:"
+Write-Host "  1. Open the URL and sign in. Change the administrator password after the first login."
+if ($env:BIND_ADDRESS -eq "127.0.0.1") {
+    Write-Host "  2. The app listens on 127.0.0.1 only, over plain HTTP. Re-run with -Public or set BIND_ADDRESS to publish it, and put a reverse proxy with TLS in front."
+} else {
+    Write-Host "  2. The app is published on $($env:BIND_ADDRESS) over plain HTTP. Put a reverse proxy with TLS in front before this host is reachable from a network."
+}
 Write-Host "Open that address in a browser. It is the APP_URL this install accepts."
 Write-Host "Sign in with the administrator email in .env."
 if ($script:FreshInstall) {

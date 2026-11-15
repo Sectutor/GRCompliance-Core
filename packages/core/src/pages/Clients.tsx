@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { canCreateAnotherWorkspace, isCommunityEdition as communityFromFlag, LATORE_DEMO_NAME } from "@/lib/edition";
+import { canCreateAnotherWorkspace, isCommunityEdition as communityFromFlag, workspaceCountLabel } from "@/lib/edition";
 import { Plus, FolderOpen, ArrowRight, Search, Building2, Trash2, Edit, Settings, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -128,16 +128,16 @@ export default function Clients() {
           ]}
         />
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
               <p className="text-muted-foreground">Manage your client organizations and their compliance workspaces.</p>
               {me && (
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                     {isCommunityEdition
-                      ? `${ownedNames.filter((name: string) => name !== LATORE_DEMO_NAME).length} / 1 workspace`
+                      ? workspaceCountLabel(ownedNames)
                       : `${ownedClientsCount} / ${ownedClientsLimit} used`}
                   </span>
                   <PageGuide
@@ -181,7 +181,7 @@ export default function Clients() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <Button variant="outline" className="gap-2 shadow-sm" onClick={() => setLocation('/clients/new/msp')}>
               <Plus className="h-4 w-4" />
               MSP Onboarding

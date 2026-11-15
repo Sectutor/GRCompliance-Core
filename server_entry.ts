@@ -54,7 +54,7 @@ import * as policyReviewScheduler from './packages/core/src/server/services/poli
 import redis from './packages/core/src/lib/redis';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
-import { localForgotPasswordHandler, localLoginHandler, localResetPasswordHandler } from './packages/core/src/server/localAuth';
+import { localForgotPasswordHandler, localLoginHandler, localRegisterHandler, localResetPasswordHandler } from './packages/core/src/server/localAuth';
 import { hasPremiumEntitlementProvider } from './packages/core/src/server/premiumEntitlement';
 import { createUpdateRouter, liveUpdateDeps } from './packages/core/src/server/updates/routes';
 import { auditUpdate, markUpgradeStarted, noteUpgradeTerminal } from './packages/core/src/server/updates/audit';
@@ -74,6 +74,9 @@ app.use(createApiCorsMiddleware());
 // Health Check - Moving to top to bypass potential middleware issues
 app.post('/api/auth/login', express.json({ limit: '32kb' }), (req, res) => {
     void localLoginHandler(req, res);
+});
+app.post('/api/auth/register', express.json({ limit: '32kb' }), (req, res) => {
+    void localRegisterHandler(req, res);
 });
 app.post('/api/auth/forgot-password', express.json({ limit: '32kb' }), (req, res) => {
     void localForgotPasswordHandler(req, res);

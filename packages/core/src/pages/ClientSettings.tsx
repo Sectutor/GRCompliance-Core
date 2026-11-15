@@ -47,6 +47,7 @@ import { EmailTemplatesTab } from "@/components/settings/EmailTemplatesTab";
 import { PersonalizationReference } from "@/components/settings/PersonalizationReference";
 import { ListTodo, ShoppingBag, History } from "lucide-react";
 import { BackupRestoreSettings } from "@/components/settings/BackupRestoreSettings";
+import { shouldOfferDemoImport } from "@/lib/assignedControls";
 
 const SETTINGS_TAB_TITLES: Record<string, string> = {
     general: "General",
@@ -81,6 +82,12 @@ export default function ClientSettings() {
 
     const { data: dbUser } = trpc.users.me.useQuery();
     const { data: client, isLoading, refetch } = trpc.clients.get.useQuery({ id: clientId });
+    const { data: workspaceControls } = trpc.clientControls.list.useQuery(
+        { clientId },
+        { enabled: clientId > 0 }
+    );
+    const workspaceControlCount = Array.isArray(workspaceControls) ? workspaceControls.length : null;
+    const offerDemoImport = workspaceControlCount !== null && shouldOfferDemoImport(workspaceControlCount);
 
     const userGlobalRole = dbUser?.role;
     const userRoleInClient = client?.userRole;
@@ -518,10 +525,14 @@ export default function ClientSettings() {
                                                 </div>
                                             </div>
                                         </div>
+                                        {workspaceControlCount === null ? null : offerDemoImport ? (
                                         <Button onClick={() => setIsImportingData(true)}>
                                             <Database className="mr-2 h-4 w-4" />
                                             Import Demo Data
                                         </Button>
+                                        ) : (
+                                        <p className="text-sm text-slate-600">Demo data is already in this workspace.</p>
+                                        )}
                                         <DemoImportDialog
                                             open={isImportingData}
                                             onOpenChange={setIsImportingData}

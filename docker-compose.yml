@@ -59,7 +59,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@grcompliance.local}
+      ADMIN_NAME: ${ADMIN_NAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
+      GRC_ALLOW_SIGNUP: ${GRC_ALLOW_SIGNUP:-false}
       APP_URL: ${APP_URL:?}
       GRC_VERSION: ${GRC_VERSION:-latest}
       GRC_AIRGAP: ${GRC_AIRGAP:-0}
@@ -72,7 +74,9 @@ services:
       ENABLE_POLICY_REVIEW_SCHEDULER: "false"
       RATE_LIMITING_ENABLED: ${RATE_LIMITING_ENABLED:-false}
     ports:
-      - "${APP_PORT:-3001}:3001"
+      # Loopback by default. Set BIND_ADDRESS=0.0.0.0 (installer --public) to publish it.
+      # This mapping is plain HTTP. Put a reverse proxy with TLS in front of a public bind.
+      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3001}:3001"
     env_file:
       - updater-state/release.env
     volumes:

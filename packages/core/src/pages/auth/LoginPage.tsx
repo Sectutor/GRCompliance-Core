@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { Loader2 } from 'lucide-react';
 import MFAChallengeModal from '@/components/auth/MFAChallengeModal';
+import { readSignupEnabled } from '@/lib/runtimeConfig';
 
 export default function LoginPage() {
     const utils = trpc.useUtils();
@@ -258,6 +259,7 @@ export default function LoginPage() {
                         <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11 font-medium text-lg border-none" disabled={loading}>
                             {loading ? 'Signing in...' : 'Sign In'}
                         </Button>
+                        {readSignupEnabled() && (
                         <div className="text-center text-sm text-slate-400">
                             Don't have an account?{' '}
                             <Button
@@ -269,6 +271,7 @@ export default function LoginPage() {
                                 Sign up
                             </Button>
                         </div>
+                        )}
                     </CardFooter>
                 </form>
             </Card>

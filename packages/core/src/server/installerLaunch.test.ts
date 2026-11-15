@@ -88,6 +88,8 @@ describe("one-line installer contract", () => {
         expect(compose).toContain("image: docker.io/library/redis:7-alpine");
         expect(compose).toContain("image: docker.io/pgvector/pgvector:pg16");
         expect(compose).toContain("image: ${GRC_IMAGE:-ghcr.io/sectutor/grcompliance-core:${GRC_VERSION:-latest}}");
+        expect(compose).toContain('${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3001}:3001');
+        expect(compose).not.toContain('"${APP_PORT:-3001}:3001"');
         expect(compose).not.toMatch(/^\s*image:\s+redis:/m);
         expect(compose).not.toMatch(/^\s*image:\s+pgvector\//m);
         expect(dockerfile).toContain("FROM docker.io/library/node:20-bookworm-slim");

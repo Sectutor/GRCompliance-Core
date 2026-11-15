@@ -2858,7 +2858,7 @@ async function seedRiskModule(clientId: number) {
       { n: 9, title: "Phishing of the finance team", description: "A forged invoice email could redirect a supplier payment.", l: 4, i: 3, rl: 2, ri: 2, owner: "Riley Chen", treatment: "Mitigate", status: "reviewed" },
       { n: 10, title: "Incomplete processing record", description: "The record of processing activities does not yet cover the new client portal.", l: 2, i: 3, rl: 1, ri: 2, owner: "Alex Morgan", treatment: "Accept", status: "draft" },
     ];
-    await db.insert(schema.riskAssessments).values(demoRisks.map((risk) => {
+    const insertedRisks = await db.insert(schema.riskAssessments).values(demoRisks.map((risk) => {
       const inherentScore = risk.l * risk.i;
       const residualScore = risk.rl * risk.ri;
       return {
@@ -2887,7 +2887,18 @@ async function seedRiskModule(clientId: number) {
           assetId: risk.n === 1 ? asset.id : undefined,
         },
       };
-    }) as any);
+    }) as any).returning({ id: schema.riskAssessments.id });
+
+    if (insertedRisks.length > 0) {
+      await db.insert(schema.riskTreatments).values(insertedRisks.map((row: { id: number }, index: number) => ({
+        clientId,
+        riskAssessmentId: row.id,
+        treatmentType: demoRisks[index].treatment.toLowerCase(),
+        strategy: demoRisks[index].treatment,
+        status: "planned",
+        owner: demoRisks[index].owner,
+      })) as any);
+    }
 
     return { assetId: asset.id };
   } catch (err) {

@@ -16,15 +16,15 @@ import {
 import { ISOLayout } from "./ISOLayout";
 import { PageGuide } from "@/components/PageGuide";
 import { trpc } from "@/lib/trpc";
-import { postureScoreFromStatuses } from "@/lib/postureScore";
+import { soaHeaderStats } from "@/lib/soaListing";
 
 export default function ISODashboard() {
     const { id } = useParams<{ id: string }>();
     const clientId = parseInt(id || "0");
     const [, setLocation] = useLocation();
 
-    const { data: controlRows } = trpc.clientControls.list.useQuery(
-        { clientId, framework: "ISO 27001" },
+    const { data: soaRows } = trpc.iso27001.getSoA.useQuery(
+        { clientId },
         { enabled: clientId > 0 }
     );
     const { data: riskRows } = trpc.risks.getRiskAssessments.useQuery(
@@ -32,12 +32,10 @@ export default function ISODashboard() {
         { enabled: clientId > 0 }
     );
 
-    const posture = postureScoreFromStatuses(
-        (controlRows || []).map((row: any) => row.clientControl?.status || row.status)
-    );
-    const applicable = { length: posture.inScope };
-    const implemented = posture.implemented;
-    const readiness = posture.rate;
+    const soaStats = soaHeaderStats(soaRows || []);
+    const applicable = { length: soaStats.applicable };
+    const implemented = soaStats.implemented;
+    const readiness = soaStats.applicable > 0 ? Math.round((soaStats.implemented / soaStats.applicable) * 100) : null;
     const risks = riskRows || [];
     const treated = risks.filter((risk: any) => risk.treatmentOption && risk.treatmentOption !== "None").length;
     const riskProgress = risks.length > 0 ? Math.round((treated / risks.length) * 100) : null;

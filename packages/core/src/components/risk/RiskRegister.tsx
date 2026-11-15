@@ -10,6 +10,7 @@ import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { RiskDetailsDialog } from './RiskDetailsDialog';
 import { Slot, SlotNames } from '@/registry';
 import { Wand2, Sparkles, Loader2, Save } from 'lucide-react';
+import { isRegisterHighRisk, riskHasTreatment } from '@/lib/riskMetricLabels';
 
 interface RiskRegisterProps {
     clientId: number;
@@ -436,9 +437,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             </div>
 
             {/* Scroll pane is height-bounded so the horizontal bar stays in view. */}
-            <div className="mx-4 mb-4 mt-4 flex min-h-[6.5rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
-                <div className="risk-register-scroll min-h-[6.5rem] min-w-0 w-full flex-1 overflow-x-scroll overflow-y-auto overscroll-contain">
-                    <table className="w-full min-w-[1200px] border-separate border-spacing-0 table-fancy [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-20 [&_thead_th]:bg-[#003652]">
+            <div className="mx-4 mb-4 mt-4 flex min-h-[6.5rem] min-w-0 max-w-full flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+                <div className="risk-register-scroll min-h-[6.5rem] min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto overscroll-contain">
+                    <table className="w-max min-w-full border-separate border-spacing-0 table-fancy [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-20 [&_thead_th]:whitespace-nowrap [&_thead_th]:bg-[#003652]">
                         <thead>
                             <tr className="border-none">
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-8"></th>
@@ -490,7 +491,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                             <td className="px-4 py-4">
                                                 <span className="font-mono text-sm font-medium text-black">{risk.assessmentId}</span>
                                             </td>
-                                            <td className="px-4 py-4 max-w-[250px]">
+                                            <td className="px-4 py-4 min-w-[12rem] max-w-[20rem]">
                                                 <div className="truncate text-sm text-gray-600" title={risk.threatDescription || risk.contextSnapshot?.description || risk.title || risk.description || ''}>
                                                     {risk.threatDescription || risk.contextSnapshot?.description || risk.title || risk.description || '-'}
                                                 </div>
@@ -791,14 +792,14 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                         <AlertTriangle className="w-4 h-4 text-red-500" />
                         <span className="text-muted-foreground">High/Critical:</span>
                         <span className="font-semibold text-red-600">
-                            {filteredRisks.filter(r => r.inherentRisk === 'High' || r.inherentRisk === 'Very High').length}
+                            {filteredRisks.filter(r => isRegisterHighRisk(r.inherentRisk)).length}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-500" />
                         <span className="text-muted-foreground">With Treatments:</span>
                         <span className="font-semibold text-green-600">
-                            {filteredRisks.filter(r => (r as any).treatmentCount > 0).length}
+                            {filteredRisks.filter(r => riskHasTreatment(r as any)).length}
                         </span>
                     </div>
                 </div>

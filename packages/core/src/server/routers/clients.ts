@@ -194,7 +194,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     else if (row.status === 'not_implemented') counts.notStarted = value;
                     else if (row.status === 'not_applicable') counts.notApplicable = value;
                 }
-                const posture = postureScore(counts);
+                const assignedTotal = statusRows.reduce((sum, row) => sum + Number(row.count || 0), 0);
 
                 // Get evidence stats
                 const evidenceStats = await dbConn.select({
@@ -206,9 +206,9 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     .where(eq(schema.evidence.clientId, input.clientId));
 
                 return {
-                    complianceScore: posture.rate ?? 0,
-                    totalControls: posture.inScope,
-                    implementedControls: posture.implemented,
+                    complianceScore: assignedTotal > 0 ? Math.round((counts.implemented / assignedTotal) * 100) : 0,
+                    totalControls: assignedTotal,
+                    implementedControls: counts.implemented,
                     evidenceStatus: {
                         verified: Number(evidenceStats[0]?.verified || 0),
                         pending: Number(evidenceStats[0]?.pending || 0),

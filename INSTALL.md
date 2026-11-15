@@ -43,7 +43,7 @@ npm run server
 npm run dev
 ```
 
-The API listens on port 3001 by default. The web app listens on port 5173.
+The API listens on port 3001 by default. Container installs publish that port on `127.0.0.1` unless `BIND_ADDRESS` or `--public` says otherwise, and the mapping is plain HTTP. Put a reverse proxy with TLS in front of a public bind. The web app listens on port 5173.
 
 ## Checks
 

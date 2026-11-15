@@ -4,7 +4,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, count, and, sql, or, inArray } from "drizzle-orm";
 import { postureScore } from "../../lib/postureScore";
-import { residualRiskInsight } from "../../lib/riskMetricLabels";
+import { registerHighRiskInsight } from "../../lib/riskMetricLabels";
 import { TRPCError } from "@trpc/server";
 
 export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any) => {
@@ -383,8 +383,9 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           .from(schema.riskAssessments)
           .where(and(
             or(
-              eq(schema.riskAssessments.residualRisk, 'High'),
-              eq(schema.riskAssessments.residualRisk, 'Critical')
+              eq(schema.riskAssessments.inherentRisk, 'High'),
+              eq(schema.riskAssessments.inherentRisk, 'Very High'),
+              eq(schema.riskAssessments.inherentRisk, 'Critical')
             ),
             effectiveClientIds !== null && effectiveClientIds.length > 0 ? inArray(schema.riskAssessments.clientId, effectiveClientIds) : undefined
           ));
@@ -496,10 +497,10 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const unmitigatedRisksQuery = dbConn.select({ count: count() })
           .from(schema.riskAssessments)
           .where(and(
-            // High or Critical Residual Risk
             or(
-              eq(schema.riskAssessments.residualRisk, 'Critical'),
-              eq(schema.riskAssessments.residualRisk, 'High')
+              eq(schema.riskAssessments.inherentRisk, 'High'),
+              eq(schema.riskAssessments.inherentRisk, 'Very High'),
+              eq(schema.riskAssessments.inherentRisk, 'Critical')
             ),
             effectiveClientIds !== null && effectiveClientIds.length > 0 ? inArray(schema.riskAssessments.clientId, effectiveClientIds) : undefined
           ));
@@ -510,7 +511,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const insights = [];
 
         if (unmitigated > 0) {
-          const residual = residualRiskInsight(unmitigated);
+          const residual = registerHighRiskInsight(unmitigated);
           insights.push({
             id: 'critical-risks',
             type: 'critical',
@@ -570,14 +571,13 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           else if (row.status === 'not_implemented') controlCounts.notStarted = value;
           else if (row.status === 'not_applicable') controlCounts.notApplicable = value;
         }
-        const posture = postureScore(controlCounts);
-        const scopedControls = posture.inScope;
-        const postureRate = posture.rate;
+        const assignedTotal = controlStatusRows.reduce((sum: number, row: { value?: number }) => sum + Number(row.value || 0), 0);
+        const assignedRate = assignedTotal > 0 ? Math.round((controlCounts.implemented / assignedTotal) * 100) : null;
         const controlLink = effectiveClientIds && effectiveClientIds.length === 1
           ? `/clients/${effectiveClientIds[0]}/controls`
           : '/controls';
 
-        if (postureRate === null && insights.length === 0) {
+        if (assignedRate === null && insights.length === 0) {
           insights.push({
             id: 'no-posture-data',
             type: 'info',
@@ -586,21 +586,21 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
             action: 'Open controls',
             link: controlLink
           });
-        } else if (postureRate !== null && postureRate < 80) {
+        } else if (assignedRate !== null && assignedRate < 80) {
           insights.unshift({
             id: 'posture-score',
-            type: postureRate < 50 ? 'critical' : 'warning',
-            title: `Posture score is ${postureRate}%`,
-            description: `${controlCounts.implemented} of ${scopedControls} in-scope controls are implemented.`,
+            type: assignedRate < 50 ? 'critical' : 'warning',
+            title: `Posture score is ${assignedRate}%`,
+            description: `${controlCounts.implemented} of ${assignedTotal} controls are implemented.`,
             action: 'View controls',
             link: controlLink
           });
-        } else if (insights.length === 0 && postureRate !== null && postureRate >= 80) {
+        } else if (insights.length === 0 && assignedRate !== null && assignedRate >= 80) {
           insights.push({
             id: 'all-clear',
             type: 'success',
             title: 'Compliance is on Track',
-            description: `${controlCounts.implemented} of ${scopedControls} in-scope controls are implemented.`,
+            description: `${controlCounts.implemented} of ${assignedTotal} controls are implemented.`,
             action: 'View controls',
             link: controlLink
           });

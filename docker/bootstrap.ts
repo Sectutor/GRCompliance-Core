@@ -98,9 +98,10 @@ async function ensureAdmin() {
     const db = await getDb();
     let user = await getUserByEmail(email);
     if (!user) {
+        const configuredName = process.env.ADMIN_NAME?.trim();
         const [created] = await db.insert(users).values({
             email,
-            name: 'Alex Morgan',
+            name: configuredName || null,
             openId: `local:${randomUUID()}`,
             loginMethod: 'local',
             role: 'admin',

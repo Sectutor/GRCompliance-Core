@@ -14,6 +14,7 @@ import { RiskReductionROI } from '@/components/risk/RiskCharts';
 import { KRITrendCards } from '@/components/risk/KRITrendCards';
 import { Button } from '@complianceos/ui/ui/button';
 import { PageGuide } from "@/components/PageGuide";
+import { isRegisterHighRisk, riskHasTreatment } from "@/lib/riskMetricLabels";
 
 export default function RiskDashboard() {
     const params = useParams();
@@ -66,8 +67,8 @@ export default function RiskDashboard() {
     );
 
     // Calculate stats from risk assessments
-    const highRisks = riskAssessments?.filter(r => r.inherentRisk === 'High' || r.inherentRisk === 'Very High').length || 0;
-    const treatedRisks = riskAssessments?.filter(r => (r as any).treatmentCount > 0).length || 0;
+    const highRisks = riskAssessments?.filter(r => isRegisterHighRisk(r.inherentRisk)).length || 0;
+    const treatedRisks = riskAssessments?.filter(r => riskHasTreatment(r as any)).length || 0;
     const criticalAssets = assets?.filter(a => (a.valuationC || 0) >= 4 || (a.valuationI || 0) >= 4 || (a.valuationA || 0) >= 4).length || 0;
 
     const stats = [
@@ -78,7 +79,7 @@ export default function RiskDashboard() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6 w-full max-w-full px-6">
+            <div className="space-y-6 w-full min-w-0 max-w-full px-4 xl:px-6">
                 {/* ... existing headers ... */}
                 <div className="flex items-center justify-between">
                     <div>
