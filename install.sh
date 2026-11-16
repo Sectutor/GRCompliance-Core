@@ -13,6 +13,7 @@ FRESH=0
 BIND_LOCAL=0
 BIND_MODE=""
 SECRET_ADDED=0
+BIND_NOTE=""
 LOG_FILE=""
 if [[ "${GRC_BIND_LOCAL:-0}" == "1" ]]; then
   BIND_LOCAL=1
@@ -90,14 +91,21 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# True when /dev/tty can be opened. The check runs in a subshell so a missing
+# controlling terminal does not print "/dev/tty: No such device or address".
+tty_is_open() {
+  [[ -c /dev/tty ]] || return 1
+  ( : </dev/tty ) 2>/dev/null
+}
+
 prompt_yes_no() {
   local reply=""
-  # A piped install often has no controlling terminal. Opening /dev/tty then
-  # prints "/dev/tty: No such device or address". That is a No.
-  if [[ ! -c /dev/tty ]]; then
+  if ! tty_is_open; then
     return 1
   fi
-  if ! read -r -p "$1" reply 2>/dev/null </dev/tty; then
+  # read -p writes the prompt to stderr. Print it on the terminal instead.
+  printf '%s' "$1" >/dev/tty || return 1
+  if ! IFS= read -r reply </dev/tty; then
     return 1
   fi
   case "${reply}" in
@@ -270,7 +278,11 @@ assert_env_mode() {
 }
 
 upsert_env_value() {
-  local key="$1" value="$2" tmp
+  local key="$1" value="$2" current tmp
+  current="$(awk -F= -v key="${key}" '$1==key { print substr($0, index($0, "=")+1); exit }' .env)"
+  if [[ "${current}" == "${value}" ]]; then
+    return
+  fi
   tmp="$(mktemp)"
   if grep -q "^${key}=" .env; then
     awk -v key="${key}" -v value="${value}" 'BEGIN { FS = "=" } $1 == key { print key "=" value; next } { print $0 }' .env >"${tmp}"
@@ -282,6 +294,9 @@ upsert_env_value() {
   mv "${tmp}" .env
   chmod 600 .env
   assert_env_mode
+  if [[ "${key}" == "BIND_ADDRESS" ]]; then
+    BIND_NOTE="BIND_ADDRESS set to ${value} in .env; other settings unchanged."
+  fi
 }
 
 ensure_bind_address() {
@@ -479,8 +494,12 @@ print_summary() {
     echo "  3. Re-run left the existing database and uploaded files in place."
   fi
   if [[ "${UPGRADE}" -eq 1 ]]; then
-    if [[ "${SECRET_ADDED}" -eq 1 ]]; then
+    if [[ "${SECRET_ADDED}" -eq 1 && -n "${BIND_NOTE}" ]]; then
+      echo "Upgrade finished. Existing secrets were kept. UPDATER_SECRET was added because it was missing. ${BIND_NOTE}"
+    elif [[ "${SECRET_ADDED}" -eq 1 ]]; then
       echo "Upgrade finished. Existing secrets were kept. UPDATER_SECRET was added because it was missing."
+    elif [[ -n "${BIND_NOTE}" ]]; then
+      echo "Upgrade finished. ${BIND_NOTE}"
     else
       echo "Upgrade finished. The existing .env was left unchanged."
     fi
@@ -513,15 +532,25 @@ EOF
   exit 1
 }
 
+# Same order Docker Compose uses for ${GRC_IMAGE}: the shell wins, then .env,
+# then ghcr.io/sectutor/grcompliance-core:$GRC_VERSION.
 attempted_app_image() {
   local pinned version
+  if [[ -n "${GRC_IMAGE:-}" ]]; then
+    printf '%s\n' "${GRC_IMAGE}"
+    return
+  fi
   pinned="$(env_value GRC_IMAGE "")"
   if [[ -n "${pinned}" ]]; then
     printf '%s\n' "${pinned}"
     return
   fi
-  version="$(awk -F= '$1=="GRC_VERSION" { print $2; exit }' .env)"
-  version="${version:-latest}"
+  if [[ -n "${GRC_VERSION:-}" ]]; then
+    version="${GRC_VERSION}"
+  else
+    version="$(awk -F= '$1=="GRC_VERSION" { print $2; exit }' .env)"
+    version="${version:-latest}"
+  fi
   printf '%s:%s\n' "${IMAGE}" "${version}"
 }
 
@@ -532,15 +561,15 @@ attempted_updater_image() {
 }
 
 start_stack() {
-  local version image app_pull updater_pull attempted
-  version="$(awk -F= '$1=="GRC_VERSION" { print $2 }' .env)"
-  version="${version:-latest}"
-  export GRC_VERSION="${version}"
-  image="$(awk -F= '$1=="GRC_IMAGE" { print substr($0, index($0, "=")+1); exit }' .env)"
-  if [[ -n "${image}" ]]; then
-    export GRC_IMAGE="${image}"
+  local version app_pull updater_pull attempted
+  if [[ -z "${GRC_VERSION:-}" ]]; then
+    version="$(awk -F= '$1=="GRC_VERSION" { print $2; exit }' .env)"
+    version="${version:-latest}"
+    export GRC_VERSION="${version}"
   fi
+  # Export the resolved reference so compose pull and this message name the same image.
   attempted="$(attempted_app_image)"
+  export GRC_IMAGE="${attempted}"
   app_pull=0
   updater_pull=0
   quiet compose_cmd pull app || app_pull=$?

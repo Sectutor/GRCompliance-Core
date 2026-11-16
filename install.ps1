@@ -49,6 +49,7 @@ $script:LocalBind = $Local.IsPresent -or ($env:GRC_LOCAL_BIND -eq "1")
 $script:PublicBind = (-not $script:LocalBind) -and ($Public.IsPresent -or ($env:GRC_PUBLIC_BIND -eq "1"))
 $script:FreshInstall = $false
 $script:SecretAdded = $false
+$script:BindNote = ""
 if ($env:HEALTH_RETRIES) {
     if ($env:HEALTH_RETRIES -notmatch '^[1-9][0-9]*$') {
         Write-Error "HEALTH_RETRIES must be a positive integer (got: $($env:HEALTH_RETRIES))."
@@ -171,6 +172,8 @@ function Get-FileBindAddress {
 function Set-BindAddressInEnv([string]$Value) {
     $path = Join-Path (Get-Location) ".env"
     if (-not (Test-Path $path)) { return }
+    $current = Get-FileBindAddress
+    if ($current -eq $Value) { return }
     $lines = @(Get-Content $path)
     $found = $false
     $updated = foreach ($line in $lines) {
@@ -185,6 +188,7 @@ function Set-BindAddressInEnv([string]$Value) {
         $updated += "BIND_ADDRESS=$Value"
     }
     [System.IO.File]::WriteAllLines($path, [string[]]$updated)
+    $script:BindNote = "BIND_ADDRESS set to $Value in .env; other settings unchanged."
 }
 
 function Get-BindAddress {
@@ -197,10 +201,13 @@ function Get-BindAddress {
 }
 
 function Get-AttemptedAppImage {
-    $imageLine = Select-String -Path .env -Pattern "^GRC_IMAGE=" | Select-Object -First 1
-    if ($imageLine) {
-        $pinned = ($imageLine.Line -split "=", 2)[1]
-        if ($pinned) { return $pinned }
+    if ($env:GRC_IMAGE) { return $env:GRC_IMAGE }
+    if (Test-Path .env) {
+        $imageLine = Select-String -Path .env -Pattern "^GRC_IMAGE=" | Select-Object -First 1
+        if ($imageLine) {
+            $pinned = ($imageLine.Line -split "=", 2)[1]
+            if ($pinned) { return $pinned }
+        }
     }
     $version = if ($env:GRC_VERSION) { $env:GRC_VERSION } else { "latest" }
     return "ghcr.io/sectutor/grcompliance-core:$version"
@@ -312,10 +319,13 @@ Ensure-UpdaterSecret
 Ensure-UpdaterState
 
 $env:BIND_ADDRESS = Get-BindAddress
-$versionLine = Select-String -Path .env -Pattern "^GRC_VERSION=" | Select-Object -First 1
-$env:GRC_VERSION = if ($versionLine) { ($versionLine.Line -split "=", 2)[1] } else { "latest" }
-$imageLine = Select-String -Path .env -Pattern "^GRC_IMAGE=" | Select-Object -First 1
-if ($imageLine) { $env:GRC_IMAGE = ($imageLine.Line -split "=", 2)[1] }
+if (-not $env:GRC_VERSION) {
+    $versionLine = Select-String -Path .env -Pattern "^GRC_VERSION=" | Select-Object -First 1
+    $env:GRC_VERSION = if ($versionLine) { ($versionLine.Line -split "=", 2)[1] } else { "latest" }
+}
+if (-not $env:GRC_IMAGE) {
+    $env:GRC_IMAGE = Get-AttemptedAppImage
+}
 
 Invoke-Compose pull app
 $appPull = $LASTEXITCODE
@@ -413,8 +423,12 @@ if ($script:FreshInstall) {
     Write-Host "Re-run left the existing database and uploaded files in place."
 }
 if ($Upgrade) {
-    if ($script:SecretAdded) {
+    if ($script:SecretAdded -and $script:BindNote) {
+        Write-Host "Upgrade finished. Existing secrets were kept. UPDATER_SECRET was added because it was missing. $($script:BindNote)"
+    } elseif ($script:SecretAdded) {
         Write-Host "Upgrade finished. Existing secrets were kept. UPDATER_SECRET was added because it was missing."
+    } elseif ($script:BindNote) {
+        Write-Host "Upgrade finished. $($script:BindNote)"
     } else {
         Write-Host "Upgrade finished. The existing .env was left unchanged."
     }
