@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INHERENT_UNTREATED_LABEL, RESIDUAL_HIGH_LABEL, residualRiskInsight } from "./riskMetricLabels";
+import { INHERENT_UNTREATED_LABEL, RESIDUAL_HIGH_LABEL, isRegisterHighRisk, registerHighRiskInsight, residualRiskInsight, riskHasTreatment } from "./riskMetricLabels";
 
 describe("risk metric labels", () => {
     it("uses different names for residual risk and untreated inherent risk", () => {
@@ -15,5 +15,21 @@ describe("risk metric labels", () => {
         expect(insight.title).toBe("2 high or critical residual risks");
         expect(insight.description.toLowerCase()).toContain("residual");
         expect(insight.description.toLowerCase()).toContain("treatment record");
+    });
+
+    it("counts the same inherent bands the risk register footer counts", () => {
+        expect(isRegisterHighRisk("High")).toBe(true);
+        expect(isRegisterHighRisk("Very High")).toBe(true);
+        expect(isRegisterHighRisk("Critical")).toBe(true);
+        expect(isRegisterHighRisk("Medium")).toBe(false);
+        expect(registerHighRiskInsight(9).title).toBe("9 high risks");
+    });
+
+    it("counts a treatment choice stored on the assessment, not only a treatment row", () => {
+        expect(riskHasTreatment({ treatmentCount: 0, treatmentOption: "Mitigate" })).toBe(true);
+        expect(riskHasTreatment({ treatmentCount: 1, treatmentOption: null })).toBe(true);
+        expect(riskHasTreatment({ treatmentCount: 0, treatmentOption: "None" })).toBe(false);
+        expect(riskHasTreatment({ treatmentCount: 0, treatmentOption: null, contextSnapshot: { treatmentStrategy: "Accept" } })).toBe(true);
+        expect(riskHasTreatment({ treatmentCount: 0, treatmentOption: "" })).toBe(false);
     });
 });

@@ -16,6 +16,7 @@ import { SubscriptionOnboardingChecklist } from "@/components/dashboard/Subscrip
 import { MaturityNavigator } from "@/components/dashboard/MaturityNavigator";
 import { DemoImportDialog } from "@/components/admin/DemoImportDialog";
 import { postureScoreFromStatuses } from "@/lib/postureScore";
+import { assignedControlCounts, assignedControlRate, shouldOfferDemoImport } from "@/lib/assignedControls";
 
 export default function ClientWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -88,10 +89,10 @@ export default function ClientWorkspace() {
     if (!controls || !policies) return null;
 
     // Controls
-    const posture = postureScoreFromStatuses(controls.map((c: any) => c.clientControl?.status || c.status));
-    const totalControls = posture.inScope;
-    const implementedControls = posture.implemented;
-    const controlsProgress = posture.rate ?? 0;
+    const assigned = assignedControlCounts(controls.map((c: any) => c.clientControl?.status || c.status));
+    const totalControls = assigned.total;
+    const implementedControls = assigned.implemented;
+    const controlsProgress = assignedControlRate(assigned) ?? 0;
 
     // Policies
     const totalPolicies = policies.length;
@@ -137,17 +138,18 @@ export default function ClientWorkspace() {
                 's compliance posture and activities.
               </div>
             </div>
-            {/* Import Demo Data Button - High Visibility */}
+            {controls && shouldOfferDemoImport(controls.length) && (
             <Button
               size="lg"
               onClick={() => setShowImportDialog(true)}
               disabled={importDemo.isPending}
-              className="gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md border-0"
+              className="gap-2 shrink-0 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md border-0"
             >
               <Database className="h-5 w-5" />
               {importDemo.isPending ? 'Importing Data...' : 'Import Demo Data'}
             </Button>
-            
+            )}
+
             <DemoImportDialog 
               open={showImportDialog} 
               onOpenChange={setShowImportDialog}
@@ -421,7 +423,11 @@ export default function ClientWorkspace() {
           <div className="p-4 rounded-xl border-none shadow-lg shadow-purple-200 dark:shadow-none bg-purple-600 text-white flex items-center justify-between">
             <div>
               <p className="text-sm text-white/80 font-medium">Evidence Collected</p>
-              <p className="text-2xl font-bold mt-1 text-white">-</p>
+              {!onboardingStatus ? (
+                <div className="h-8 w-16 bg-white/20 animate-pulse rounded mt-1" />
+              ) : (
+                <p className="text-2xl font-bold mt-1 text-white">{onboardingStatus.evidenceCount ?? 0}</p>
+              )}
               <p className="text-xs text-white/60 mt-1">Evidence tracking</p>
             </div>
             <div className="p-3 rounded-lg bg-white/20 backdrop-blur-md">

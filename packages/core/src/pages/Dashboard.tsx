@@ -28,6 +28,7 @@ import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
 import { useClientContext } from "@/contexts/ClientContext";
 import { resolveNavigationPath } from "@/lib/navigation";
 import { postureScore } from "@/lib/postureScore";
+import { accountGreetingName, browserTimeZone, greetingPeriod } from "@/lib/greeting";
 
 // Helper to determine compliance status based on rate - Plain Language Version
 function getComplianceStatus(rate: number) {
@@ -124,6 +125,7 @@ const FRAMEWORK_COLORS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { data: account } = trpc.users.me.useQuery(undefined, { enabled: !!user });
   const [, setLocation] = useLocation();
   const [framework, setFramework] = useState<string | undefined>();
   const [clientId, setClientId] = useState<string | undefined>();
@@ -258,8 +260,10 @@ export default function Dashboard() {
     notStarted: status.notStarted,
     notApplicable: status.notApplicable,
   });
-  const totalControlsAssigned = posture.inScope;
-  const overallComplianceRate = posture.rate ?? 0;
+  const totalControlsAssigned = posture.implemented + posture.inProgress + posture.notStarted + posture.notApplicable;
+  const overallComplianceRate = totalControlsAssigned > 0
+    ? Math.round((posture.implemented / totalControlsAssigned) * 100)
+    : 0;
 
   // Show onboarding only if: no clients, not loading, and hasn't been shown this session
   const shouldShowOnboarding = !statsLoading && !clientsLoading && clients && clients.length === 0 && !hasSeenOnboardingThisSession;
@@ -423,11 +427,11 @@ export default function Dashboard() {
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-slate-900 tracking-tight break-words">
-                  Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Commander'}.
+                  Good {greetingPeriod(new Date(), browserTimeZone())}, {accountGreetingName(account?.name, account?.email || user?.email)}.
                 </h1>
                 <p className="text-slate-600 font-medium mt-2 text-lg">
                   {totalControlsAssigned > 0
-                    ? `${overallComplianceRate}% of in-scope controls are implemented.`
+                    ? `${overallComplianceRate}% of assigned controls are implemented.`
                     : "Assign controls to calculate a posture score."}
                 </p>
               </motion.div>

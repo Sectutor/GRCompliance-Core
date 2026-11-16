@@ -6,7 +6,7 @@ import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { Shield, CheckSquare, Link as LinkIcon, ClipboardCheck, AlertTriangle, FileText, ArrowRight, LayoutDashboard, BookOpen } from "lucide-react";
 import { useMemo } from "react";
-import { postureScoreFromStatuses } from "@/lib/postureScore";
+import { assignedControlCounts, assignedControlRate } from "@/lib/assignedControls";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { ChecklistProgressWidget } from "@/components/readiness/ChecklistProgressWidget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@complianceos/ui/ui/dialog";
@@ -38,12 +38,12 @@ export default function ClientCompliancePage() {
         const frameworks = Array.from(new Set(rows.map((entry) => entry.framework)));
         return frameworks.map(fw => {
             const fwControls = rows.filter(c => c.framework === fw);
-            const score = postureScoreFromStatuses(fwControls.map(c => c.status));
+            const score = assignedControlCounts(fwControls.map(c => c.status));
             return {
                 name: fw,
-                total: score.inScope,
+                total: score.total,
                 implemented: score.implemented,
-                progress: score.rate ?? 0
+                progress: assignedControlRate(score) ?? 0
             };
         });
     }, [controls]);
@@ -169,7 +169,7 @@ export default function ClientCompliancePage() {
                                     <p className="text-2xl font-bold mt-1 text-white">
                                         {complianceScore?.implementedControls || 0} <span className="text-sm font-normal text-white/70">/ {complianceScore?.totalControls || 0}</span>
                                     </p>
-                                    <p className="text-xs text-white/60 mt-1">In-scope controls</p>
+                                    <p className="text-xs text-white/60 mt-1">Assigned controls</p>
                                 </>
                             )}
                         </div>

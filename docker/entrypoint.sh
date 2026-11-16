@@ -40,8 +40,18 @@ case "${GRC_COOKIE_CONSENT:-}" in
   1|true|TRUE|yes|YES) COOKIE_CONSENT="true" ;;
 esac
 
+# Local installs do not take payment. Sign-up stays off unless the operator opts in.
+ALLOW_SIGNUP="false"
+if [ "$AUTH_MODE" != "local" ]; then
+  ALLOW_SIGNUP="true"
+fi
+case "${GRC_ALLOW_SIGNUP:-}" in
+  1|true|TRUE|yes|YES) ALLOW_SIGNUP="true" ;;
+  0|false|FALSE|no|NO) ALLOW_SIGNUP="false" ;;
+esac
+
 cat > /app/packages/core/dist/env-config.js <<EOF
-window.__GRC_CONFIG__ = { authMode: "${AUTH_MODE}", appUrl: "${APP_URL}", cookieConsent: ${COOKIE_CONSENT} };
+window.__GRC_CONFIG__ = { authMode: "${AUTH_MODE}", appUrl: "${APP_URL}", cookieConsent: ${COOKIE_CONSENT}, allowSignup: ${ALLOW_SIGNUP} };
 EOF
 
 echo "[entrypoint] Applying migrations and first-run seed"

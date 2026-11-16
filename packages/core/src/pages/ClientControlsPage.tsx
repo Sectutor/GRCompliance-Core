@@ -175,8 +175,8 @@ export default function ClientControlsPage() {
             <div className="space-y-6">
                 {/* ... Breadcrumb & Header ... */}
 
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-3">
                         <h2 className="text-lg font-semibold">Selected Controls</h2>
                         <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200">
                             {clientControls.length} Controls
@@ -199,7 +199,7 @@ export default function ClientControlsPage() {
                             ]}
                         />
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex max-w-full flex-wrap items-center gap-2">
                         {/* View Toggles & Export buttons (unchanged) */}
                         <div className="flex bg-muted rounded-md p-1 items-center">
                             <Button

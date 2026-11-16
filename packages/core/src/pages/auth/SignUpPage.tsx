@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,8 +10,120 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { Building2, Loader2 } from 'lucide-react';
 import MFAChallengeModal from '@/components/auth/MFAChallengeModal';
+import { isLocalAuthClient, readSignupEnabled } from '@/lib/runtimeConfig';
+import { adoptLocalSession } from '@/lib/localAuthClient';
 
 export default function SignUpPage() {
+    if (isLocalAuthClient()) return <LocalSignUp />;
+    return <HostedSignUp />;
+}
+
+function LocalSignUp() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [organizationName, setOrganizationName] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [, setLocation] = useLocation();
+    const allowSignup = readSignupEnabled();
+
+    const handleSignUp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (password !== confirmPassword) {
+            toast.error("Passwords don't match");
+            return;
+        }
+        if (password.length < 8) {
+            toast.error("Password must be at least 8 characters");
+            return;
+        }
+        setLoading(true);
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    name: fullName,
+                    organizationName,
+                }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(body.error || 'Could not create the account');
+            }
+            adoptLocalSession(body);
+            toast.success('Account created');
+            setLocation('/dashboard');
+        } catch (error: any) {
+            toast.error(error.message || 'Could not create the account');
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-[#002a40]">
+            <Card className="w-full max-w-md relative z-10 bg-[#001e2b] border-slate-700 shadow-2xl">
+                <CardHeader className="space-y-1 text-center">
+                    <div className="mx-auto h-12 w-12 rounded-xl bg-[#0ea5e9] flex items-center justify-center text-white mb-4">
+                        <Building2 className="h-7 w-7 text-white" />
+                    </div>
+                    <CardTitle className="text-2xl font-bold text-white">
+                        {allowSignup ? 'Create account' : 'Sign-up is turned off'}
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                        {allowSignup
+                            ? 'Create a free account on this server. There is no payment step.'
+                            : 'This server does not accept public sign-up. An administrator creates accounts. Sign in with the account from the installer.'}
+                    </CardDescription>
+                </CardHeader>
+                {allowSignup ? (
+                    <form onSubmit={handleSignUp}>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="fullName" className="text-slate-300">Full Name</Label>
+                                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="bg-[#002a40] border-slate-600 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="organizationName" className="text-slate-300">Organization Name</Label>
+                                <Input id="organizationName" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} required className="bg-[#002a40] border-slate-600 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="text-slate-300">Email</Label>
+                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-[#002a40] border-slate-600 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password" className="text-slate-300">Password</Label>
+                                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="bg-[#002a40] border-slate-600 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPassword" className="text-slate-300">Confirm Password</Label>
+                                <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="bg-[#002a40] border-slate-600 text-white" />
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex flex-col space-y-4 pb-8">
+                            <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11 font-medium text-lg border-none" disabled={loading}>
+                                {loading ? 'Creating account...' : 'Create account'}
+                            </Button>
+                            <Button variant="link" type="button" className="text-[#0ea5e9]" onClick={() => setLocation('/login')}>Sign in</Button>
+                        </CardFooter>
+                    </form>
+                ) : (
+                    <CardFooter className="pb-8">
+                        <Button type="button" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => setLocation('/login')}>
+                            Back to sign in
+                        </Button>
+                    </CardFooter>
+                )}
+            </Card>
+        </div>
+    );
+}
+
+function HostedSignUp() {
+    const inviteToken = new URLSearchParams(window.location.search).get('invite');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -55,10 +167,10 @@ export default function SignUpPage() {
             return;
         }
         setLoading(true);
+        const searchParams = new URLSearchParams(window.location.search);
 
         try {
             // Step 1: Create Supabase auth user
-            const searchParams = new URLSearchParams(window.location.search);
             const tier = (searchParams.get('tier') || 'startup') as 'startup' | 'pro' | 'guided' | 'enterprise';
             const interval = (searchParams.get('interval') || 'month') as 'month' | 'year';
 

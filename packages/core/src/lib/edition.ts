@@ -45,6 +45,12 @@ export function realWorkspaceCount(names: Array<string | null | undefined>): num
     return names.filter((name) => !!name && name !== LATORE_DEMO_NAME).length;
 }
 
+/** Visible workspace count. The seeded demo workspace is included. */
+export function workspaceCountLabel(names: Array<string | null | undefined>): string {
+    const total = names.filter((name) => !!name).length;
+    return `${total} ${total === 1 ? "workspace" : "workspaces"}`;
+}
+
 export function canCreateAnotherWorkspace(opts: {
     premiumFlag: string | boolean | undefined | null;
     ownedNames: string[];

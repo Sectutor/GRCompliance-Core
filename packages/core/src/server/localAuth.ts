@@ -2,9 +2,10 @@ import { createHash, createHmac, randomBytes, randomUUID, scrypt, timingSafeEqua
 import { escapeHtml } from './recordAccess';
 import type { Request, Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
-import { getDb } from '../db';
+import { assignUserToClient, createClient, getDb } from '../db';
 import { users } from '../schema';
 import { appOrigin } from '../lib/publicUrl';
+import { signupIsEnabled } from '../lib/signupAccess';
 
 export { appOrigin };
 
@@ -82,6 +83,10 @@ export function isLocalAuthMode(): boolean {
     return process.env.AUTH_MODE === 'local';
 }
 
+export function localSignupEnabled(): boolean {
+    return signupIsEnabled(process.env.AUTH_MODE, process.env.GRC_ALLOW_SIGNUP);
+}
+
 /** A new password for an administrator to hand to the user. Not logged. */
 export function generateLocalPassword(): string {
     return randomBytes(18).toString('hex');
@@ -122,6 +127,80 @@ export async function createLocalAccount(input: {
     return created;
 }
 
+function sessionPayload(user: { openId: string; email: string | null; name: string | null }, email: string) {
+    const accessToken = signLocalToken({ sub: user.openId, email: user.email || email });
+    const expiresAt = Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS;
+    return {
+        access_token: accessToken,
+        token_type: 'bearer' as const,
+        expires_at: expiresAt,
+        user: {
+            id: user.openId,
+            email: user.email,
+            aud: 'authenticated',
+            role: 'authenticated',
+            app_metadata: {},
+            user_metadata: { name: user.name, full_name: user.name },
+        },
+    };
+}
+
+/**
+ * Free local account. No payment step. Off unless GRC_ALLOW_SIGNUP is set.
+ * The account is a normal user, not a second global administrator.
+ */
+export async function localRegisterHandler(req: Request, res: Response): Promise<void> {
+    if (!isLocalAuthMode()) {
+        res.status(404).json({ error: 'Local authentication is not enabled' });
+        return;
+    }
+    if (!localSignupEnabled()) {
+        res.status(403).json({ error: 'Sign-up is disabled on this server. An administrator creates accounts.' });
+        return;
+    }
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const organizationName = typeof req.body?.organizationName === 'string' ? req.body.organizationName.trim() : '';
+    if (!email || !email.includes('@') || email.length > 320) {
+        res.status(400).json({ error: 'A valid email is required' });
+        return;
+    }
+    if (password.length < 8 || password.length > 200) {
+        res.status(400).json({ error: 'Password must be at least 8 characters' });
+        return;
+    }
+    if (name.length < 2 || name.length > 200) {
+        res.status(400).json({ error: 'Enter your name' });
+        return;
+    }
+    if (organizationName.length < 2 || organizationName.length > 200) {
+        res.status(400).json({ error: 'Enter an organization name' });
+        return;
+    }
+    try {
+        const db = await getDb();
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+        if (existing) {
+            res.status(409).json({ error: 'An account with this email already exists. Sign in instead.' });
+            return;
+        }
+        const created = await createLocalAccount({
+            email,
+            name,
+            password,
+            role: 'user',
+            planTier: 'free',
+        });
+        const client = await createClient({ name: organizationName, status: 'active' });
+        await assignUserToClient(created.id, client.id, 'owner');
+        res.status(201).json(sessionPayload(created, email));
+    } catch (error) {
+        console.error('[local-auth] sign-up failed:', error instanceof Error ? error.message : 'unknown');
+        res.status(500).json({ error: 'Could not create the account' });
+    }
+}
+
 export async function localLoginHandler(req: Request, res: Response): Promise<void> {
     if (process.env.AUTH_MODE !== 'local') {
         res.status(404).json({ error: 'Local authentication is not enabled' });
@@ -150,21 +229,7 @@ export async function localLoginHandler(req: Request, res: Response): Promise<vo
         }
 
         await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
-        const accessToken = signLocalToken({ sub: user.openId, email: user.email || email });
-        const expiresAt = Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS;
-        res.json({
-            access_token: accessToken,
-            token_type: 'bearer',
-            expires_at: expiresAt,
-            user: {
-                id: user.openId,
-                email: user.email,
-                aud: 'authenticated',
-                role: 'authenticated',
-                app_metadata: {},
-                user_metadata: { name: user.name, full_name: user.name },
-            },
-        });
+        res.json(sessionPayload(user, email));
     } catch (error) {
         console.error('[local-auth] login failed:', error instanceof Error ? error.message : 'unknown');
         res.status(500).json({ error: 'Sign-in failed' });

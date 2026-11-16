@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { accountPrimaryLabel } from "@/lib/greeting";
 import { Avatar, AvatarFallback } from "@complianceos/ui/ui/avatar";
 import {
   DropdownMenu,
@@ -1163,15 +1164,15 @@ function DashboardLayoutContent({
                 >
                   <Avatar className="h-9 w-9 border shrink-0">
                     <AvatarFallback className="text-xs font-medium">
-                      {user?.user_metadata?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "-"}
+                      {accountPrimaryLabel(dbUser?.name, dbUser?.email || user?.email).charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                     <p className="text-sm font-medium truncate leading-none">
-                      {user?.user_metadata?.full_name || user?.email || "-"}
+                      {accountPrimaryLabel(dbUser?.name, dbUser?.email || user?.email)}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {user?.user_metadata?.full_name ? "Workspace owner" : (user?.email || "-")}
+                      {dbUser?.email || user?.email || "-"}
                     </p>
                   </div>
                 </button>

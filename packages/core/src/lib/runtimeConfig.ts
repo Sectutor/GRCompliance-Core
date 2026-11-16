@@ -15,3 +15,17 @@ export function readMarketingConsentFlag(): boolean {
     const baked = import.meta.env.VITE_COOKIE_CONSENT as string | undefined;
     return marketingConsentEnabled(baked);
 }
+
+export function isLocalAuthClient(): boolean {
+    if (typeof window !== "undefined" && window.__GRC_CONFIG__?.authMode) {
+        return window.__GRC_CONFIG__.authMode === "local";
+    }
+    return import.meta.env.VITE_AUTH_MODE === "local";
+}
+
+export function readSignupEnabled(): boolean {
+    if (typeof window !== "undefined" && window.__GRC_CONFIG__ && "allowSignup" in window.__GRC_CONFIG__) {
+        return window.__GRC_CONFIG__.allowSignup === true;
+    }
+    return import.meta.env.VITE_AUTH_MODE !== "local";
+}
