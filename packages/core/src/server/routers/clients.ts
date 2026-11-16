@@ -284,12 +284,14 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     .from(schema.evidence)
                     .where(eq(schema.evidence.clientId, input.clientId));
 
+                const evidenceTotal = Number(evidenceCount[0]?.count || 0);
                 return {
                     hasFrameworks: Number(controlsCount[0]?.count || 0) > 0,
                     hasUsers: Number(usersCount[0]?.count || 0) > 1, // More than just the owner
                     hasControls: Number(controlsCount[0]?.count || 0) > 0,
                     hasPolicies: Number(policiesCount[0]?.count || 0) > 0,
-                    hasEvidence: Number(evidenceCount[0]?.count || 0) > 0
+                    hasEvidence: evidenceTotal > 0,
+                    evidenceCount: evidenceTotal,
                 };
             }),
         create: publicProcedure.use(isAuthed)

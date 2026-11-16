@@ -51,7 +51,12 @@ irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps
 
 When `/health` returns HTTP 200, the installer prints a short summary: the address in `APP_URL`, the administrator email, and where to read the one-time password. Verbose Docker output goes to `~/grcompliance/install.log` (mode 600). The password is `ADMIN_PASSWORD` in `~/grcompliance/.env` (mode 600). It is not printed and it is not written to any other file. The administrator email is `admin@grcompliance.local` unless you set `ADMIN_EMAIL`. Set `ADMIN_NAME` before install if the sidebar should show a name instead of that email. The first start also loads the **Latore LTD** demo workspace, including sample risks, controls, policies, and evidence.
 
-The app port is published on `127.0.0.1` only, over plain HTTP. To publish it on all interfaces, pass `--public` or set `BIND_ADDRESS=0.0.0.0`. Put a reverse proxy with TLS in front before that host is reachable from a network.
+The app port is published on `127.0.0.1` only, over plain HTTP. To publish it on all interfaces, pass `--public` or set `GRC_PUBLIC_BIND=1` (or `BIND_ADDRESS=0.0.0.0`). Put a reverse proxy with TLS in front before that host is reachable from a network. To switch a public install back to loopback, pass `--local` or set `GRC_LOCAL_BIND=1`. That writes `BIND_ADDRESS=127.0.0.1` and recreates the app container. It works on a fresh install and with `--upgrade`. `GRC_LOCAL_BIND` wins when both bind env vars are set.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --public
+curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --upgrade --local
+```
 
 If `/health` still has not returned HTTP 200 after the retries, the installer exits non-zero and prints `docker compose logs` hints. It does not print the ready message. Set `HEALTH_RETRIES` to change the attempt count (default 90, five seconds apart).
 
@@ -131,7 +136,7 @@ The database image is Postgres 16 with pgvector, which the schema uses for embed
 | `ADMIN_PASSWORD` | First administrator password. Applied only on first start. |
 | `APP_URL` | Address this instance accepts for sign-in and uses in links. Default `http://localhost:3001`. The installer reads `PUBLIC_URL` when `APP_URL` is unset. |
 | `APP_PORT` | Host port mapped to the app. |
-| `BIND_ADDRESS` | Host address for that port. Default `127.0.0.1`. `0.0.0.0` publishes every interface (installer `--public`). Plain HTTP; use a reverse proxy with TLS. |
+| `BIND_ADDRESS` | Host address for that port. Default `127.0.0.1`. `0.0.0.0` publishes every interface (installer `--public` or `GRC_PUBLIC_BIND=1`). `--local` or `GRC_LOCAL_BIND=1` sets `127.0.0.1` again and recreates the app container. Plain HTTP; use a reverse proxy with TLS on a public bind. |
 | `ADMIN_NAME` | Optional display name for the first administrator. When unset, the UI shows `ADMIN_EMAIL`. |
 | `GRC_ALLOW_SIGNUP` | Set to `1` to allow free local sign-up with no payment step. Default off. |
 | `GRC_VERSION` | Image tag used on first install. `latest`, or a `v*` release tag. One-click upgrade then pins `GRC_IMAGE` to a tag and digest. |

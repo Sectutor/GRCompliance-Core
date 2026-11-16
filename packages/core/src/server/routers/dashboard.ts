@@ -3,7 +3,7 @@ import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, count, and, sql, or, inArray } from "drizzle-orm";
-import { postureScore } from "../../lib/postureScore";
+import { workspaceCompliancePercent } from "../../lib/assignedControls";
 import { registerHighRiskInsight } from "../../lib/riskMetricLabels";
 import { TRPCError } from "@trpc/server";
 
@@ -291,23 +291,6 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const implementedCounts = await implementedOverviewQuery.groupBy(schema.clientControls.clientId);
         const implementedMap = new Map<number, number>(implementedCounts.map((r: any) => [r.clientId, Number(r.count)]));
 
-        const notApplicableOverviewQuery = dbConn.select({
-          clientId: schema.clientControls.clientId,
-          count: count()
-        })
-          .from(schema.clientControls)
-          .where(eq(schema.clientControls.status, 'not_applicable'));
-
-        if (frameworkFilter) {
-          notApplicableOverviewQuery.innerJoin(schema.controls, eq(schema.clientControls.controlId, schema.controls.id))
-            .where(and(eq(schema.clientControls.status, 'not_applicable'), eq(schema.controls.framework, frameworkFilter)));
-        }
-        if (effectiveClientIds !== null) {
-          notApplicableOverviewQuery.where(inArray(schema.clientControls.clientId, effectiveClientIds));
-        }
-        const notApplicableCounts = await notApplicableOverviewQuery.groupBy(schema.clientControls.clientId);
-        const notApplicableMap = new Map<number, number>(notApplicableCounts.map((r: any) => [r.clientId, Number(r.count)]));
-
         // Policies count
         const policiesOverviewQuery = dbConn.select({
           clientId: schema.clientPolicies.clientId,
@@ -336,20 +319,13 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         const clientsOverview = allClients.map((c: { id: number; name: string }) => {
           const assigned = controlsMap.get(c.id) || 0;
           const implemented = implementedMap.get(c.id) || 0;
-          const notApplicable = notApplicableMap.get(c.id) || 0;
           const policiesCount = policiesMap.get(c.id) || 0;
           const evidenceCount = evidenceMap.get(c.id) || 0;
-          const posture = postureScore({
-            implemented,
-            notStarted: Math.max(0, assigned - notApplicable - implemented),
-            notApplicable,
-          });
-
           return {
             id: c.id,
             name: c.name,
-            compliancePercentage: posture.rate ?? 0,
-            controlsCount: posture.inScope,
+            compliancePercentage: workspaceCompliancePercent(implemented, assigned),
+            controlsCount: assigned,
             policiesCount: policiesCount,
             evidenceCount: evidenceCount
           };

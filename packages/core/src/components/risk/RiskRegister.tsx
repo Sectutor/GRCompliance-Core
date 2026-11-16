@@ -437,8 +437,8 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             </div>
 
             {/* Scroll pane is height-bounded so the horizontal bar stays in view. */}
-            <div className="mx-4 mb-4 mt-4 flex min-h-[6.5rem] min-w-0 max-w-full flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
-                <div className="risk-register-scroll min-h-[6.5rem] min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto overscroll-contain">
+            <div className="mx-4 mb-4 mt-4 flex h-[calc(100vh-12rem)] min-h-[400px] min-w-0 max-w-full flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+                <div className="risk-register-scroll h-full min-h-[400px] min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto overscroll-contain">
                     <table className="w-max min-w-full border-separate border-spacing-0 table-fancy [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-20 [&_thead_th]:whitespace-nowrap [&_thead_th]:bg-[#003652]">
                         <thead>
                             <tr className="border-none">

@@ -423,7 +423,11 @@ export default function ClientWorkspace() {
           <div className="p-4 rounded-xl border-none shadow-lg shadow-purple-200 dark:shadow-none bg-purple-600 text-white flex items-center justify-between">
             <div>
               <p className="text-sm text-white/80 font-medium">Evidence Collected</p>
-              <p className="text-2xl font-bold mt-1 text-white">-</p>
+              {!onboardingStatus ? (
+                <div className="h-8 w-16 bg-white/20 animate-pulse rounded mt-1" />
+              ) : (
+                <p className="text-2xl font-bold mt-1 text-white">{onboardingStatus.evidenceCount ?? 0}</p>
+              )}
               <p className="text-xs text-white/60 mt-1">Evidence tracking</p>
             </div>
             <div className="p-3 rounded-lg bg-white/20 backdrop-blur-md">

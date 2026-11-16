@@ -24,6 +24,18 @@ export function assignedControlRate(counts: AssignedControlCounts): number | nul
     return Math.round((counts.implemented / counts.total) * 100);
 }
 
+/**
+ * Implemented assigned controls divided by every assigned row, including
+ * not-applicable. Overall Compliance and Context Performance both use this.
+ */
+export function workspaceCompliancePercent(implemented: number, assigned: number): number {
+    const total = Number(assigned);
+    const done = Number(implemented);
+    if (!Number.isFinite(total) || total <= 0) return 0;
+    const safeDone = Number.isFinite(done) && done > 0 ? Math.min(done, total) : 0;
+    return Math.round((safeDone / total) * 100);
+}
+
 /** Hide the import button once this workspace already has assigned controls. */
 export function shouldOfferDemoImport(controlCount: number): boolean {
     return controlCount === 0;

@@ -1,8 +1,9 @@
 /**
  * @vitest-environment node
  */
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -64,6 +65,9 @@ describe("one-line installer contract", () => {
         expect(windows).not.toContain("GRCompliance is up: http://127.0.0.1");
         expect(windows).toContain("New-SecretHex");
         expect(windows).toContain("Re-run left the existing database and uploaded files in place.");
+        expect(windows).toContain("-Local");
+        expect(windows).toContain("GRC_LOCAL_BIND");
+        expect(windows).toContain("Building that app image from source next");
 
         expect(resolvePublicUrl({})).toEqual({ status: 0, output: "http://localhost:3001" });
         expect(resolvePublicUrl({ APP_URL: "https://grc.example.com" })).toEqual({
@@ -121,7 +125,64 @@ describe("one-line installer contract", () => {
         expect(install).toContain("compose_cmd pull updater");
         expect(install).toContain("UPDATER_SECRET");
         expect(install).toContain("curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade");
+        expect(install).toContain("--local");
+        expect(install).toContain("GRC_LOCAL_BIND");
+        expect(install).toContain("--force-recreate");
+        expect(install).toContain("Building that app image from source next");
+        expect(install).toContain("attempted_app_image");
+        expect(install).toContain("2>/dev/null");
         expect(read("packages/core/src/server/updates/routes.ts")).not.toContain("maxClients");
         expect(read("packages/core/src/server/updates/routes.ts")).not.toContain("registerPremiumEntitlement");
+    });
+
+    it("treats a missing terminal as No and does not print a tty error", () => {
+        const install = read("install.sh");
+        const fn = install.slice(install.indexOf("prompt_yes_no()"), install.indexOf("print_docker_install_instructions()"));
+        const result = spawnSync("setsid", ["bash", "-c", `${fn}\nif prompt_yes_no "Install? [y/N] "; then echo CHOICE:yes; else echo CHOICE:no; fi`], {
+            encoding: "utf8",
+            env: { PATH: process.env.PATH },
+        });
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain("CHOICE:no");
+        expect(result.stderr ?? "").not.toContain("/dev/tty");
+    });
+
+    it("switches a public bind back to loopback when --local or GRC_LOCAL_BIND is set", () => {
+        const install = read("install.sh");
+        const fn = install.slice(install.indexOf("validate_bind_address()"), install.indexOf("write_env()"));
+        const dir = mkdtempSync(path.join(tmpdir(), "grc-bind-"));
+        const script = `${fn}
+cd "$DIR"
+umask 077
+printf '%s\\n' 'BIND_ADDRESS=0.0.0.0' > .env
+chmod 600 .env
+INSTALL_DIR="$DIR"
+BIND_MODE=local
+ensure_bind_address
+awk -F= '$1=="BIND_ADDRESS" { print $2 }' .env
+`;
+        const localFlag = spawnSync("bash", ["-c", script], {
+            encoding: "utf8",
+            env: { PATH: process.env.PATH, DIR: dir },
+        });
+        expect(localFlag.status).toBe(0);
+        expect(localFlag.stdout.trim()).toBe("127.0.0.1");
+
+        const envScript = `${fn}
+cd "$DIR"
+umask 077
+printf '%s\\n' 'BIND_ADDRESS=0.0.0.0' > .env
+chmod 600 .env
+INSTALL_DIR="$DIR"
+BIND_MODE=
+ensure_bind_address
+awk -F= '$1=="BIND_ADDRESS" { print $2 }' .env
+`;
+        const envFlag = spawnSync("bash", ["-c", envScript], {
+            encoding: "utf8",
+            env: { PATH: process.env.PATH, DIR: dir, GRC_LOCAL_BIND: "1" },
+        });
+        expect(envFlag.status).toBe(0);
+        expect(envFlag.stdout.trim()).toBe("127.0.0.1");
     });
 });

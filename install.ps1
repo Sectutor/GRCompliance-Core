@@ -12,6 +12,9 @@
   secrets, downloads docker-compose.yml, and starts the stack.
   Existing .env files are never overwritten. -Upgrade pulls or rebuilds.
   -BindLocal publishes Postgres and Redis on 127.0.0.1 only.
+  -Public publishes the app on every interface (BIND_ADDRESS=0.0.0.0).
+  -Local publishes the app on 127.0.0.1 only and recreates the app container.
+  GRC_PUBLIC_BIND=1 matches -Public. GRC_LOCAL_BIND=1 matches -Local and wins.
   HEALTH_RETRIES sets how many /health attempts run before a non-zero exit.
   APP_URL is the address the app accepts. PUBLIC_URL is used when APP_URL is unset.
   The default is http://localhost:3001. This script is not copied into the install directory.
@@ -20,6 +23,7 @@ param(
     [switch]$Upgrade,
     [switch]$BindLocal,
     [switch]$Public,
+    [switch]$Local,
     [string]$Dir = $(if ($env:GRC_HOME) { $env:GRC_HOME } else { Join-Path $HOME "grcompliance" })
 )
 
@@ -41,7 +45,8 @@ On Linux and macOS, install with:
     exit 1
 }
 $script:BindLocal = $BindLocal.IsPresent -or ($env:GRC_BIND_LOCAL -eq "1")
-$script:PublicBind = $Public.IsPresent -or ($env:GRC_PUBLIC_BIND -eq "1")
+$script:LocalBind = $Local.IsPresent -or ($env:GRC_LOCAL_BIND -eq "1")
+$script:PublicBind = (-not $script:LocalBind) -and ($Public.IsPresent -or ($env:GRC_PUBLIC_BIND -eq "1"))
 $script:FreshInstall = $false
 $script:SecretAdded = $false
 if ($env:HEALTH_RETRIES) {
@@ -156,10 +161,49 @@ function Test-PublicUrl([string]$Url) {
     }
 }
 
+function Get-FileBindAddress {
+    if (-not (Test-Path .env)) { return $null }
+    $line = Select-String -Path .env -Pattern "^BIND_ADDRESS=" | Select-Object -First 1
+    if ($line) { return ($line.Line -split "=", 2)[1] }
+    return $null
+}
+
+function Set-BindAddressInEnv([string]$Value) {
+    $path = Join-Path (Get-Location) ".env"
+    if (-not (Test-Path $path)) { return }
+    $lines = @(Get-Content $path)
+    $found = $false
+    $updated = foreach ($line in $lines) {
+        if ($line -like "BIND_ADDRESS=*") {
+            $found = $true
+            "BIND_ADDRESS=$Value"
+        } else {
+            $line
+        }
+    }
+    if (-not $found) {
+        $updated += "BIND_ADDRESS=$Value"
+    }
+    [System.IO.File]::WriteAllLines($path, [string[]]$updated)
+}
+
 function Get-BindAddress {
+    if ($script:LocalBind) { return "127.0.0.1" }
     if ($script:PublicBind) { return "0.0.0.0" }
+    $fromFile = Get-FileBindAddress
+    if ($fromFile) { return $fromFile }
     if ($env:BIND_ADDRESS) { return $env:BIND_ADDRESS }
     return "127.0.0.1"
+}
+
+function Get-AttemptedAppImage {
+    $imageLine = Select-String -Path .env -Pattern "^GRC_IMAGE=" | Select-Object -First 1
+    if ($imageLine) {
+        $pinned = ($imageLine.Line -split "=", 2)[1]
+        if ($pinned) { return $pinned }
+    }
+    $version = if ($env:GRC_VERSION) { $env:GRC_VERSION } else { "latest" }
+    return "ghcr.io/sectutor/grcompliance-core:$version"
 }
 
 function Get-PublicUrl([string]$AppPort) {
@@ -299,7 +343,7 @@ if ($appPull -eq 0 -and $updaterPull -eq 0) {
     if ($LASTEXITCODE -ne 0) { Fail "updater build failed" }
     Invoke-Compose up -d --no-build --remove-orphans
 } else {
-    Write-Host "Published image ${Image}:$($env:GRC_VERSION) is not available. Building from source."
+    Write-Host "Published image $(Get-AttemptedAppImage) is not available. Building that app image from source next."
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Fail "git is required to build the image locally."
     }
@@ -317,6 +361,12 @@ if ($appPull -eq 0 -and $updaterPull -eq 0) {
     Invoke-Compose up -d --build --remove-orphans
 }
 if ($LASTEXITCODE -ne 0) { Fail "docker compose up failed" }
+if ($script:LocalBind -or $script:PublicBind) {
+    Set-BindAddressInEnv (Get-BindAddress)
+    $env:BIND_ADDRESS = Get-BindAddress
+    Invoke-Compose up -d --force-recreate --no-deps app
+    if ($LASTEXITCODE -ne 0) { Fail "Could not recreate the app container for BIND_ADDRESS." }
+}
 
 $port = Get-AppPort
 Write-Host "Waiting for GRCompliance to return HTTP 200 on port $port ($script:HealthRetries attempts)..."

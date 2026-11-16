@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignedControlCounts, assignedControlLabel, assignedControlRate, shouldOfferDemoImport } from "./assignedControls";
+import { assignedControlCounts, assignedControlLabel, assignedControlRate, shouldOfferDemoImport, workspaceCompliancePercent } from "./assignedControls";
 
 describe("assigned control counts", () => {
     it("uses every assigned row, including not-applicable, as the controls page does", () => {
@@ -13,6 +13,9 @@ describe("assigned control counts", () => {
         expect(counts).toEqual({ total: 30, implemented: 14 });
         expect(assignedControlLabel(counts)).toBe("14/30");
         expect(assignedControlRate(counts)).toBe(47);
+        expect(workspaceCompliancePercent(14, 30)).toBe(47);
+        expect(workspaceCompliancePercent(14, 26)).toBe(54);
+        expect(workspaceCompliancePercent(0, 0)).toBe(0);
     });
 
     it("offers demo import only for an empty workspace", () => {

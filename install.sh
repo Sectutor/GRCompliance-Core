@@ -11,14 +11,11 @@ INSTALL_DIR="${GRC_HOME:-${HOME}/grcompliance}"
 UPGRADE=0
 FRESH=0
 BIND_LOCAL=0
-PUBLIC_BIND=0
+BIND_MODE=""
 SECRET_ADDED=0
 LOG_FILE=""
 if [[ "${GRC_BIND_LOCAL:-0}" == "1" ]]; then
   BIND_LOCAL=1
-fi
-if [[ "${GRC_PUBLIC_BIND:-0}" == "1" ]]; then
-  PUBLIC_BIND=1
 fi
 HEALTH_RETRIES="${HEALTH_RETRIES:-90}"
 
@@ -29,6 +26,8 @@ Usage:
   curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade
   curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --bind-local
   curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --public
+  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --local
+  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade --local
   curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --dir PATH
 
 The installer is not copied into the install directory. Upgrade with the curl command above.
@@ -39,10 +38,15 @@ The installer is not copied into the install directory. Upgrade with the curl co
   --public       Publish the app on all interfaces (BIND_ADDRESS=0.0.0.0). Plain HTTP.
                  Put a reverse proxy with TLS in front before this host is reachable
                  from a network. Default is 127.0.0.1 only.
+  --local        Publish the app on 127.0.0.1 only (BIND_ADDRESS=127.0.0.1) and
+                 recreate the app container. Use this to undo --public. Works on a
+                 fresh install and with --upgrade.
 
   APP_URL        Address the app accepts. Default: http://localhost:\$APP_PORT
   PUBLIC_URL     Used when APP_URL is unset
   BIND_ADDRESS   Host address for the app port. Default 127.0.0.1. --public sets 0.0.0.0.
+  GRC_PUBLIC_BIND  Set to 1 for the same result as --public.
+  GRC_LOCAL_BIND   Set to 1 for the same result as --local. Wins over GRC_PUBLIC_BIND.
   HEALTH_RETRIES How many /health attempts before failure (default: 90)
   GRC_ALLOW_SIGNUP  Set to 1 to allow free local sign-up. Default off. No payment step.
 EOF
@@ -59,7 +63,11 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --public)
-      PUBLIC_BIND=1
+      BIND_MODE=public
+      shift
+      ;;
+    --local)
+      BIND_MODE=local
       shift
       ;;
     --dir)
@@ -84,10 +92,14 @@ done
 
 prompt_yes_no() {
   local reply=""
-  if [[ ! -r /dev/tty ]]; then
+  # A piped install often has no controlling terminal. Opening /dev/tty then
+  # prints "/dev/tty: No such device or address". That is a No.
+  if [[ ! -c /dev/tty ]]; then
     return 1
   fi
-  read -r -p "$1" reply </dev/tty || return 1
+  if ! read -r -p "$1" reply 2>/dev/null </dev/tty; then
+    return 1
+  fi
   case "${reply}" in
     y|Y|yes|YES) return 0 ;;
     *) return 1 ;;
@@ -214,8 +226,26 @@ validate_bind_address() {
   fi
 }
 
+resolve_bind_mode() {
+  if [[ -n "${BIND_MODE}" ]]; then
+    return
+  fi
+  if [[ "${GRC_LOCAL_BIND:-0}" == "1" || "${GRC_LOCAL_BIND:-}" == "true" ]]; then
+    BIND_MODE=local
+    return
+  fi
+  if [[ "${GRC_PUBLIC_BIND:-0}" == "1" || "${GRC_PUBLIC_BIND:-}" == "true" ]]; then
+    BIND_MODE=public
+  fi
+}
+
 desired_bind_address() {
-  if [[ "${PUBLIC_BIND}" -eq 1 ]]; then
+  resolve_bind_mode
+  if [[ "${BIND_MODE}" == "local" ]]; then
+    printf '%s\n' "127.0.0.1"
+    return
+  fi
+  if [[ "${BIND_MODE}" == "public" ]]; then
     printf '%s\n' "0.0.0.0"
     return
   fi
@@ -256,7 +286,10 @@ upsert_env_value() {
 
 ensure_bind_address() {
   local desired
-  if [[ "${PUBLIC_BIND}" -eq 1 ]]; then
+  resolve_bind_mode
+  if [[ "${BIND_MODE}" == "local" ]]; then
+    desired="127.0.0.1"
+  elif [[ "${BIND_MODE}" == "public" ]]; then
     desired="0.0.0.0"
   elif [[ -n "${BIND_ADDRESS:-}" ]]; then
     desired="${BIND_ADDRESS}"
@@ -480,8 +513,26 @@ EOF
   exit 1
 }
 
+attempted_app_image() {
+  local pinned version
+  pinned="$(env_value GRC_IMAGE "")"
+  if [[ -n "${pinned}" ]]; then
+    printf '%s\n' "${pinned}"
+    return
+  fi
+  version="$(awk -F= '$1=="GRC_VERSION" { print $2; exit }' .env)"
+  version="${version:-latest}"
+  printf '%s:%s\n' "${IMAGE}" "${version}"
+}
+
+attempted_updater_image() {
+  local version
+  version="$(env_value GRC_UPDATER_VERSION "1")"
+  printf '%s:%s\n' "ghcr.io/sectutor/grcompliance-updater" "${version}"
+}
+
 start_stack() {
-  local version image app_pull updater_pull
+  local version image app_pull updater_pull attempted
   version="$(awk -F= '$1=="GRC_VERSION" { print $2 }' .env)"
   version="${version:-latest}"
   export GRC_VERSION="${version}"
@@ -489,6 +540,7 @@ start_stack() {
   if [[ -n "${image}" ]]; then
     export GRC_IMAGE="${image}"
   fi
+  attempted="$(attempted_app_image)"
   app_pull=0
   updater_pull=0
   quiet compose_cmd pull app || app_pull=$?
@@ -499,7 +551,7 @@ start_stack() {
       exit 1
     fi
   elif [[ "${app_pull}" -eq 0 ]]; then
-    echo "Published updater image is not available. Building the sidecar from source. See ${LOG_FILE}."
+    echo "Published updater image $(attempted_updater_image) is not available. Building the sidecar from source next. See ${LOG_FILE}."
     ensure_source
     if ! GRC_BUILD_CONTEXT="${INSTALL_DIR}/src" quiet compose_cmd up -d --build --no-deps updater; then
       echo "updater build failed. See ${LOG_FILE}." >&2
@@ -510,10 +562,16 @@ start_stack() {
       exit 1
     fi
   else
-    echo "Published image ${IMAGE}:${version} is not available. Building from source. See ${LOG_FILE}."
+    echo "Published image ${attempted} is not available. Building that app image from source next. See ${LOG_FILE}."
     ensure_source
     if ! GRC_BUILD_CONTEXT="${INSTALL_DIR}/src" quiet compose_cmd up -d --build --remove-orphans; then
       echo "docker compose up failed. See ${LOG_FILE}." >&2
+      exit 1
+    fi
+  fi
+  if [[ "${BIND_MODE}" == "local" || "${BIND_MODE}" == "public" ]]; then
+    if ! quiet compose_cmd up -d --force-recreate --no-deps app; then
+      echo "Could not recreate the app container for BIND_ADDRESS. See ${LOG_FILE}." >&2
       exit 1
     fi
   fi
