@@ -10,10 +10,17 @@ If you modify GRCompliance and make it available as a network service, you must 
 
 ## Commercial license
 
-Organizations that need terms other than AGPLv3 can take a commercial license. The template is [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com or legal@grcompliance.com.
+Organizations that need terms other than AGPLv3 can take a commercial license. The template is [commercial-agreement.md](commercial-agreement.md). Write to sales@grcompliance.com or legal@grcompliance.com.
 
 ## Copyright
 
 Copyright (c) 2026 GRCompliance contributors.
 
 The GNU Affero General Public License v3.0 text itself is Copyright (C) 2007 Free Software Foundation, Inc.
+
+GRCompliance
+Copyright (C) 2026 GRCompliance contributors
+
+GRCompliance is free software licensed under the GNU Affero General Public
+License v3.0. The license text below is the unmodified GNU AGPLv3.
+Changing that license text is not allowed. See NOTICE.md.
