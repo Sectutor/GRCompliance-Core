@@ -2,19 +2,38 @@
 
 Open-source governance, risk, and compliance for teams that run ISO 27001, SOC 2, NIS2, and GDPR in one place.
 
+![GRCompliance dashboard](docs/screenshots/dashboard.png)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
+```
+
+[Try the live demo](https://demo.grcompliance.com/)
+
+[Killswitch: a free weekly newsletter on security, AI security and compliance](https://killswitch.work/#/portal/signup)
+
 [![CI](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml/badge.svg)](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Container image](https://img.shields.io/badge/ghcr.io-grcompliance--core-2496ED)](https://github.com/Sectutor/GRCompliance-Core/pkgs/container/grcompliance-core)
 
-GRCompliance is the self-hosted core of a GRC platform. It keeps controls, policies, risks, evidence, and audits together so a team can see what is done and what is still open.
+GRCompliance is the self-hosted core of a GRC platform. It keeps controls, policies, risks, evidence, and audits together so a team can see what is done and what is still open. The hosted product is at [grcompliance.com](https://grcompliance.com/).
 
-The hosted product is at [grcompliance.com](https://grcompliance.com/). The weekly demo is a separate temporary server: [Create your Demo account](https://demo.grcompliance.com). It is reset every week. Do not enter confidential data there.
+The live demo is a separate temporary server. It is reset every week. Do not enter confidential data there.
+
+Docker and the Docker Compose plugin are required for the install command above. The installer creates `~/grcompliance`, writes a private `.env`, and starts the containers. Windows, a custom domain, and a manual compose install are in [Quick start](#quick-start).
+
+## Features
+
+- Frameworks: ISO 27001, SOC 2, NIS2, and GDPR
+- Risk register with likelihood, impact, and residual risk scoring
+- Control library and implementation status
+- Policies generated from templates
+- Evidence linked to controls
+- Audit manager, gap analysis, and compliance reports
 
 ## Product
 
 Screenshots are from the Latore LTD demo workspace after a community install.
-
-![Dashboard](docs/screenshots/dashboard.png)
 
 ![Risk register](docs/screenshots/risk-register.png)
 
@@ -26,32 +45,17 @@ Screenshots are from the Latore LTD demo workspace after a community install.
 
 ![Evidence](docs/screenshots/evidence.png)
 
-## Features
-
-- Frameworks: ISO 27001, SOC 2, NIS2, and GDPR
-- Risk register and risk scoring
-- Control library and implementation status
-- Policies generated from templates
-- Evidence linked to controls
-- Audit workspace for collected evidence and findings
-
 ## Quick start
-
-Docker and the Docker Compose plugin are required. The installer creates `~/grcompliance`, writes a private `.env`, and starts the containers.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
-```
-
-Windows only (PowerShell). `install.ps1` exits before it generates secrets when it is not running on Windows. Linux and macOS use the shell command above.
-
-```powershell
-irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1 | iex
-```
 
 When `/health` returns HTTP 200, the installer prints the address in `APP_URL`. That address is `http://localhost:3001` unless you set `APP_URL` or `PUBLIC_URL` before the install. Open the printed address. It prints the administrator password once, earlier, while it writes `~/grcompliance/.env` (mode 600). The administrator email is `admin@grcompliance.local`. The first start also loads the **Latore LTD** demo workspace, including sample risks, controls, policies, and evidence.
 
 If `/health` still has not returned HTTP 200 after the retries, the installer exits non-zero and prints `docker compose logs` hints. It does not print the ready message. Set `HEALTH_RETRIES` to change the attempt count (default 90, five seconds apart).
+
+Windows only (PowerShell). `install.ps1` exits before it generates secrets when it is not running on Windows. Linux and macOS use the shell command at the top of this page.
+
+```powershell
+irm https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.ps1 | iex
+```
 
 Publish Postgres and Redis on loopback only when you need a host client. The default leaves them on the compose network:
 
@@ -209,7 +213,7 @@ See [SECURITY.md](SECURITY.md). Do not commit `.env` files, credentials, or cust
 
 ## License
 
-GRCompliance is licensed under the GNU Affero General Public License version 3 only (AGPL-3.0-only). The licensor is Intellfence. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+GRCompliance is licensed under the GNU Affero General Public License version 3 only (AGPL-3.0-only). The licensor is GRCompliance. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 
 If you modify GRCompliance and offer it as a network service, AGPL-3.0-only requires you to offer the corresponding source to users of that service.
 
