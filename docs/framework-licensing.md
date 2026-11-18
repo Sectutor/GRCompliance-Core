@@ -1,6 +1,6 @@
 # Framework text licensing
 
-This note records what requirement text is bundled with GRCompliance and what stays bring-your-own. The application license is AGPL-3.0-only (licensor Intellfence). Files marked CC-BY-SA below stay under that Creative Commons license. They are not relicensed to AGPL-3.0-only.
+This note records what requirement text is bundled with GRCompliance and what stays bring-your-own. The application license is AGPL-3.0-only. Copyright is held by GRCompliance contributors. See [NOTICE.md](../NOTICE.md). Files marked CC-BY-SA below stay under that Creative Commons license. They are not relicensed to AGPL-3.0-only.
 
 `data/frameworks/pci.ts` is unchanged. CIS Controls and CSA CCM stay user-uploaded. OWASP SCVS stays on the existing bulk-assign import path and is not a framework-list catalog in this change. Its GitHub repository is CC-BY-SA-4.0 (`OWASP/Software-Component-Verification-Standard`, branch `master`).
 
