@@ -46,7 +46,7 @@ Compliance Obligations, in catalogue order:
 1. ISO 27001:2022
 2. ISO 22301:2019
 3. HITRUST-Aligned (Representative)
-4. SOC 2 Type II
+4. SOC 2 (partial) Type II
 5. NIST CSF 2.0
 6. NIST SP 800-171 r2
 7. PCI DSS v4.0.1
