@@ -2,6 +2,21 @@
 
 `scripts/backup.sh` and `scripts/restore.sh` back up the database and uploaded files for this repository's Docker Compose stack. The database password comes from `DB_PASSWORD` or `DB_PASSWORD_FILE`. There is no default, and the scripts do not print it. Do not commit a `.env` file or write a password into these scripts.
 
+## What this stack stores
+
+`docker-compose.yml` sets the project name to `grcompliance`. The four volumes:
+
+| Volume | Host name | What it holds |
+| --- | --- | --- |
+| `grc_postgres` | `grcompliance_grc_postgres` | Postgres 16 data directory for service `db`, database `grcompliance` (role `grc` unless `POSTGRES_USER` is changed). |
+| `grc_uploads` | `grcompliance_grc_uploads` | Uploaded files. Mounted at `/app/uploads` on `app` and at `/uploads` on `updater`. |
+| `grc_redis` | `grcompliance_grc_redis` | Redis 7 AOF data. The app uses Redis as a cache and for rate-limit counters. These scripts do not archive it. |
+| `grc_backups` | `grcompliance_grc_backups` | Copies the updater writes before it replaces the app image. See [Upgrade](UPGRADE.md). |
+
+The durable copy is a `pg_dump` of database `grcompliance` plus an archive of `grc_uploads`. Take both together. `scripts/backup.sh` does that. It does not copy the `grc_postgres` volume, and it does not copy `grc_redis`.
+
+Readiness report files under `/app/storage/uploads` are not on a Compose volume. `LocalStorageProvider` writes `process.cwd()/storage/uploads`. The script archives that path when it exists on the machine running the backup. A missing directory is skipped.
+
 Defaults match `docker-compose.yml` and stay overridable:
 
 | Variable | Default | Set it when |

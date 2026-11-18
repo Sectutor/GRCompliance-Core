@@ -22,4 +22,4 @@ The manual fallback is:
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --upgrade
 ```
 
-`install.ps1` is Windows-only. Linux and macOS use `install.sh`. Create `updater-state/release.env` before the first `docker compose up` if you did not use the installer. The file is empty until an upgrade writes the pin. See [Updates](docs/updates.md).
+`install.ps1` is Windows-only. Linux and macOS use `install.sh`. A clone already includes `updater-state/release.env` (a comment, no secrets). Compose loads that path and fails if it is missing. The installer creates an empty file only when it is missing. A button upgrade writes the image pin into it. Operator steps are in [Upgrade](docs/UPGRADE.md). Back up the database and uploaded files first: [Backup and restore](docs/BACKUP-RESTORE.md).

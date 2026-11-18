@@ -35,15 +35,15 @@ Edit `.env` and set at least:
 
 Do not commit `.env`. The repository ignores `.env` and every `.env.*` file except the `*.example` templates.
 
-Apply the schema and start the app:
+Apply the schema, then start the API and the web app in two terminals:
 
 ```bash
 npm run db:push
-npm run server
+PORT=3002 npm run server
 npm run dev
 ```
 
-The API listens on port 3001 by default. The web app listens on port 5173.
+The container listens on port 3001. For this Node checkout, `server_entry.ts` listens on `PORT` and on 3002 when `PORT` is unset. `.env.example` sets `PORT=3001` for the container, so start the API with `PORT=3002` (that value is not overwritten by the file). `npm run dev` listens on Vite's default port 5173 and proxies `/api` to `http://127.0.0.1:3002`.
 
 ## Checks
 
@@ -72,7 +72,7 @@ The manual fallback, from any directory, is:
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --upgrade
 ```
 
-`--upgrade` keeps `.env`, the database, and uploaded files. If the new container does not become healthy, the updater starts the previous image and restores the database backup when the schema version changed. Details are in [Updates](docs/updates.md).
+`--upgrade` keeps `.env`, the database, and uploaded files. It does not dump the database. Back up first. The **Settings → Updates** button does take a backup, and if the new container does not become healthy the updater starts the previous image and restores that backup when the schema version changed. Operator steps are in [Upgrade](docs/UPGRADE.md). A backup of the database and uploaded files is in [Backup and restore](docs/BACKUP-RESTORE.md).
 
 ## Next
 

@@ -35,8 +35,11 @@ jobs:
     - name: Build Core
       run: npm run build -w @complianceos/core
       env:
-        # Ensure build passes without premium files
+        # Ensure build passes without premium files.
+        # The production image sets the same heap limit in the Dockerfile.
+        # The default Node heap is about 2 GiB, and vite build hits that on the runner.
         CI: true
+        NODE_OPTIONS: "--max-old-space-size=4096"
 
     # Vite does not load server_entry.ts, so a bad relative import there
     # still typechecks the client and only fails when the server starts.

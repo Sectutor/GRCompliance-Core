@@ -1,6 +1,6 @@
 # Framework text licensing
 
-This note records what requirement text is bundled with GRCompliance and what stays bring-your-own. The application license is AGPL-3.0-only (licensor Intellfence). Files marked CC-BY-SA below stay under that Creative Commons license. They are not relicensed to AGPL-3.0-only.
+This note records what requirement text is bundled with GRCompliance and what stays bring-your-own. The application license is AGPL-3.0-only. Copyright is held by GRCompliance contributors. See [NOTICE.md](../NOTICE.md). Files marked CC-BY-SA below stay under that Creative Commons license. They are not relicensed to AGPL-3.0-only.
 
 `data/frameworks/pci.ts` is unchanged. CIS Controls and CSA CCM stay user-uploaded. OWASP SCVS stays on the existing bulk-assign import path and is not a framework-list catalog in this change. Its GitHub repository is CC-BY-SA-4.0 (`OWASP/Software-Component-Verification-Standard`, branch `master`).
 
@@ -22,7 +22,7 @@ This note records what requirement text is bundled with GRCompliance and what st
 | OWASP ML Security Top 10 2023 | 10 | CC BY-SA 4.0. Description section. `OWASP/www-project-machine-learning-security-top-10` commit `eb418d2b5c202d74b58e41f3195f9aaaa93e0563`. |
 | HIPAA Security Rule | 69 standards and implementation specifications | US government work, public domain. 45 CFR 164.308, 164.310, 164.312, 164.314, and 164.316, transcribed from the Legal Information Institute presentation of the eCFR. ISO values are this repository's control id and short title only. See the HIPAA pull request. |
 | NIS2 Article 21(2) technical measures | 199 annex points | EU law, reusable. Annex to Commission Implementing Regulation (EU) 2024/2690. https://eur-lex.europa.eu/eli/reg_impl/2024/2690/oj |
-| SOC 2 (2017 TSC) | 61 criteria | Identifier and short original title only. AICPA criterion statements and points of focus are not included. See the SOC 2 pull request. |
+| SOC 2 (partial) | 61 criteria | 2017 TSC identifiers and short original titles only. AICPA criterion statements and points of focus are not included. See the SOC 2 (partial) pull request. |
 
 ## Bring your own
 
