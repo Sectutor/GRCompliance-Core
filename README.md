@@ -8,6 +8,8 @@ Open-source, self-hosted governance, risk, and compliance. This repository is Co
 
 Project site: [grcompliance.com](https://grcompliance.com/).
 
+The demo at [demo.grcompliance.com](https://demo.grcompliance.com) is a public sample instance. Data there may be reset.
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
 ```
@@ -271,7 +273,7 @@ See [SECURITY.md](SECURITY.md). Do not commit `.env` files, credentials, or cust
 
 ## License
 
-GRCompliance Core is licensed under the GNU Affero General Public License version 3.0 only (AGPL-3.0-only). See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+GRCompliance Core is licensed under the GNU Affero General Public License version 3.0 only (AGPL-3.0-only). Copyright is held by GRCompliance contributors. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 
 If you modify GRCompliance and offer it as a network service, AGPL-3.0-only requires you to offer the corresponding source to users of that service.
 

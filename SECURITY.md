@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Email security reports to the maintainers of this repository. Do not open a public GitHub issue for a vulnerability, and do not include live credentials in the report.
+Email security reports to info@grcompliance.com. Do not open a public GitHub issue for a vulnerability, and do not include live credentials in the report.
 
 Please describe the affected component, the impact, and a way to reproduce it. You should hear back within a few days.
 
