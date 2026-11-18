@@ -2,7 +2,7 @@
 
 **Version 1.0**  
 **Effective Date: [DATE]**  
-**Between: GRCompliance, Inc. ("Licensor") and [CUSTOMER NAME] ("Licensee")**
+**Between: GRCompliance ("Licensor") and [CUSTOMER NAME] ("Licensee")**
 
 ## 1. GRANT OF LICENSE
 
@@ -157,7 +157,7 @@ All notices shall be in writing and sent to the addresses specified in this Agre
 
 By installing or using the Software, Licensee agrees to be bound by the terms of this Agreement.
 
-**LICENSOR:** GRCompliance, Inc.  
+**LICENSOR:** GRCompliance  
 **ADDRESS:** [ADDRESS]  
 **EMAIL:** legal@grcompliance.com  
 
