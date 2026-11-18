@@ -3,7 +3,7 @@
 Open-source, self-hosted governance, risk, and compliance. This repository is Core. Premium is a paid edition you run on your own host, and it is not open source.
 
 [![CI](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml/badge.svg)](https://github.com/Sectutor/GRCompliance-Core/actions/workflows/ci.yml)
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 [![Container image](https://img.shields.io/badge/ghcr.io-grcompliance--core-2496ED)](https://github.com/Sectutor/GRCompliance-Core/pkgs/container/grcompliance-core)
 
 Project site: [grcompliance.com](https://grcompliance.com/).
@@ -271,10 +271,10 @@ See [SECURITY.md](SECURITY.md). Do not commit `.env` files, credentials, or cust
 
 ## License
 
-GRCompliance Core is licensed under the GNU Affero General Public License version 3.0 (AGPL-3.0). See [LICENSE](LICENSE).
+GRCompliance Core is licensed under the GNU Affero General Public License version 3.0 only (AGPL-3.0-only). See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 
-If you modify GRCompliance and offer it as a network service, AGPL-3.0 requires you to offer the corresponding source to users of that service.
+If you modify GRCompliance and offer it as a network service, AGPL-3.0-only requires you to offer the corresponding source to users of that service.
 
-Organizations that need terms other than AGPL-3.0 can use the commercial template in [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md). Write to sales@grcompliance.com or legal@grcompliance.com.
+Organizations that need terms other than AGPL-3.0-only can use the commercial template in [commercial-agreement.md](commercial-agreement.md). Write to sales@grcompliance.com or legal@grcompliance.com.
 
 Source checkout: [https://github.com/Sectutor/GRCompliance-Core.git](https://github.com/Sectutor/GRCompliance-Core.git).
