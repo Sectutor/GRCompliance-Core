@@ -44,6 +44,9 @@ interface PageGuideProps {
         name: string;
         description: string;
     }[];
+    video?: {
+        screen: string;
+    };
 }
 
 export function PageGuide({
@@ -55,7 +58,8 @@ export function PageGuide({
     moduleId,
     isTrainingRequirement = false,
     scenarios,
-    resources
+    resources,
+    video,
 }: PageGuideProps) {
     const { id: clientIdParam } = useParams();
     const parsedClientId = parseInt(clientIdParam || "0", 10);
@@ -170,6 +174,15 @@ export function PageGuide({
                         <SheetDescription className="text-base text-slate-500 font-medium">
                             {description}
                         </SheetDescription>
+                        {video && /^[a-z0-9-]+$/.test(video.screen) && (
+                            <div className="mt-4 space-y-2">
+                                <video controls preload="none" className="w-full rounded-md bg-slate-900" poster={`/help/video/${video.screen}.en.jpg`}>
+                                    <source src={`/help/video/${video.screen}.en.mp4`} type="video/mp4" />
+                                    <track src={`/help/video/${video.screen}.en.vtt`} kind="captions" srcLang="en" label="English" default />
+                                </video>
+                                <p className="text-xs text-slate-500">If this install has no clip, the player stays empty. We do not load a video from the internet.</p>
+                            </div>
+                        )}
                     </SheetHeader>
                 </div>
 

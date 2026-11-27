@@ -121,6 +121,21 @@ export function createUpdaterServer(deps) {
                 send(res, accepted.status, accepted.body);
                 return;
             }
+            if (req.method === "GET" && url.pathname === "/v1/backups") {
+                const backups = deps.listBackups ? await deps.listBackups() : [];
+                send(res, 200, { backups });
+                return;
+            }
+            if (req.method === "POST" && url.pathname === "/v1/backups/verify") {
+                const body = await readBody(req);
+                if (!deps.verifyBackup) {
+                    send(res, 200, { ok: false, message: "Restore check is not available on this install. The live database was not changed." });
+                    return;
+                }
+                const result = await deps.verifyBackup(body.id);
+                send(res, 200, result && typeof result === "object" ? result : { ok: false, message: "We could not check this backup. The live database was not changed." });
+                return;
+            }
             send(res, 404, { error: "Not found" });
         } catch (error) {
             send(res, 400, { error: redact(error instanceof Error ? error.message : "Bad request") });

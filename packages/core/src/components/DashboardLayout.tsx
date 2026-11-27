@@ -58,6 +58,7 @@ import { Slider } from "@complianceos/ui/ui/slider";
 // Force rebuild
 import { toast } from "sonner";
 import { NotificationCenter } from "./notifications/NotificationCenter";
+import { HelpDrawer } from "./help/HelpDrawer";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
 import { filterNavForEdition, isCommunityEdition } from "@/lib/communityNav";
 import { isPremiumEditionEnabled } from "@/lib/edition";
@@ -1222,6 +1223,7 @@ function DashboardLayoutContent({
           </div>
           <div className="flex items-center gap-3">
             <GlobalSearch />
+            <HelpDrawer />
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <CopilotHelpTrigger />
             <NotificationCenter />

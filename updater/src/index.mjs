@@ -15,6 +15,7 @@ import {
     runCommand,
 } from "./docker.mjs";
 import { archiveUploads, createBackupDir, extractUploads, verifyChecksumFile, writeChecksums } from "./backup.mjs";
+import { listBackups, verifyBackupCopy } from "./backupStatus.mjs";
 
 const composeDir = process.env.COMPOSE_DIR || "/compose";
 const stackEnv = process.env.STACK_ENV_FILE || path.join(composeDir, ".env");
@@ -333,6 +334,13 @@ const server = createUpdaterServer({
     airgap,
     discover,
     upgradeContext,
+    listBackups: () => listBackups(backupRoot),
+    verifyBackup: async (id) => verifyBackupCopy({
+        root: backupRoot,
+        id,
+        freeBytes: await freeBytes(backupRoot),
+        docker,
+    }),
 });
 
 if (!process.env.UPDATER_SECRET) {

@@ -677,7 +677,7 @@ export class LLMService {
     /**
      * Test a provider connection
      */
-    async testConnection(provider: Partial<LLMProvider> & { apiKey: string }): Promise<boolean> {
+    async testConnection(provider: Partial<LLMProvider> & { apiKey: string }): Promise<{ ok: boolean; message: string }> {
         try {
             const testRequest: CompletionRequest = {
                 userPrompt: 'Test',
@@ -719,10 +719,11 @@ export class LLMService {
                 }
             }
 
-            return true;
+            return { ok: true, message: "The key works. This server could reach the model." };
         } catch (e: any) {
-            logger.error({ message: "Test connection failed", error: e.message });
-            return false;
+            logger.error({ message: "Test connection failed", error: e?.message });
+            const { explainLlmErrorText } = await import("./explainLlmError");
+            return { ok: false, message: explainLlmErrorText(e) };
         }
     }
 }

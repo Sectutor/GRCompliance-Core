@@ -375,6 +375,7 @@ export default function Evidence() {
           </div>
 
           <PageGuide
+            video={{ screen: "evidence" }}
             title="Evidence Command Center"
             description="Manage your compliance implementation through structured evidence collection."
             rationale="An auditor doesn't take your word for it—they need proof. This screen allows you to map documents (SOPs, screenshots, logs) to specific master controls, proving your security posture."

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Loader2, Plus, Trash2, Edit, Play, CheckCircle2, XCircle, Monitor, Network, ServerCog, Cpu, ShieldAlert, FileText, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import { LocalAiChoices } from "@/components/admin/LocalAiChoices";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -98,14 +99,21 @@ export default function LLMSettings() {
     });
 
     const testMutation = trpc.llm.test.useMutation({
-        onSuccess: (result) => {
-            setTestResult({
-                success: !!result,
-                message: result ? "Connection successful!" : "Connection failed (empty response)"
-            });
+        onSuccess: (result: { ok?: boolean; message?: string } | boolean) => {
+            const ok = typeof result === "object" ? !!result.ok : !!result;
+            const message = typeof result === "object" && result.message
+                ? result.message
+                : ok
+                    ? "The key works. This server could reach the model."
+                    : "We could not reach the model. Check the key, the model name, and the base URL, then try again.";
+            setTestResult({ success: ok, message });
+            if (ok) toast.success(message);
+            else toast.error(message);
         },
-        onError: (err) => {
-            setTestResult({ success: false, message: err.message });
+        onError: () => {
+            const message = "We could not reach the model. Check the key, the model name, and the base URL, then try again.";
+            setTestResult({ success: false, message });
+            toast.error(message);
         }
     });
 
@@ -210,6 +218,7 @@ export default function LLMSettings() {
                     Add Provider
                 </Button>
             </div>
+            <LocalAiChoices onBringKey={() => { resetForm(); setIsAddOpen(true); }} />
 
             <EnhancedDialog
                 open={isAddOpen}

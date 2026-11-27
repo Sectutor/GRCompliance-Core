@@ -970,6 +970,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
                         <PageGuide
+                            video={{ screen: "policies" }}
                             title="Policy Management Guide"
                             description="Build, manage, and distribute your organizational policies."
                             rationale="Policies are the foundation of compliance. This editor ensures they are not just text files, but integrated living documents connected to your risks and controls."
