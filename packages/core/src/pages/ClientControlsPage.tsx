@@ -116,6 +116,11 @@ export default function ClientControlsPage() {
         onError: (error) => toast.error(error.message),
     });
 
+    const setOwnerMutation = trpc.clientControls.setOwner.useMutation({
+        onSuccess: () => refetchControls(),
+        onError: (error) => toast.error(error.message),
+    });
+
     const updateControlMutation = trpc.clientControls.update.useMutation({
         onSuccess: () => {
             toast.success("Control updated");
@@ -539,11 +544,16 @@ export default function ClientControlsPage() {
                                                                             {item.clientControl.customDescription || item.control?.description}
                                                                         </p>
                                                                         <div className="flex flex-wrap gap-2">
-                                                                            {item.clientControl.owner && (
-                                                                                <span className="text-xs px-2 py-1 bg-muted rounded">
-                                                                                    Owner: {item.clientControl.owner}
-                                                                                </span>
-                                                                            )}
+                                                                            <Input
+                                                                                className="h-8 text-xs max-w-[200px]"
+                                                                                aria-label="Owner"
+                                                                                placeholder="Owner"
+                                                                                defaultValue={item.clientControl.owner || ""}
+                                                                                onBlur={(event) => {
+                                                                                    if ((event.target.value || "") === (item.clientControl.owner || "")) return;
+                                                                                    setOwnerMutation.mutate({ id: item.clientControl.id, owner: event.target.value });
+                                                                                }}
+                                                                            />
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex gap-1">
@@ -582,6 +592,7 @@ export default function ClientControlsPage() {
                                         <TableHead className="w-[100px] py-4">ID</TableHead>
                                         <TableHead className="w-[200px] py-4">Control Name</TableHead>
                                         <TableHead className="w-[150px] py-4">Framework</TableHead>
+                                        <TableHead className="w-[160px] py-4">Owner</TableHead>
                                         <TableHead className="w-[180px] py-4">Applicability</TableHead>
                                         <TableHead className="w-[120px] py-4">Monitoring</TableHead>
                                         <TableHead className="py-4">Justification</TableHead>
@@ -610,6 +621,18 @@ export default function ClientControlsPage() {
                                             </TableCell>
                                             <TableCell className="text-xs text-gray-600 py-4">
                                                 {item.control?.framework}
+                                            </TableCell>
+                                            <TableCell className="py-4">
+                                                <Input
+                                                    className="h-8 text-xs bg-white"
+                                                    aria-label="Owner"
+                                                    placeholder="Owner"
+                                                    defaultValue={item.clientControl.owner || ""}
+                                                    onBlur={(event) => {
+                                                        if ((event.target.value || "") === (item.clientControl.owner || "")) return;
+                                                        setOwnerMutation.mutate({ id: item.clientControl.id, owner: event.target.value });
+                                                    }}
+                                                />
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <Select

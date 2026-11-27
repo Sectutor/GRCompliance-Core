@@ -9,6 +9,7 @@ import * as schema from "../../schema";
 import { eq, and, desc, sql, inArray, like, or } from "drizzle-orm";
 import { bindRecordWorkspace } from "../workspaceAccess";
 import { recordProcedure } from "../trpc";
+import { normalizeControlOwner } from "../../lib/controlOwner";
 
 export const createClientControlsRouter = (t: any, clientProcedure: any, adminProcedure: any, publicProcedure: any, clientEditorProcedure: any) => {
   return t.router({
@@ -480,6 +481,35 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         }
 
         return { success: true, appliedCount, totalControls: validControls.length };
+      }),
+
+    /**
+     * Sets client_controls.owner from the row's own workspace.
+     * Open PR #26 also covers this and adds employees to RACI. This procedure
+     * is the smaller owner write that the next-steps list depends on.
+     */
+    setOwner: recordProcedure
+      .use(bindRecordWorkspace(async (raw) => {
+        const id = Number(raw?.id);
+        if (!Number.isInteger(id) || id <= 0) return null;
+        const cc = await db.getClientControlById(id);
+        return cc?.clientControl?.clientId ?? null;
+      }, { minRole: "editor" }))
+      .input(z.object({
+        id: z.number().int().positive(),
+        owner: z.string().max(255),
+      }))
+      .mutation(async ({ input, ctx }: any) => {
+        const dbConn = await db.getDb();
+        const cc = await db.getClientControlById(input.id);
+        if (!cc || cc.clientControl?.clientId !== ctx.clientId) {
+          throw new TRPCError({ code: "NOT_FOUND" });
+        }
+        const owner = normalizeControlOwner(input.owner);
+        await dbConn.update(clientControls)
+          .set({ owner, updatedAt: new Date() })
+          .where(and(eq(clientControls.id, input.id), eq(clientControls.clientId, ctx.clientId)));
+        return { success: true, owner };
       }),
 
   });

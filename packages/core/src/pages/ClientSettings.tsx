@@ -47,6 +47,7 @@ import { EmailTemplatesTab } from "@/components/settings/EmailTemplatesTab";
 import { PersonalizationReference } from "@/components/settings/PersonalizationReference";
 import { ListTodo, ShoppingBag, History } from "lucide-react";
 import { BackupRestoreSettings } from "@/components/settings/BackupRestoreSettings";
+import { SpreadsheetDropzone } from "@/components/settings/SpreadsheetDropzone";
 
 const SETTINGS_TAB_TITLES: Record<string, string> = {
     general: "General",
@@ -486,6 +487,15 @@ export default function ClientSettings() {
 
                             {/* Frameworks Tab */}
                             <TabsContent value="frameworks" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Bring a spreadsheet</CardTitle>
+                                        <CardDescription>Import controls or risks from a CSV file. We check the rows before saving them on this server.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <SpreadsheetDropzone clientId={clientId} />
+                                    </CardContent>
+                                </Card>
                                 <FrameworksSettingsTab clientId={clientId} />
                             </TabsContent>
 

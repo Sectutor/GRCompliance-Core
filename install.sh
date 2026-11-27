@@ -33,7 +33,12 @@ The installer is not copied into the install directory. Upgrade with the curl co
 
   APP_URL        Address the app accepts. Default: http://localhost:\$APP_PORT
   PUBLIC_URL     Used when APP_URL is unset
-  HEALTH_RETRIES How many /health attempts before failure (default: 90)
+  HEALTH_RETRIES How many /health attempts before failure (default: 90).
+                 The installer stops sooner when the app container is
+                 crash-looping or has exited.
+
+  On Ubuntu or Debian the installer can install Docker only after you answer yes.
+  It can also ask to join Tailscale. Both default to no without a terminal.
 EOF
 }
 
@@ -67,14 +72,59 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-require_docker() {
-  if ! command -v docker >/dev/null 2>&1; then
+prompt_yes() {
+  local question="$1" reply=""
+  if [[ ! -t 0 ]]; then
+    echo "${question} [y/N] No terminal is attached, so the answer is No." >&2
+    return 1
+  fi
+  read -r -p "${question} [y/N] " reply || return 1
+  case "${reply}" in
+    y|Y|yes|YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+os_id() {
+  local id=""
+  if [[ -r /etc/os-release ]]; then
+    id="$(. /etc/os-release && printf '%s' "${ID:-}")"
+  fi
+  printf '%s\n' "${id}"
+}
+
+offer_docker_install() {
+  local id script
+  id="$(os_id)"
+  echo "Docker is not installed or not on PATH." >&2
+  if [[ "${id}" != "ubuntu" && "${id}" != "debian" ]]; then
     cat <<'EOF' >&2
-Docker is not installed or not on PATH.
   Linux: https://docs.docker.com/engine/install/
   macOS and Windows: https://www.docker.com/products/docker-desktop/
 EOF
     exit 1
+  fi
+  if ! prompt_yes "Install Docker for me?"; then
+    echo "Docker was not installed. Install it from https://docs.docker.com/engine/install/ and run this again." >&2
+    exit 1
+  fi
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "sudo is required to install Docker." >&2
+    exit 1
+  fi
+  script="$(mktemp)"
+  curl -fsSL https://get.docker.com -o "${script}"
+  sudo sh "${script}"
+  rm -f "${script}"
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker still is not on PATH after the installer." >&2
+    exit 1
+  fi
+}
+
+require_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    offer_docker_install
   fi
   if ! docker info >/dev/null 2>&1; then
     echo "Docker is installed, but the daemon is not reachable. Start Docker and run this again." >&2
@@ -272,16 +322,186 @@ app_url_from_env() {
   printf '%s\n' "${value}"
 }
 
+replace_literal() {
+  local text="$1" search="$2" repl="$3" out="" remain
+  remain="$text"
+  if [[ -z "${search}" || "${search}" == "${repl}" ]]; then
+    printf '%s' "${text}"
+    return 0
+  fi
+  while [[ "${remain}" == *"${search}"* ]]; do
+    out+="${remain%%"${search}"*}${repl}"
+    remain="${remain#*"${search}"}"
+  done
+  printf '%s%s' "${out}" "${remain}"
+}
+
+redact_line() {
+  local line="$1" secret
+  if ((${#SECRET_VALUES[@]})); then
+    for secret in "${SECRET_VALUES[@]}"; do
+      line="$(replace_literal "${line}" "${secret}" "***")"
+    done
+  fi
+  printf '%s\n' "${line}"
+}
+
+load_secret_values() {
+  local line key value
+  SECRET_VALUES=()
+  [[ -f .env ]] || return 0
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line%%$'\r'}"
+    [[ -z "${line}" || "${line}" == \#* || "${line}" != *"="* ]] && continue
+    key="${line%%=*}"
+    value="${line#*=}"
+    case "${key}" in
+      *PASSWORD*|*SECRET*|*TOKEN*|*KEY*|DATABASE_URL) ;;
+      *) continue ;;
+    esac
+    [[ ${#value} -ge 8 ]] || continue
+    SECRET_VALUES+=("${value}")
+  done < .env
+}
+
+redacted_app_logs() {
+  local raw line
+  raw="$(compose_cmd logs --tail 40 app 2>&1 || true)"
+  load_secret_values
+  if [[ -z "${raw//[[:space:]]/}" ]]; then
+    printf '%s\n' "(no app log lines)"
+    return 0
+  fi
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    redact_line "${line}"
+  done <<< "${raw}"
+}
+
+app_container_id() {
+  compose_cmd ps -q app 2>/dev/null | head -n 1 || true
+}
+
+read_app_runtime() {
+  local id raw rest
+  APP_STATUS="missing"
+  APP_RESTARTS=0
+  APP_EXIT=0
+  APP_POLICY=""
+  id="$(app_container_id)"
+  [[ -n "${id}" ]] || return 0
+  raw="$(docker inspect --format '{{.State.Status}}|{{.RestartCount}}|{{.State.ExitCode}}|{{.HostConfig.RestartPolicy.Name}}' "${id}" 2>/dev/null || true)"
+  [[ -n "${raw}" ]] || return 0
+  APP_STATUS="${raw%%|*}"
+  rest="${raw#*|}"
+  APP_RESTARTS="${rest%%|*}"
+  rest="${rest#*|}"
+  APP_EXIT="${rest%%|*}"
+  rest="${rest#*|}"
+  APP_POLICY="${rest%%|*}"
+}
+
+app_watch_reset() {
+  APP_WATCH_BASELINE=""
+  APP_WATCH_EXITED=0
+  APP_WATCH_RESTARTING=0
+  APP_WATCH_REASON=""
+}
+
+app_watch_observe() {
+  local restarts="${APP_RESTARTS:-0}" delta
+  APP_WATCH_REASON=""
+  [[ "${restarts}" =~ ^[0-9]+$ ]] || restarts=0
+  if [[ -z "${APP_WATCH_BASELINE}" ]]; then
+    APP_WATCH_BASELINE="${restarts}"
+  fi
+  delta=$((restarts - APP_WATCH_BASELINE))
+  ((delta < 0)) && delta=0
+  APP_WATCH_DELTA="${delta}"
+  case "${APP_STATUS}" in
+    restarting) APP_WATCH_RESTARTING=$((APP_WATCH_RESTARTING + 1)); APP_WATCH_EXITED=0 ;;
+    exited|dead) APP_WATCH_EXITED=$((APP_WATCH_EXITED + 1)); APP_WATCH_RESTARTING=0 ;;
+    *) APP_WATCH_RESTARTING=0; APP_WATCH_EXITED=0 ;;
+  esac
+  if ((delta >= 3)) || ((APP_WATCH_RESTARTING >= 2)); then
+    APP_WATCH_REASON="crash-loop"
+  elif [[ "${APP_STATUS}" == "dead" ]] || { [[ "${APP_STATUS}" == "exited" ]] && [[ "${APP_POLICY}" == "no" ]]; } || ((APP_WATCH_EXITED >= 2)); then
+    APP_WATCH_REASON="exited"
+  fi
+}
+
+report_health_failure() {
+  local logs
+  logs="$(redacted_app_logs)"
+  {
+    if [[ "$1" == "crash-loop" ]]; then
+      echo "GRCompliance stopped waiting for /health because the app container is crash-looping."
+    elif [[ "$1" == "exited" ]]; then
+      echo "GRCompliance stopped waiting for /health because the app container has exited."
+    else
+      echo "GRCompliance did not return HTTP 200 from /health after ${HEALTH_RETRIES} attempts."
+    fi
+    echo "Last app log lines (secrets redacted):"
+    printf '%s\n' "${logs}"
+    echo "Next steps, from ${INSTALL_DIR}:"
+    echo "  docker compose ps -a"
+    echo "  docker compose logs --tail 100 app"
+    echo "After fixing the cause, run:"
+    echo "  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade"
+  } >&2
+  exit 1
+}
+
+print_reach_urls() {
+  local port="$1" ip="" ts=""
+  echo "On this machine: http://127.0.0.1:${port}"
+  ip="$(hostname -I 2>/dev/null | awk '{ print $1 }' || true)"
+  if [[ -n "${ip}" && "${ip}" != 127.* ]]; then
+    echo "On your network: http://${ip}:${port}"
+  fi
+  if command -v tailscale >/dev/null 2>&1; then
+    ts="$(tailscale ip -4 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${ts}" ]]; then
+      echo "On your private network: http://${ts}:${port}"
+    fi
+  fi
+}
+
+offer_tailscale() {
+  local id
+  if ! prompt_yes "Join a private network with Tailscale?"; then
+    return 0
+  fi
+  echo "This joins a private network you control. We do not receive a copy of your data."
+  if ! command -v tailscale >/dev/null 2>&1; then
+    id="$(os_id)"
+    if [[ "${id}" == "ubuntu" || "${id}" == "debian" ]] && prompt_yes "Install the Tailscale client now?"; then
+      if command -v sudo >/dev/null 2>&1; then
+        curl -fsSL https://tailscale.com/install.sh | sudo sh || echo "Tailscale was not installed." >&2
+      else
+        echo "sudo is required to install Tailscale." >&2
+        return 0
+      fi
+    else
+      echo "You can install Tailscale later from https://tailscale.com/download and run: sudo tailscale up" >&2
+      return 0
+    fi
+  fi
+  if command -v tailscale >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+    sudo tailscale up || echo "Tailscale did not finish. You can run: sudo tailscale up" >&2
+  fi
+}
+
 wait_for_health() {
-  local port attempt code
+  local port attempt code public_url
   port="$(app_port_from_env)"
+  app_watch_reset
   echo "Waiting for GRCompliance to return HTTP 200 on port ${port} (${HEALTH_RETRIES} attempts)..."
   for attempt in $(seq 1 "${HEALTH_RETRIES}"); do
     code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:${port}/health" 2>/dev/null || true)"
     if [[ "${code}" == "200" ]]; then
-      local public_url
       public_url="$(app_url_from_env)"
       echo "GRCompliance is up: ${public_url}"
+      print_reach_urls "${port}"
       echo "Open that address in a browser. It is the APP_URL this install accepts."
       echo "Sign in with the administrator email in .env."
       if [[ "${FRESH}" -eq 1 ]]; then
@@ -298,19 +518,22 @@ wait_for_health() {
       fi
       echo "Upgrade later with:"
       echo "  curl -fsSL ${RAW_BASE}/install.sh | bash -s -- --upgrade"
+      offer_tailscale || true
       return 0
+    fi
+    read_app_runtime
+    app_watch_observe
+    if [[ -n "${APP_WATCH_REASON}" ]]; then
+      report_health_failure "${APP_WATCH_REASON}"
+    fi
+    if [[ "${attempt}" -eq 1 || $((attempt % 3)) -eq 0 ]]; then
+      echo "Still waiting for HTTP 200 (attempt ${attempt}/${HEALTH_RETRIES}; ${APP_STATUS:-missing})."
     fi
     if [[ "${attempt}" -lt "${HEALTH_RETRIES}" ]]; then
       sleep 5
     fi
   done
-  cat <<EOF >&2
-GRCompliance did not return HTTP 200 from /health after ${HEALTH_RETRIES} attempts.
-Inspect the stack from ${INSTALL_DIR}:
-  docker compose logs
-  docker compose logs app
-EOF
-  exit 1
+  report_health_failure "timeout"
 }
 
 start_stack() {
@@ -357,4 +580,6 @@ main() {
   wait_for_health
 }
 
-main "$@"
+if [[ "${GRC_INSTALL_LIB:-0}" != "1" ]]; then
+  main "$@"
+fi

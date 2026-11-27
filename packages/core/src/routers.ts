@@ -135,6 +135,9 @@ import { createMaturityRouter } from "./server/routers/maturity";
 import { createGumroadRouter } from "./server/routers/gumroad";
 import { feedbackRouter } from "./server/routers/feedback";
 import { createBackupRestoreRouter } from "./server/routers/backupRestore";
+import { createSpreadsheetImportRouter } from "./server/routers/spreadsheetImport";
+import { createNextStepsRouter } from "./server/routers/nextSteps";
+import { createWorkspaceInvitesRouter } from "./server/routers/workspaceInvites";
 import { createRiskSettingsRouter } from "./server/routers/riskSettings";
 import { createKrisRouter } from "./server/routers/kris";
 
@@ -246,6 +249,9 @@ export const appRouter = router({
   feedback: feedbackRouter,
   studio: createStudioRouter(t, protectedProcedure.use(requirePremiumEdition)),
   backupRestore: createBackupRestoreRouter(t, clientProcedure.use(requirePremiumEdition)),
+  spreadsheetImport: createSpreadsheetImportRouter(t, clientEditorProcedure),
+  nextSteps: createNextStepsRouter(t, clientProcedure),
+  workspaceInvites: createWorkspaceInvitesRouter(t, clientEditorProcedure),
   advisor: createAdvisorRouter(t, clientProcedure.use(requirePremiumEdition).use(t.middleware(({ ctx, next, path, input }) => {
     const sig = ctx.req.headers["x-signature"] as string | undefined;
     const ts = ctx.req.headers["x-timestamp"] as string | undefined;
