@@ -24,6 +24,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { PageGuide } from "@/components/PageGuide";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { NextStepsCard } from "@/components/dashboard/NextStepsCard";
 import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
 import { useClientContext } from "@/contexts/ClientContext";
 import { resolveNavigationPath } from "@/lib/navigation";
@@ -369,6 +370,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+      <OnboardingWizard />
       <div className="relative min-h-[calc(100vh-3.5rem)] -mx-4 -my-8 px-4 py-8 md:-mx-8 md:-mt-8 md:px-8 bg-slate-50/50 text-slate-900 overflow-x-clip page-transition">
         {/* Ambient Light Mode Background Glows */}
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -598,7 +600,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Onboarding Banner (Short version for active dashboard) */}
+          {Number(effectiveClientId) > 0 && <NextStepsCard clientId={Number(effectiveClientId)} />}
 
           {!statsLoading && enhancedStats && (overview.totalPolicies === 0 || overview.totalEvidence === 0 || ((user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'owner') && (overview.totalLLMProviders === 0))) && (
             <OnboardingChecklist stats={enhancedStats} role={user?.role} />

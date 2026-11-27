@@ -1,37 +1,43 @@
-
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
+import { Input } from "@complianceos/ui/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
-import { Loader2, ArrowRight, CheckCircle2, ChevronLeft, Table as TableIcon, AlertCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, ArrowRight, CheckCircle2, ChevronLeft, Table as TableIcon, AlertCircle, Download } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
+import { isCommunityEdition as communityFromFlag } from "@/lib/edition";
+import { downloadSpreadsheetTemplate } from "@/lib/spreadsheetTemplates";
 
 interface SpreadsheetMapperProps {
     clientId: number;
     headers: string[];
-    data: any[];
+    data: Record<string, unknown>[];
     onCancel: () => void;
     onSuccess: () => void;
+    kinds?: ImportType[];
+    embedded?: boolean;
 }
 
 type ImportType = "controls" | "risks" | "assets" | "policies";
 
 const FIELD_DEFINITIONS: Record<ImportType, { label: string; key: string; required?: boolean }[]> = {
     controls: [
-        { label: "Control ID / Code", key: "controlCode", required: true },
+        { label: "Control ID", key: "controlCode", required: true },
         { label: "Title", key: "title", required: true },
         { label: "Description", key: "description" },
-        { label: "Grouping / Category", key: "grouping" },
+        { label: "Grouping", key: "grouping" },
+        { label: "Owner", key: "owner" },
+        { label: "Review date", key: "dueDate" },
     ],
     risks: [
-        { label: "Risk Title", key: "title", required: true },
+        { label: "Risk title", key: "title", required: true },
         { label: "Description", key: "description" },
         { label: "Likelihood (1-5)", key: "likelihood" },
         { label: "Impact (1-5)", key: "impact" },
         { label: "Status", key: "status" },
+        { label: "Owner", key: "owner" },
     ],
     assets: [
         { label: "Asset Name", key: "name", required: true },
@@ -43,269 +49,269 @@ const FIELD_DEFINITIONS: Record<ImportType, { label: string; key: string; requir
         { label: "Policy Name", key: "name", required: true },
         { label: "Content", key: "content" },
         { label: "Status", key: "status" },
-    ]
+    ],
 };
 
-export function SpreadsheetMapper({ clientId, headers, data, onCancel, onSuccess }: SpreadsheetMapperProps) {
+type DraftRow = Record<string, string>;
+
+type RowMessage = { errors: string[]; warnings: string[]; action: string };
+
+const CORE_KINDS: ImportType[] = ["controls", "risks"];
+
+export function SpreadsheetMapper({ clientId, headers, data, onCancel, onSuccess, kinds, embedded }: SpreadsheetMapperProps) {
+    const community = communityFromFlag(import.meta.env.VITE_ENABLE_PREMIUM);
+    const allowed = (kinds ?? (community ? CORE_KINDS : (Object.keys(FIELD_DEFINITIONS) as ImportType[])))
+        .filter((kind) => (community ? CORE_KINDS.includes(kind) : true));
     const [step, setStep] = useState(1);
     const [importType, setImportType] = useState<ImportType | null>(null);
     const [mapping, setMapping] = useState<Record<string, string>>({});
-    const [isImporting, setIsImporting] = useState(false);
+    const [drafts, setDrafts] = useState<DraftRow[]>([]);
+    const [messages, setMessages] = useState<Record<number, RowMessage>>({});
+    const [summary, setSummary] = useState<{ create: number; update: number; skipped: number; errors: number; warnings: number } | null>(null);
 
-    // Mock mutation for now - we'll implement it next
-    const importMutation = trpc.backupRestore.importSpreadsheetData.useMutation();
+    const previewMutation = trpc.spreadsheetImport.preview.useMutation();
+    const commitMutation = trpc.spreadsheetImport.commit.useMutation();
+    const legacyMutation = trpc.backupRestore.importSpreadsheetData.useMutation();
 
     const currentFields = importType ? FIELD_DEFINITIONS[importType] : [];
+    const checkedKind = importType === "controls" || importType === "risks";
 
     const autoMap = (type: ImportType) => {
-        const newMapping: Record<string, string> = {};
-        const fields = FIELD_DEFINITIONS[type];
-        
-        fields.forEach(field => {
-            const match = headers.find(h => 
-                h.toLowerCase() === field.key.toLowerCase() || 
-                h.toLowerCase() === field.label.toLowerCase() ||
-                h.toLowerCase().includes(field.key.toLowerCase())
+        const next: Record<string, string> = {};
+        FIELD_DEFINITIONS[type].forEach((field) => {
+            const match = headers.find((header) =>
+                header.toLowerCase() === field.key.toLowerCase()
+                || header.toLowerCase() === field.label.toLowerCase()
+                || header.toLowerCase().includes(field.key.toLowerCase())
             );
-            if (match) newMapping[field.key] = match;
+            if (match) next[field.key] = match;
         });
-        
-        setMapping(newMapping);
+        setMapping(next);
     };
 
-    const handleTypeSelect = (type: ImportType) => {
-        setImportType(type);
-        setStep(2);
-        autoMap(type);
-    };
-
-    const handleMappingChange = (fieldKey: string, header: string) => {
-        setMapping(prev => ({ ...prev, [fieldKey]: header }));
-    };
-
-    const mappedDataPreview = useMemo(() => {
-        if (!importType) return [];
-        return data.slice(0, 5).map(row => {
-            const mappedRow: any = {};
-            currentFields.forEach(field => {
+    const mappedRows = useMemo(() => {
+        return data.map((row) => {
+            const mapped: DraftRow = {};
+            currentFields.forEach((field) => {
                 const header = mapping[field.key];
-                mappedRow[field.key] = header ? row[header] : "";
+                mapped[field.key] = header && header !== "skip" ? String(row[header] ?? "") : "";
             });
-            return mappedRow;
+            return mapped;
         });
-    }, [data, mapping, currentFields, importType]);
+    }, [data, mapping, currentFields]);
 
-    const isMappingValid = () => {
-        return currentFields.filter(f => f.required).every(f => mapping[f.key]);
+    const isMappingValid = () => currentFields.filter((field) => field.required).every((field) => mapping[field.key] && mapping[field.key] !== "skip");
+
+    const applyPlan = (plan: { summary: typeof summary; rows: { index: number; action: string; errors: string[]; warnings: string[] }[] }) => {
+        setSummary(plan.summary);
+        const next: Record<number, RowMessage> = {};
+        plan.rows.forEach((row) => {
+            next[row.index] = { errors: row.errors, warnings: row.warnings, action: row.action };
+        });
+        setMessages(next);
+    };
+
+    const runPreview = async (rows: DraftRow[]) => {
+        if (importType !== "controls" && importType !== "risks") return;
+        const plan = await previewMutation.mutateAsync({ clientId, kind: importType, rows });
+        applyPlan(plan);
+    };
+
+    const handleReview = async () => {
+        setDrafts(mappedRows);
+        setStep(3);
+        if (checkedKind) {
+            try {
+                await runPreview(mappedRows);
+            } catch (error: any) {
+                toast.error(error?.message || "We could not check these rows.");
+            }
+        }
+    };
+
+    const updateCell = (index: number, key: string, value: string) => {
+        setDrafts((current) => current.map((row, offset) => offset === index ? { ...row, [key]: value } : row));
+    };
+
+    const handleRecheck = async () => {
+        try {
+            await runPreview(drafts);
+            toast.success("Checked again.");
+        } catch (error: any) {
+            toast.error(error?.message || "We could not check these rows.");
+        }
     };
 
     const handleImport = async () => {
         if (!importType) return;
-        setIsImporting(true);
         try {
-            // Prepare the data by mapping all rows
-            const mappedRows = data.map(row => {
-                const mappedRow: any = {};
-                currentFields.forEach(field => {
-                    const header = mapping[field.key];
-                    mappedRow[field.key] = header ? row[header] : null;
-                });
-                return mappedRow;
-            });
-
-            await importMutation.mutateAsync({
-                clientId,
-                type: importType,
-                data: mappedRows
-            });
-
-            toast.success(`${importType.charAt(0).toUpperCase() + importType.slice(1)} imported successfully`);
+            if (importType === "controls" || importType === "risks") {
+                const result = await commitMutation.mutateAsync({ clientId, kind: importType, rows: drafts });
+                toast.success(`Saved ${result.saved} rows on this server.`);
+            } else {
+                await legacyMutation.mutateAsync({ clientId, type: importType, data: drafts });
+                toast.success("Import saved.");
+            }
             onSuccess();
         } catch (error: any) {
-            toast.error("Import failed: " + error.message);
-        } finally {
-            setIsImporting(false);
+            toast.error(error?.message || "Import failed.");
         }
     };
 
+    const visibleRows = drafts
+        .map((row, offset) => ({ index: offset + 1, row }))
+        .sort((a, b) => {
+            const rank = (index: number) => (messages[index]?.errors.length ? 0 : messages[index]?.warnings.length ? 1 : 2);
+            return rank(a.index) - rank(b.index) || a.index - b.index;
+        })
+        .slice(0, 80);
+
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
+        <div className={embedded ? "space-y-4" : "max-w-4xl mx-auto space-y-6"}>
+            <div className="flex items-center justify-between gap-3">
                 <Button variant="ghost" onClick={onCancel} className="gap-2">
                     <ChevronLeft className="h-4 w-4" />
-                    Cancel Import
+                    Cancel import
                 </Button>
-                <div className="flex gap-2">
-                    {[1, 2, 3].map(i => (
-                        <div 
-                            key={i} 
-                            className={`h-2 w-12 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`}
-                        />
-                    ))}
-                </div>
+                <p className="text-xs text-muted-foreground text-right">Read in your browser. Saved only on this server.</p>
             </div>
 
-            <AnimatePresence mode="wait">
-                {step === 1 && (
-                    <motion.div
-                        key="step1"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="space-y-6"
-                    >
-                        <div className="text-center space-y-2">
-                            <h2 className="text-2xl font-bold">What are you importing?</h2>
-                            <p className="text-muted-foreground text-sm">Select the type of data in your spreadsheet.</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {(Object.keys(FIELD_DEFINITIONS) as ImportType[]).map((type) => (
-                                <Card 
-                                    key={type}
-                                    className="cursor-pointer hover:border-primary transition-all hover:shadow-md"
-                                    onClick={() => handleTypeSelect(type)}
-                                >
-                                    <CardHeader className="flex flex-row items-center gap-4">
-                                        <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center text-primary">
-                                            <TableIcon className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="capitalize">{type}</CardTitle>
-                                            <CardDescription>Import your {type} list.</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                </Card>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-
-                {step === 2 && importType && (
-                    <motion.div
-                        key="step2"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="space-y-6"
-                    >
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 capitalize">
-                                    Map {importType} Columns
-                                </CardTitle>
-                                <CardDescription>
-                                    Match your spreadsheet columns to GRCompliance fields.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4 font-semibold text-sm border-b pb-2">
-                                    <span>Database Field</span>
-                                    <span>Spreadsheet Column</span>
-                                </div>
-                                {currentFields.map((field) => (
-                                    <div key={field.key} className="grid grid-cols-2 gap-4 items-center">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium">
-                                                {field.label}
-                                                {field.required && <span className="text-destructive ml-1">*</span>}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground">Internal Key: {field.key}</span>
-                                        </div>
-                                        <Select 
-                                            value={mapping[field.key] || "skip"} 
-                                            onValueChange={(val) => handleMappingChange(field.key, val)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Skip field" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="skip">-- Skip --</SelectItem>
-                                                {headers.map(h => (
-                                                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+            {step === 1 && (
+                <div className="space-y-4">
+                    <div className="space-y-1">
+                        <h2 className="text-xl font-bold">What are you importing?</h2>
+                        <p className="text-sm text-muted-foreground">Controls and risks can be checked before anything is saved.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {allowed.map((type) => (
+                            <Card key={type} className="cursor-pointer hover:border-primary" onClick={() => { setImportType(type); setStep(2); autoMap(type); }}>
+                                <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+                                    <TableIcon className="h-5 w-5 text-primary" />
+                                    <div>
+                                        <CardTitle className="capitalize text-base">{type}</CardTitle>
+                                        <CardDescription>Bring your {type} list.</CardDescription>
                                     </div>
-                                ))}
-                            </CardContent>
-                            <CardFooter className="flex justify-between">
-                                <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                                <Button 
-                                    onClick={() => setStep(3)} 
-                                    disabled={!isMappingValid()}
-                                    className="gap-2"
-                                >
-                                    Review Data <ArrowRight className="h-4 w-4" />
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    </motion.div>
-                )}
+                                </CardHeader>
+                            </Card>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => downloadSpreadsheetTemplate("controls")}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download controls template
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => downloadSpreadsheetTemplate("risks")}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download risks template
+                        </Button>
+                    </div>
+                </div>
+            )}
 
-                {step === 3 && importType && (
-                    <motion.div
-                        key="step3"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="space-y-6"
-                    >
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    Review & Data Preview
-                                </CardTitle>
-                                <CardDescription>
-                                    Check the first few rows to ensure the mapping is correct.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="border rounded-md overflow-hidden">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                {currentFields.map(f => mapping[f.key] && (
-                                                    <TableHead key={f.key}>{f.label}</TableHead>
+            {step === 2 && importType && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="capitalize">Map {importType} columns</CardTitle>
+                        <CardDescription>Match your spreadsheet columns to the fields we store.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {currentFields.map((field) => (
+                            <div key={field.key} className="grid grid-cols-2 gap-3 items-center">
+                                <span className="text-sm">{field.label}{field.required ? " *" : ""}</span>
+                                <Select value={mapping[field.key] || "skip"} onValueChange={(value) => setMapping((prev) => ({ ...prev, [field.key]: value }))}>
+                                    <SelectTrigger><SelectValue placeholder="Skip" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="skip">Skip</SelectItem>
+                                        {headers.map((header) => <SelectItem key={header} value={header}>{header}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ))}
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                        <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                        <Button onClick={() => void handleReview()} disabled={!isMappingValid()} className="gap-2">
+                            Check rows <ArrowRight className="h-4 w-4" />
+                        </Button>
+                    </CardFooter>
+                </Card>
+            )}
+
+            {step === 3 && importType && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Check before you save</CardTitle>
+                        <CardDescription>
+                            {summary
+                                ? `Would create ${summary.create}, update ${summary.update}, skip ${summary.skipped}. ${summary.errors} with errors, ${summary.warnings} with warnings.`
+                                : "Checking the rows on this server."}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <div className="border rounded-md overflow-auto max-h-80">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Row</TableHead>
+                                        {currentFields.map((field) => <TableHead key={field.key}>{field.label}</TableHead>)}
+                                        <TableHead>Check</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {visibleRows.map((entry) => {
+                                        const message = messages[entry.index];
+                                        const broken = !!message && message.errors.length > 0;
+                                        return (
+                                            <TableRow key={entry.index}>
+                                                <TableCell>{entry.index}</TableCell>
+                                                {currentFields.map((field) => (
+                                                    <TableCell key={field.key}>
+                                                        {broken ? (
+                                                            <Input
+                                                                aria-label={`${field.label} row ${entry.index}`}
+                                                                value={entry.row[field.key] || ""}
+                                                                onChange={(event) => updateCell(entry.index - 1, field.key, event.target.value)}
+                                                                className="h-8"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-xs">{entry.row[field.key] || "—"}</span>
+                                                        )}
+                                                    </TableCell>
                                                 ))}
+                                                <TableCell className="text-xs max-w-[220px]">
+                                                    {message?.errors.map((error) => <p key={error} className="text-red-700">{error}</p>)}
+                                                    {message?.warnings.map((warning) => <p key={warning} className="text-amber-700">{warning}</p>)}
+                                                    {!message?.errors.length && !message?.warnings.length ? <span className="text-muted-foreground">Looks fine</span> : null}
+                                                </TableCell>
                                             </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {mappedDataPreview.map((row, i) => (
-                                                <TableRow key={i}>
-                                                    {currentFields.map(f => mapping[f.key] && (
-                                                        <TableCell key={f.key} className="text-xs truncate max-w-[200px]">
-                                                            {String(row[f.key] || "-")}
-                                                        </TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-
-                                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3">
-                                    <CheckCircle2 className="h-5 w-5 text-blue-600 shrink-0" />
-                                    <div className="text-sm text-blue-800">
-                                        Ready to import <strong>{data.length}</strong> records. 
-                                        Existing records with the same identifier will be updated, new ones will be created.
-                                    </div>
-                                </div>
-                            </CardContent>
-                            <CardFooter className="flex justify-between">
-                                <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-                                <Button 
-                                    onClick={handleImport} 
-                                    disabled={isImporting}
-                                    className="gap-2 bg-green-600 hover:bg-green-700"
-                                >
-                                    {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                    Start Import
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        {summary && summary.errors > 0 && (
+                            <p className="text-sm flex gap-2 text-amber-800">
+                                <AlertCircle className="h-4 w-4 mt-0.5" />
+                                Fix the cells in red, then check again. Only valid rows are saved.
+                            </p>
+                        )}
+                    </CardContent>
+                    <CardFooter className="flex justify-between gap-2">
+                        <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+                        <div className="flex gap-2">
+                            {checkedKind && (
+                                <Button variant="outline" onClick={() => void handleRecheck()} disabled={previewMutation.isPending}>
+                                    {previewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check again"}
                                 </Button>
-                            </CardFooter>
-                        </Card>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                            )}
+                            <Button onClick={() => void handleImport()} disabled={commitMutation.isPending || legacyMutation.isPending || (checkedKind && !summary) || (summary != null && summary.create === 0 && summary.update === 0)} className="gap-2">
+                                {(commitMutation.isPending || legacyMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                Import valid rows
+                            </Button>
+                        </div>
+                    </CardFooter>
+                </Card>
+            )}
         </div>
     );
 }

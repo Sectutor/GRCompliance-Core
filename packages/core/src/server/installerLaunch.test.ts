@@ -50,6 +50,11 @@ describe("one-line installer contract", () => {
         expect(install).toContain("command -v docker");
         expect(install).toContain("docker compose version");
         expect(install).toContain("Docker is not installed or not on PATH.");
+        expect(install).toContain("Install Docker for me?");
+        expect(install).toContain("Join a private network with Tailscale?");
+        expect(install).toContain("On your network:");
+        expect(install).toContain("crash-looping");
+        expect(install).toContain("No terminal is attached, so the answer is No.");
         expect(install).toContain("The Docker Compose plugin is missing.");
         expect(install).toContain("openssl rand -hex 24");
         expect(install).toContain("openssl rand -hex 32");

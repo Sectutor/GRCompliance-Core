@@ -260,12 +260,28 @@ export const usersSubRouter = router({
                 newUser = created;
             }
 
-            // 4. Mark Invitation Accepted
+            // 4. Mark Invitation Accepted. The token is single-use after this.
             await dbConn.update(userInvitations)
                 .set({
                     status: 'accepted',
+                    usedAt: new Date(),
+                    usedByUserId: newUser.id,
                 })
                 .where(eq(userInvitations.id, invite.id));
+
+            if (invite.clientId && newUser?.id) {
+                const [membership] = await dbConn.select({ id: userClients.id })
+                    .from(userClients)
+                    .where(and(eq(userClients.userId, newUser.id), eq(userClients.clientId, invite.clientId)))
+                    .limit(1);
+                if (!membership) {
+                    await dbConn.insert(userClients).values({
+                        userId: newUser.id,
+                        clientId: invite.clientId,
+                        role: invite.role || 'viewer',
+                    });
+                }
+            }
 
             return { success: true };
         }),

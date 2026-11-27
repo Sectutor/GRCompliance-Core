@@ -85,6 +85,8 @@ A Node checkout needs Node.js 20 or newer, npm, PostgreSQL 15 or newer, and git.
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash
 ```
 
+On Ubuntu or Debian, if Docker is missing, the installer asks "Install Docker for me?" and does nothing unless you answer yes. It also asks whether to join a private network with Tailscale. Both default to no when there is no terminal. When the app is up, it prints the address on this machine and, when it can see one, the address on your local network or Tailscale network. If the app container keeps restarting, the installer stops and prints a log with secrets removed.
+
 Publish Postgres and Redis on `127.0.0.1` only when a host client needs them. The default leaves both on the Compose network.
 
 ```bash
@@ -96,6 +98,8 @@ Choose another directory with `--dir` or `GRC_HOME`:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Sectutor/GRCompliance-Core/main/install.sh | bash -s -- --dir /opt/grcompliance
 ```
+
+## Installing on a server or with your own domain
 
 The installer writes `APP_URL` into `.env`. The app uses that address for sign-in and for links. Set it to the address you will open in the browser before the first install. If `APP_URL` is unset, the installer reads `PUBLIC_URL`, then `http://localhost:` plus `APP_PORT` (3001 unless you change it).
 
