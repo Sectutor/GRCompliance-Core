@@ -223,6 +223,7 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                             <Plus className="w-4 h-4 mr-2" /> Add Risk
                         </Button>
                         <PageGuide
+                            video={{ screen: "risks" }}
                             title="Risk Register"
                             description="Identify, assess, and treat risks to your organization."
                             rationale="A comprehensive risk register is the foundation of information security. It documents potential threats, their likelihood and impact, and the controls you've put in place to mitigate them."

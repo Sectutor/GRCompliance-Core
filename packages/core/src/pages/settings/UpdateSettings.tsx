@@ -3,6 +3,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Button } from "@complianceos/ui/ui/button";
 import { authedFetch } from "@/lib/authedFetch";
 import { Loader2 } from "lucide-react";
+import { BackupStatusCard } from "@/components/admin/BackupStatusCard";
 
 type ReleaseImage = { name: string; tag: string; digest: string };
 type ReleaseManifest = {
@@ -135,6 +136,7 @@ export default function UpdateSettings() {
                     and it does not change the Community workspace cap. The app never receives the Docker socket.
                 </p>
             </div>
+            <BackupStatusCard />
             <dl className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                     <dt className="text-muted-foreground">Current version</dt>

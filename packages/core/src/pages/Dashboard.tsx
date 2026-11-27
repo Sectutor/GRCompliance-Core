@@ -387,6 +387,7 @@ export default function Dashboard() {
               ]}
             />
             <PageGuide
+              video={{ screen: "dashboard" }}
               title="Command Center"
               description="Your strategic hub for organizational compliance and risk posture."
               rationale="The dashboard aggregates data across all contexts to give you high-level visibility into compliance trends and critical gaps."

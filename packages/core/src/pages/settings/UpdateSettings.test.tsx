@@ -68,7 +68,7 @@ describe("UpdateSettings", () => {
     });
 
     it("disables the button for an air-gapped install", async () => {
-        authed.mockResolvedValue(json({
+        authed.mockImplementation(async () => json({
             edition: "core",
             updater: "ok",
             currentVersion: "1.0.0",
@@ -85,7 +85,7 @@ describe("UpdateSettings", () => {
         }));
         render(<UpdateSettings />);
         const button = await screen.findByTestId("upgrade-now");
-        await waitFor(() => expect(button).toBeDisabled());
-        expect(button).toHaveTextContent("Updates disabled");
+        await waitFor(() => expect(button).toHaveTextContent("Updates disabled"));
+        expect(button).toBeDisabled();
     });
 });

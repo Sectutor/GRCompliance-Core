@@ -1876,6 +1876,37 @@ export const appRouter = router({
         return await llmService.testConnection(input);
       }),
 
+    localOffer: adminProcedure.query(async () => {
+      const os = await import('node:os');
+      const { localModelOffer } = await import('./lib/llm/localModel');
+      return localModelOffer(process.env.OLLAMA_BASE_URL, os.freemem());
+    }),
+
+    prepareLocal: adminProcedure.mutation(async () => {
+      const { allowedLocalBase, BUNDLED_MODEL } = await import('./lib/llm/localModel');
+      const { explainLlmErrorText } = await import('./lib/llm/explainLlmError');
+      const base = allowedLocalBase(process.env.OLLAMA_BASE_URL);
+      if (!base) {
+        return {
+          ok: false,
+          message: "The built-in model is not running yet. On the server, run: docker compose --profile ai up -d ollama. Then set OLLAMA_BASE_URL to http://ollama:11434 and start the app again. That does not delete your data.",
+        };
+      }
+      try {
+        const response = await fetch(new URL("/api/pull", base), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: BUNDLED_MODEL, stream: false }),
+        });
+        if (!response.ok) {
+          return { ok: false, message: explainLlmErrorText({ status: response.status, message: "model pull failed" }) };
+        }
+        return { ok: true, message: "The small model is on this server. Questions stay here." };
+      } catch (error) {
+        return { ok: false, message: explainLlmErrorText(error) };
+      }
+    }),
+
     getRoutes: adminProcedure.query(async () => {
       const dbConn = await db.getDb();
       /* 

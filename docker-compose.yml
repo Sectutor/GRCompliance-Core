@@ -126,8 +126,19 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  # Optional. Not started unless you ask: docker compose --profile ai up -d ollama
+  # Then set OLLAMA_BASE_URL=http://ollama:11434 on the app and start it again.
+  # That does not delete the database. The model is not downloaded until an administrator asks.
+  ollama:
+    profiles: ["ai"]
+    image: docker.io/ollama/ollama:0.6.3
+    volumes:
+      - grc_ollama:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   grc_postgres:
   grc_redis:
   grc_uploads:
   grc_backups:
+  grc_ollama:

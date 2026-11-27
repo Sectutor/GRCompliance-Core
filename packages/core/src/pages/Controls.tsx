@@ -362,6 +362,7 @@ export default function Controls() {
           </div>
           <div className="flex items-center gap-3">
             <PageGuide
+              video={{ screen: "controls" }}
               title="Global Control Library"
               description="Your centralized repository for operational security controls. Define once, comply many times."
               rationale="Instead of managing separate compliance projects for SOC 2, ISO 27001, and HIPAA, define a single 'Master Control' (e.g., 'Employee Background Checks') and map it to multiple framework requirements. This eliminates redundant work."

@@ -156,6 +156,50 @@ export function createUpdateRouter(deps: UpdateDeps) {
         }
     });
 
+    router.get("/backups", async (req: AuthedRequest, res: Response) => {
+        const user = admin(req, res);
+        if (!user) return;
+        try {
+            const upstream = await deps.callUpdater("/v1/backups");
+            const status = await deps.callUpdater("/v1/status").catch(() => ({ body: {} as Record<string, unknown> }));
+            const backups = Array.isArray(upstream.body.backups) ? upstream.body.backups : [];
+            const newest = [...backups].sort((a: { modifiedAt?: string }, b: { modifiedAt?: string }) => String(b?.modifiedAt || "").localeCompare(String(a?.modifiedAt || "")))[0] as { restoreTest?: { at?: string; passed?: boolean } } | undefined;
+            res.status(200).json({
+                version: deps.currentVersion(),
+                updateAvailable: !!status.body?.available,
+                backups,
+                restoreTest: newest?.restoreTest?.at ? { at: newest.restoreTest.at, passed: newest.restoreTest.passed === true } : null,
+            });
+        } catch {
+            res.status(200).json({
+                version: deps.currentVersion(),
+                updateAvailable: false,
+                backups: [],
+                restoreTest: null,
+                message: "Backup status is not available yet. The live database was not changed.",
+            });
+        }
+    });
+
+    router.post("/backups/verify", async (req: AuthedRequest, res: Response) => {
+        const user = admin(req, res);
+        if (!user) return;
+        const id = typeof req.body?.id === "string" ? req.body.id : "";
+        if (!/^[A-Za-z0-9._-]+$/.test(id)) {
+            res.status(200).json({ ok: false, message: "That backup name is not one we can check. The live database was not changed." });
+            return;
+        }
+        try {
+            const upstream = await deps.callUpdater("/v1/backups/verify", { method: "POST", body: JSON.stringify({ id }) });
+            const message = typeof upstream.body.message === "string"
+                ? upstream.body.message
+                : "We could not check this backup. The live database was not changed.";
+            res.status(200).json({ ok: upstream.body.ok === true, message });
+        } catch {
+            res.status(200).json({ ok: false, message: "We could not check this backup. The live database was not changed." });
+        }
+    });
+
     return router;
 }
 

@@ -57,6 +57,7 @@ import { validateSecrets } from './packages/core/src/lib/secrets';
 import { localForgotPasswordHandler, localLoginHandler, localResetPasswordHandler } from './packages/core/src/server/localAuth';
 import { hasPremiumEntitlementProvider } from './packages/core/src/server/premiumEntitlement';
 import { createUpdateRouter, liveUpdateDeps } from './packages/core/src/server/updates/routes';
+import { createDiagnosticsRouter } from './packages/core/src/server/diagnostics/routes';
 import { auditUpdate, markUpgradeStarted, noteUpgradeTerminal } from './packages/core/src/server/updates/audit';
 import { CORE_EDITION, currentAppVersion, SCHEMA_VERSION } from './packages/core/src/server/updates/schemaVersion';
 
@@ -228,6 +229,7 @@ app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) =>
     }
 });
 // APIs. The update route talks to the sidecar. This process does not mount the Docker socket.
+app.use('/api/admin/diagnostics', createDiagnosticsRouter());
 app.use('/api/updates', createUpdateRouter(liveUpdateDeps({
     audit: auditUpdate,
     noteTerminal: noteUpgradeTerminal,
